@@ -20,7 +20,7 @@ Git-HTTP und MCP für KI-Agenten bereit. Sprache: **Go**.
 | `docs/STATUS.md` | **Einzige** Quelle für offen / in Arbeit / erledigt, offene Fragen, Review-Befunde, Übergabe-Notiz |
 | `docs/KONZEPT.md` | Soll-Zustand: Funktionen, Architektur, Datenablage, Phasen |
 | `docs/ENTSCHEIDUNGEN.md` | Grundsatzentscheidungen mit Begründung |
-| `docs/SCHEMA.md` | (ab T-0.3) verbindliches YAML-Schema |
+| `docs/SCHEMA.md` | verbindliches Schema von `repo.yaml` (T-0.3) |
 | `design/` | UI-Entwurf (Quellen + Link) |
 | `THIRD_PARTY.md` | (ab T-0.6) übernommener Fremdcode mit Herkunft |
 

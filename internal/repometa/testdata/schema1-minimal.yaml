@@ -1,0 +1,13 @@
+# Fixture: the smallest valid schema-1 file a person would write by hand.
+# Absent sections take their defaults. Keep it unchanged.
+schema: 1
+id: 01JC8QH3K7Z9X2M4N6P8R0T2V6
+source:
+  url: https://codeberg.org/beispiel/werkzeug
+  host: codeberg.org
+  owner: beispiel
+  name: werkzeug
+kind: mirror
+sync:
+  mode: manual
+created: 2026-11-08T10:00:00Z
