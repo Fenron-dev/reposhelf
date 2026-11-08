@@ -230,6 +230,9 @@ Name aus dem Netz wird nie ungeprüft zum Pfad (Fero-Invariante).
 
 ### 5.2 `repo.yaml` – Schema (Entwurf)
 
+> Verbindlich ist inzwischen `docs/SCHEMA.md` (T-0.3). Dieser Abschnitt bleibt
+> als ursprünglicher Entwurf stehen.
+
 ```yaml
 schema: 1
 id: 01JC8Q…                    # ULID, stabil, auch nach Umbenennung

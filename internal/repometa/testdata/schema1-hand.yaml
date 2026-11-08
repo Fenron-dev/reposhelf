@@ -1,0 +1,45 @@
+# Fixture: a hand-edited schema-1 file in the style of KONZEPT 5.2, with
+# comments, flow style and keys this version does not know. Keep it
+# unchanged: every later schema version must still read it.
+schema: 1
+id: 01JC8QH3K7Z9X2M4N6P8R0T2V4   # ULID, stable across renames
+source:
+  url: https://github.com/Fenron-dev/Fero
+  host: github.com
+  owner: Fenron-dev
+  name: Fero
+  mirror_hint: fast   # unknown key inside a known section
+kind: own
+fork_of: null
+sync:
+  mode: follow
+  interval: 6h
+  last_success: 2026-11-08T10:48:00Z
+  last_check: 2026-11-08T10:48:00Z
+  last_error: null
+status_override: null
+include:
+  releases: true
+  lfs: true
+  submodules: true
+  wiki: false
+tags: [medien/beschaffung, rust, tauri]
+collections: [fundus-oekosystem]
+relations:
+  - { type: delivers_to, target: github.com/Fenron-dev/Fundus2 }
+  - { type: successor_of, target: github.com/Fenron-dev/MediaShelf, state: confirmed, weight: 3 }
+retention:
+  releases_keep: 5
+  pinned: [v0.1.0]
+  snapshots: { every: 30d, keep_for: 180d }
+  force_push_backups: { keep_for: 180d }
+buildable:
+  enabled: true
+  capsules_keep: 3
+license:
+  spdx: null
+  checked: 2026-11-08
+created: 2026-11-08T10:00:00Z
+# A section written by a newer RepoShelf.
+future_section:
+  answer: 42

@@ -13,34 +13,37 @@
 ## Aktueller Stand
 
 - **Phase:** 0 – Gerüst (begonnen)
-- **Letzte Änderung:** 2026-11-08 · T-0.2 nach `main` gemergt (`76c3bfb`) und gepusht
-- **Nächster Schritt:** T-0.3 (`repo.yaml`-Schema) oder T-0.7 (CI); T-0.5 vor T-0.12
+- **Letzte Änderung:** 2026-11-08 · T-0.3 umgesetzt (`repo.yaml`-Schema), im Review (Branch `t0.3-repo-schema`)
+- **Nächster Schritt:** `t0.3-repo-schema` prüfen und mergen; danach T-0.5 (atomares Schreiben, Pfadprüfung) – Voraussetzung für das Speichern von `repo.yaml` und für T-0.12
 
 ## Übergabe-Notiz
 
 > Wird am Ende **jeder** Sitzung überschrieben (Agent oder Mensch). Kurz: was
 > wurde gemacht, was ist halb fertig, worauf muss der Nächste achten.
 
-**2026-11-08 · Claude Code:** F-008 entschieden: Standard-Port **7373**
-(7878 ist Radarr), Standardadresse `127.0.0.1:7373` → D-016. T-0.2 auf
-Branch `t0.2-config` (`304e735`), auf Wunsch von Dennis ohne separates
-Review nach `main` gemergt (`76c3bfb`) und gepusht:
-- `internal/datadir`: Kette `--data` → `REPOSHELF_DATA` → Zeigerdatei
-  (`<Profil>/RepoShelf/datadir.txt`) → `RepoShelf-Daten/` neben der
-  Programmdatei (macOS-Bundle: neben dem `.app`; Symlinks aufgelöst). Ein
-  genannter, aber unerreichbarer Ordner ist ein Fehler, kein Ausweichen.
-- `internal/config`: Vorgaben → `reposhelf.yaml` → `REPOSHELF_LISTEN`.
-  Unbekannte Schlüssel = Warnung (Vorwärtskompatibilität für portable
-  Ordner), neueres `schema` = Fehler. Fixture `testdata/schema1.yaml` für
-  künftige Migrationstests.
-- CLI: `reposhelf config [--data <ordner>]` zeigt Ordner, Quelle, Adresse.
-- Konzept 4.4 beschreibt jetzt die genaue Kette.
-- Abhängigkeit: `go.yaml.in/yaml/v3` v3.0.6 (MIT/Apache-2.0, Nachfolger von
-  `gopkg.in/yaml.v3`); auch für T-0.3 gedacht (Node-API für unbekannte Felder).
-**Achtung:** Die Zeigerdatei wird nur gelesen; Schreiben/Einrichten ist
-T-0.12 (braucht atomares Schreiben aus T-0.5). Konfiguration hat bewusst nur
-`schema` und `server.listen` – weitere Felder bringen die Aufgaben mit, die sie
-brauchen. `golangci-lint` weiter nur über CI (T-0.7).
+**2026-11-08 · Claude Code:** T-0.3 auf Branch `t0.3-repo-schema`
+(`6cb6be0`), noch **nicht** gemergt/gepusht.
+- `docs/SCHEMA.md` ist jetzt verbindlich (Schema 1); Konzept 5.2 verweist
+  darauf. Ein Test prüft, dass das Beispiel dort gültig und kanonisch ist.
+- `internal/repometa`: `Parse`/`Load`/`Marshal`. Speichern führt in den
+  gelesenen YAML-Baum zusammen (`merge.go`, gesteuert über die Go-Typen):
+  unbekannte Schlüssel auf jeder Ebene, Kommentare, Reihenfolge und
+  `[a, b]`-Schreibweise bleiben. Listeneinträge werden über `identityKeys`
+  wiedererkannt (bisher nur `relations`: `type`+`target`) – **neue Listen
+  aus Strukturen dort eintragen**, sonst gehen deren unbekannte Schlüssel
+  verloren.
+- Migrationsgerüst auf dem YAML-Baum (`migrate.go`), Fixtures
+  `testdata/schema1-hand.yaml` und `schema1-minimal.yaml` (nie ändern).
+- **Festlegungen, die Dennis prüfen sollte** (in SCHEMA.md dokumentiert, im
+  Konzept offen gelassen): `status_override` = `ok|degraded|gone|archived`;
+  Beziehungs-Zustand zusätzlich `rejected` (für „abgelehnte Vorschläge
+  merken“); Mindestintervall `5m`; erlaubte URL-Schemata
+  `https|http|ssh|git` (kein `file:`); `releases_keep: 0` = nur
+  angeheftete; Dauer-Syntax `30d`/`1d12h` ohne Wochen.
+**Achtung:** `Marshal` liefert Bytes; das Schreiben auf die Platte folgt
+mit T-0.5 (atomar). Segmentprüfung in `validate.go` ist die Grundprüfung;
+reservierte Namen (Windows) gehören zu T-0.5. ULID-Erzeugung fehlt noch
+(wird beim Hinzufügen gebraucht, T-1.8/T-1.11).
 
 ---
 
@@ -94,7 +97,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 |---|---|---|---|---|---|
 | T-0.1 | Git-Repo + Go-Modul anlegen; Struktur `cmd/reposhelf`, `internal/…`; `.gitignore`, `LICENSE` (nach F-002/F-003) | erledigt | Claude Code | 2026-11-08 | `132ca84`, gemergt `337d001` (ohne Review, Wunsch Dennis) |
 | T-0.2 | Konfiguration (`reposhelf.yaml` + Umgebungsvariablen) und Datenordner-Kette (Konzept 4.4) | erledigt | Claude Code | 2026-11-08 | `304e735`, gemergt `76c3bfb` (ohne Review, Wunsch Dennis) |
-| T-0.3 | `repo.yaml`-Schema in `docs/SCHEMA.md` festschreiben; Lesen/Schreiben mit Erhalt unbekannter Felder; Validierung; Tests inkl. Vorversion | offen | | | |
+| T-0.3 | `repo.yaml`-Schema in `docs/SCHEMA.md` festschreiben; Lesen/Schreiben mit Erhalt unbekannter Felder; Validierung; Tests inkl. Vorversion | Review | Claude Code | 2026-11-08 | Branch `t0.3-repo-schema`, `6cb6be0` |
 | T-0.4 | SQLite-Treiber ohne CGO mit FTS5 wählen und begründen; Index-Schema; `reindex` aus Dateien | offen | | | |
 | T-0.5 | Atomares Schreiben und Pfad-Sanitizing, mit Tests (Fero-Invarianten) | offen | | | |
 | T-0.6 | Gitea-Quellcode sichten: Übernahme-Kandidaten mit Pfad + Commit in `docs/GITEA-UEBERNAHMEN.md`; `THIRD_PARTY.md` anlegen | offen | | | Seit D-015 auch Forgejo-Code übernehmbar |
@@ -211,6 +214,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-08 · Claude Code · T-0.3 `repo.yaml`-Schema (docs/SCHEMA.md, internal/repometa) → Review
 - 2026-11-08 · Claude Code · F-008 entschieden (7373, D-016); T-0.2 umgesetzt, gemergt und gepusht (erledigt); T-0.12 neu
 - 2026-11-08 · Claude Code · T-0.1 gemergt (erledigt); T-0.11 privates GitHub-Repo angelegt und gepusht (erledigt)
 - 2026-11-08 · Claude Code · F-002, F-003, F-012 entschieden (D-013–D-015); Git-Repo angelegt; T-0.1 umgesetzt → Review; T-0.11 neu
