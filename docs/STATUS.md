@@ -14,7 +14,7 @@
 
 - **Phase:** 0–9 umgesetzt (außer T-9.5, wartet auf F-007)
 - **Letzte Änderung:** 2026-11-08 · Builds/Kapseln (6/7), Abgleich zwischen Instanzen (8), ZIP-Import, Größenbegrenzung
-- **Nächster Schritt:** Dennis testet (siehe Übergabe-Notiz); F-007 und F-014 entscheiden; erstes Release mit Tag `v0.1.0` (baut Docker-Image und Desktop-Apps in CI)
+- **Nächster Schritt:** Dennis testet Release `v0.1.1` (CLI-Pakete, DMG, Windows-ZIP, Docker-Image `ghcr.io/fenron-dev/reposhelf:0.1.1`); F-007 und F-014 entscheiden
 
 ## Übergabe-Notiz
 
@@ -222,6 +222,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-08 · Claude Code · Release `v0.1.1` gebaut (alle Jobs grün). `v0.1.0` schlug fehl (Wails-Bindings, Artefakt-Kontingent voll) – Workflow korrigiert; Tag `v0.1.0` bleibt bestehen (Löschen nicht erlaubt)
 - 2026-11-08 · Claude Code · Phasen 5–8 und Rest von 9 umgesetzt (Docker, Unraid, Desktop, Release, Kapseln, Builds, Abgleich, ZIP); T-0.6/0.7/0.10/1.13 erledigt; F-014 neu
 - 2026-11-08 · Claude Code · F-004/F-005/F-010/F-013 entschieden (D-017–D-020); Phasen 0–4 und große Teile von 9 umgesetzt (Kern, CLI, Web, API, Git-HTTP, MCP); T-1.13 neu
 - 2026-11-08 · Claude Code · T-0.5 gemergt und gepusht (erledigt)
