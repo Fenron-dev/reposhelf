@@ -12,22 +12,29 @@
 
 ## Aktueller Stand
 
-- **Phase:** 0 – Gerüst (noch nicht begonnen)
-- **Letzte Änderung:** 2026-11-08 · F-001 entschieden: Repo privat (D-012)
-- **Nächster Schritt:** Offene Fragen F-002 und F-003 klären (Dennis), dann T-0.1
+- **Phase:** 0 – Gerüst (begonnen)
+- **Letzte Änderung:** 2026-11-08 · F-002/F-003/F-012 entschieden (D-013–D-015); T-0.1 umgesetzt, im Review
+- **Nächster Schritt:** T-0.1 prüfen und `t0.1-scaffold` nach `main` mergen; danach T-0.11 (GitHub-Repo anlegen) und T-0.2
 
 ## Übergabe-Notiz
 
 > Wird am Ende **jeder** Sitzung überschrieben (Agent oder Mensch). Kurz: was
 > wurde gemacht, was ist halb fertig, worauf muss der Nächste achten.
 
-**2026-11-08 · Claude (Chat):** Konzept (`docs/KONZEPT.md`), Entscheidungen
-(`docs/ENTSCHEIDUNGEN.md`), Agenten-Regeln (`AGENTS.md`, `CLAUDE.md`) und
-UI-Entwurf (`design/`) angelegt. Noch kein Code. F-001 entschieden: Repo ist
-**privat** (D-012). Folge: GitHub-Actions-Minuten sind begrenzt (Free: 2.000
-Min./Monat, macOS zählt 10-fach) – CI für RepoShelf daher nur auf Linux,
-macOS-/Windows-Jobs nur manuell oder bei Versions-Tag (siehe T-0.7, T-0.10).
-Vor T-0.1 noch F-002 (Name/Modulpfad) und F-003 (Lizenz) entscheiden.
+**2026-11-08 · Claude Code:** Offene Fragen entschieden (Dennis):
+F-002 → Modulpfad `github.com/Fenron-dev/reposhelf` (D-013), F-003 → Lizenz
+**GPL-3.0-or-later** (D-014), daraus neu F-012 → Forgejo-Code erlaubt (D-015,
+ersetzt D-002; `AGENTS.md` Code-Regeln und `KONZEPT.md` 7.2 angepasst).
+Git-Repo lokal angelegt: `main` enthält nur die Dokumente (`1d00f8b`).
+T-0.1 auf Branch `t0.1-scaffold` (`132ca84`): `go.mod` (Go 1.27.3, per
+Homebrew installiert), `LICENSE` (offizieller GNU-Text), `cmd/reposhelf`,
+`internal/cli` (help/version, Tests), `internal/buildinfo` (Version per
+`-ldflags -X`), Paket-Stubs mit Doc-Kommentar für alle Schichten aus
+Konzept 4.1. `gofmt`, `go vet`, `go test`, Cross-Build linux/windows grün.
+**Achtung:** `golangci-lint` ist lokal nicht installiert (kommt mit T-0.7 in
+CI). Noch **kein GitHub-Remote** – dafür T-0.11. CLI-Texte liegen zentral in
+`internal/cli/messages.go`. `reposhelf-start.zip` im Ordner ist per
+`.gitignore` ausgeschlossen.
 
 ---
 
@@ -79,16 +86,17 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 | ID | Aufgabe | Status | Wer | Datum | Notiz / Commit |
 |---|---|---|---|---|---|
-| T-0.1 | Git-Repo + Go-Modul anlegen; Struktur `cmd/reposhelf`, `internal/…`; `.gitignore`, `LICENSE` (nach F-002/F-003) | in Arbeit | Claude Code | 2026-11-08 | |
+| T-0.1 | Git-Repo + Go-Modul anlegen; Struktur `cmd/reposhelf`, `internal/…`; `.gitignore`, `LICENSE` (nach F-002/F-003) | Review | Claude Code | 2026-11-08 | Branch `t0.1-scaffold`, `132ca84` |
 | T-0.2 | Konfiguration (`reposhelf.yaml` + Umgebungsvariablen) und Datenordner-Kette (Konzept 4.4) | offen | | | |
 | T-0.3 | `repo.yaml`-Schema in `docs/SCHEMA.md` festschreiben; Lesen/Schreiben mit Erhalt unbekannter Felder; Validierung; Tests inkl. Vorversion | offen | | | |
 | T-0.4 | SQLite-Treiber ohne CGO mit FTS5 wählen und begründen; Index-Schema; `reindex` aus Dateien | offen | | | |
 | T-0.5 | Atomares Schreiben und Pfad-Sanitizing, mit Tests (Fero-Invarianten) | offen | | | |
-| T-0.6 | Gitea-Quellcode sichten: Übernahme-Kandidaten mit Pfad + Commit in `docs/GITEA-UEBERNAHMEN.md`; `THIRD_PARTY.md` anlegen | offen | | | |
+| T-0.6 | Gitea-Quellcode sichten: Übernahme-Kandidaten mit Pfad + Commit in `docs/GITEA-UEBERNAHMEN.md`; `THIRD_PARTY.md` anlegen | offen | | | Seit D-015 auch Forgejo-Code übernehmbar |
 | T-0.7 | CI (GitHub Actions): `go vet`, `go test`, `golangci-lint`, Cross-Build linux/darwin/windows – **alles auf Linux-Runnern** (Go baut darwin/windows ohne CGO per Cross-Compile); macOS-/Windows-Runner nur manuell oder bei `v*`-Tag (D-012) | offen | | | |
 | T-0.8 | Logging- und Fehlerkonzept (strukturiertes Log, Fehlerarten) | offen | | | |
 | T-0.9 | SQLite auf exFAT/FAT erkennen → `journal_mode=DELETE` | offen | | | |
 | T-0.10 | Prüfen: selbst gehosteter GitHub-Actions-Runner auf Unraid (Docker) für private Repos – kostet keine Actions-Minuten | offen | | | Vorstufe zu Phase 7 |
+| T-0.11 | Privates GitHub-Repo `Fenron-dev/reposhelf` anlegen (D-012, D-013), `main` und Branches pushen | offen | | | Voraussetzung für T-0.7 |
 
 ### Phase 1 – Spiegel-Kern
 
@@ -196,5 +204,6 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-08 · Claude Code · F-002, F-003, F-012 entschieden (D-013–D-015); Git-Repo angelegt; T-0.1 umgesetzt → Review; T-0.11 neu
 - 2026-11-08 · Claude · F-001 entschieden (privat, D-012); T-0.7 angepasst, T-0.10 neu
 - 2026-11-08 · Claude · Konzept, UI-Entwurf, Projektführung angelegt (T-K.1–T-K.3)

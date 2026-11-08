@@ -12,7 +12,16 @@ Docker-Container (z. B. auf Unraid).
 - Builds auf eigenen Runnern (Unraid, Desktop, Workstation) oder GitHub Actions
 - Für KI-Agenten nutzbar: als Git-Remote und über MCP
 
-**Stand:** Konzeptphase – noch kein Code. Siehe `docs/STATUS.md`.
+**Stand:** Phase 0 – Grundgerüst. Siehe `docs/STATUS.md`.
+
+## Bauen
+
+Voraussetzung: Go (Version siehe `go.mod`) und `git`.
+
+```bash
+go build -o bin/reposhelf ./cmd/reposhelf
+go test ./...
+```
 
 ## Dokumentation
 
@@ -23,3 +32,8 @@ Docker-Container (z. B. auf Unraid).
 | [`docs/ENTSCHEIDUNGEN.md`](docs/ENTSCHEIDUNGEN.md) | Grundsatzentscheidungen |
 | [`AGENTS.md`](AGENTS.md) | Arbeitsregeln für Agenten und Menschen |
 | [`design/`](design/README.md) | UI-Entwurf |
+
+## Lizenz
+
+RepoShelf steht unter der GNU General Public License, Version 3 oder neuer
+(`GPL-3.0-or-later`). Volltext: [`LICENSE`](LICENSE).
