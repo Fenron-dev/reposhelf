@@ -126,6 +126,10 @@ jobs:
       - name: DMG
         run: |
           set -e
+          # Ad-hoc signature (no Apple developer account): the app runs after
+          # "Open" in the context menu once; notarisation needs a paid account.
+          codesign --force --deep --sign - cmd/reposhelf-desktop/build/bin/RepoShelf.app
+          codesign --verify --deep --strict cmd/reposhelf-desktop/build/bin/RepoShelf.app
           mkdir -p dmg && cp -R cmd/reposhelf-desktop/build/bin/RepoShelf.app dmg/
           cp LICENSE docs/BETRIEB.md dmg/
           hdiutil create -volname RepoShelf -srcfolder dmg -ov -format UDZO RepoShelf-macOS.dmg

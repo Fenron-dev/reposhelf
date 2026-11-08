@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Tiny workflow that RepoShelf's smoke test starts via workflow_dispatch to
+# prove "GitHub Actions as external runner" (T-7.4).
+name: Dispatch probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - run: echo "RepoShelf dispatch probe ok"
