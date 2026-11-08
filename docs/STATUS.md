@@ -98,7 +98,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-0.2 | Konfiguration (`reposhelf.yaml` + Umgebungsvariablen) und Datenordner-Kette (Konzept 4.4) | erledigt | Claude Code | 2026-11-08 | `304e735`, gemergt `76c3bfb` (ohne Review, Wunsch Dennis) |
 | T-0.3 | `repo.yaml`-Schema in `docs/SCHEMA.md` festschreiben; Lesen/Schreiben mit Erhalt unbekannter Felder; Validierung; Tests inkl. Vorversion | erledigt | Claude Code | 2026-11-08 | `6cb6be0`, gemergt `7df78c3` (ohne Review, Wunsch Dennis; Festlegungen bestätigt) |
 | T-0.4 | SQLite-Treiber ohne CGO mit FTS5 wählen und begründen; Index-Schema; `reindex` aus Dateien | offen | | | |
-| T-0.5 | Atomares Schreiben und Pfad-Sanitizing, mit Tests (Fero-Invarianten) | Review | Claude Code | 2026-11-08 | Branch `t0.5-atomic-paths`, `f5619cb` |
+| T-0.5 | Atomares Schreiben und Pfad-Sanitizing, mit Tests (Fero-Invarianten) | erledigt | Claude Code | 2026-11-08 | `f5619cb`, gemergt `fc8b09f` (ohne Review, Wunsch Dennis) |
 | T-0.6 | Gitea-Quellcode sichten: Übernahme-Kandidaten mit Pfad + Commit in `docs/GITEA-UEBERNAHMEN.md`; `THIRD_PARTY.md` anlegen | offen | | | Seit D-015 auch Forgejo-Code übernehmbar |
 | T-0.7 | CI (GitHub Actions): `go vet`, `go test`, `golangci-lint`, Cross-Build linux/darwin/windows – **alles auf Linux-Runnern** (Go baut darwin/windows ohne CGO per Cross-Compile); macOS-/Windows-Runner nur manuell oder bei `v*`-Tag (D-012) | offen | | | |
 | T-0.8 | Logging- und Fehlerkonzept (strukturiertes Log, Fehlerarten) | offen | | | |
@@ -215,6 +215,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-08 · Claude Code · T-0.5 gemergt und gepusht (erledigt)
 - 2026-11-08 · Claude Code · T-0.5 atomares Schreiben + Pfadprüfung (internal/atomicfile, internal/safepath) → Review; F-013, T-0.13, T-1.12 neu
 - 2026-11-08 · Claude Code · T-0.3 gemergt und gepusht (erledigt); Schema-Festlegungen von Dennis bestätigt
 - 2026-11-08 · Claude Code · T-0.3 `repo.yaml`-Schema (docs/SCHEMA.md, internal/repometa) → Review
