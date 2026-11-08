@@ -13,30 +13,35 @@
 ## Aktueller Stand
 
 - **Phase:** 0 – Gerüst (begonnen)
-- **Letzte Änderung:** 2026-11-08 · T-0.3 (`repo.yaml`-Schema) gemergt und gepusht
-- **Nächster Schritt:** T-0.5 (atomares Schreiben, Pfadprüfung) – Voraussetzung für das Speichern von `repo.yaml` und für T-0.12
+- **Letzte Änderung:** 2026-11-08 · T-0.5 umgesetzt (atomares Schreiben, Pfadprüfung), im Review (Branch `t0.5-atomic-paths`)
+- **Nächster Schritt:** `t0.5-atomic-paths` prüfen und mergen; F-013 (Host mit Port) entscheiden; danach T-0.12 (Datenordner einrichten) oder T-0.4 (SQLite-Index)
 
 ## Übergabe-Notiz
 
 > Wird am Ende **jeder** Sitzung überschrieben (Agent oder Mensch). Kurz: was
 > wurde gemacht, was ist halb fertig, worauf muss der Nächste achten.
 
-**2026-11-08 · Claude Code:** T-0.3 gemergt (`7df78c3`) und gepusht; Phase 0
-läuft weiter mit **T-0.5**.
-- `docs/SCHEMA.md` ist verbindlich (Schema 1). Die dort getroffenen
-  Festlegungen hat Dennis beim Mergen bestätigt: `status_override` =
-  `ok|degraded|gone|archived`; Beziehungs-Zustand `rejected`;
-  Mindestintervall `5m`; URL-Schemata `https|http|ssh|git`;
-  `releases_keep: 0` = nur angeheftete; Dauer ohne Wochen.
-- `internal/repometa`: `Parse`/`Load`/`Marshal` mit verlustfreiem Speichern
-  (Zusammenführen in den gelesenen YAML-Baum, `merge.go`). **Neue Listen aus
-  Strukturen in `identityKeys` eintragen**, sonst gehen deren unbekannte
-  Schlüssel verloren. Fixtures in `testdata/schema1-*.yaml` nie ändern.
-- **Für T-0.5:** `Marshal` liefert nur Bytes; atomares Schreiben und die
-  vollständige Pfadprüfung (reservierte Windows-Namen u. a.) kommen dort.
-  Danach kann T-0.12 die Zeigerdatei schreiben.
-- ULID-Erzeugung fehlt noch (T-1.8/T-1.11). `golangci-lint` ist lokal nicht
-  installiert; läuft ab T-0.7 in CI.
+**2026-11-08 · Claude Code:** T-0.5 auf Branch `t0.5-atomic-paths`
+(`f5619cb`), noch **nicht** gemergt/gepusht.
+- `internal/atomicfile`: `WriteFile`/`Write` – Zwischendatei
+  `.reposhelf-tmp-*` im Zielordner, `fsync`, `rename`, danach `fsync` des
+  Ordners (Windows: entfällt; EINVAL/ENOTSUP/ENOTTY werden als „kann dieses
+  Dateisystem nicht“ hingenommen). Legt **keine** Ordner an (Invariante 5).
+  Ist das Ziel ein Symlink, wird die verlinkte Datei ersetzt, der Link bleibt.
+  Test mit gleichzeitigem Lesen: nie eine halbe Datei.
+- `internal/safepath`: `CheckSegment`, `Split`, `Join`. Eine Regel für alle
+  Systeme (portabler Datenordner): Windows-Gerätenamen, `<>:"|?*`, Punkt am
+  Ende, Steuerzeichen, 255 Bytes, Präfix `.reposhelf-tmp-`. Fuzz-Test für
+  `Join`. Symlinks im Datenordner werden absichtlich nicht blockiert
+  (Nutzer darf Teile auf andere Platten legen).
+- `repometa` prüft Segmente jetzt mit `safepath`; `docs/SCHEMA.md`
+  („Segment“) angepasst. Folge: Host mit Port wird abgelehnt → **F-013**.
+- Neu eingetragen: T-0.13 (Zwischendateien aufräumen), T-1.12
+  (Namenskollisionen Groß-/Kleinschreibung, NFC/NFD), Hinweise an T-1.2
+  (`-`-Namen in Git-Aufrufen) und T-1.7 (Tags mit `/`).
+**Achtung:** `repometa.Document` hat noch kein `Save`; wer zuerst speichert,
+nimmt `atomicfile.WriteFile(path, d.Marshal(), 0o644)` und baut den Pfad mit
+`safepath.Join`. ULID-Erzeugung fehlt weiter (T-1.8/T-1.11).
 
 ---
 
@@ -59,6 +64,7 @@ Entscheidung: Status `entschieden`, Eintrag in `docs/ENTSCHEIDUNGEN.md`, Verweis
 | F-010 | Windows: portables Git mitliefern oder Installation voraussetzen? | Voraussetzen + Prüfung mit Hinweis; mitliefern später | offen | |
 | F-011 | Projektordner heißt `Portable RepoShelf ` (Leerzeichen am Ende) – umbenennen? | Ja, auf `Portable RepoShelf` oder `reposhelf` | offen | |
 | F-012 | Forgejo-Code übernehmen erlauben (Folge von F-003, bisher durch D-002 verboten)? | Erlauben, da RepoShelf selbst GPL ist | entschieden | **Ja** → D-015 (ersetzt D-002) |
+| F-013 | Wie wird ein Host mit Port (`gitea.local:3000`, z. B. Gitea auf Unraid) im Ordnerpfad abgebildet? `:` ist unter Windows im Dateinamen verboten; bis zur Entscheidung lehnt die Prüfung solche Hosts ab | `source.host` bleibt `gitea.local:3000`, Ordner heißt `gitea.local+3000` (`+` kommt in Hostnamen nie vor); IPv6-Adressen ebenso ohne `[]` und `:` abbilden | offen | |
 
 ---
 
@@ -92,7 +98,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-0.2 | Konfiguration (`reposhelf.yaml` + Umgebungsvariablen) und Datenordner-Kette (Konzept 4.4) | erledigt | Claude Code | 2026-11-08 | `304e735`, gemergt `76c3bfb` (ohne Review, Wunsch Dennis) |
 | T-0.3 | `repo.yaml`-Schema in `docs/SCHEMA.md` festschreiben; Lesen/Schreiben mit Erhalt unbekannter Felder; Validierung; Tests inkl. Vorversion | erledigt | Claude Code | 2026-11-08 | `6cb6be0`, gemergt `7df78c3` (ohne Review, Wunsch Dennis; Festlegungen bestätigt) |
 | T-0.4 | SQLite-Treiber ohne CGO mit FTS5 wählen und begründen; Index-Schema; `reindex` aus Dateien | offen | | | |
-| T-0.5 | Atomares Schreiben und Pfad-Sanitizing, mit Tests (Fero-Invarianten) | offen | | | |
+| T-0.5 | Atomares Schreiben und Pfad-Sanitizing, mit Tests (Fero-Invarianten) | Review | Claude Code | 2026-11-08 | Branch `t0.5-atomic-paths`, `f5619cb` |
 | T-0.6 | Gitea-Quellcode sichten: Übernahme-Kandidaten mit Pfad + Commit in `docs/GITEA-UEBERNAHMEN.md`; `THIRD_PARTY.md` anlegen | offen | | | Seit D-015 auch Forgejo-Code übernehmbar |
 | T-0.7 | CI (GitHub Actions): `go vet`, `go test`, `golangci-lint`, Cross-Build linux/darwin/windows – **alles auf Linux-Runnern** (Go baut darwin/windows ohne CGO per Cross-Compile); macOS-/Windows-Runner nur manuell oder bei `v*`-Tag (D-012) | offen | | | |
 | T-0.8 | Logging- und Fehlerkonzept (strukturiertes Log, Fehlerarten) | offen | | | |
@@ -100,22 +106,24 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-0.10 | Prüfen: selbst gehosteter GitHub-Actions-Runner auf Unraid (Docker) für private Repos – kostet keine Actions-Minuten | offen | | | Vorstufe zu Phase 7 |
 | T-0.11 | Privates GitHub-Repo `Fenron-dev/reposhelf` anlegen (D-012, D-013), `main` und Branches pushen | erledigt | Claude Code | 2026-11-08 | https://github.com/Fenron-dev/reposhelf |
 | T-0.12 | Datenordner einrichten: Zeigerdatei atomar schreiben (nach T-0.5), Grundstruktur anlegen, CLI `reposhelf init <ordner>`; später Einrichtungsdialog | offen | | | aus T-0.2; `datadir.PointerPath` gibt den Ort vor |
+| T-0.13 | Liegengebliebene Zwischendateien (`.reposhelf-tmp-*`, nach Absturz) beim Start bzw. in `doctor` erkennen und aufräumen – nur reguläre Dateien mit diesem Präfix | offen | | | aus T-0.5; `atomicfile.IsTemp` |
 
 ### Phase 1 – Spiegel-Kern
 
 | ID | Aufgabe | Status | Wer | Datum | Notiz / Commit |
 |---|---|---|---|---|---|
 | T-1.1 | Quelle GitHub: URL-Parser, Metadaten-Abruf, Token-Handling, Rate-Limit-Beachtung | offen | | | |
-| T-1.2 | Git-CLI-Wrapper (Version prüfen, Timeouts, Abbruch, Fehlertexte) + Mirror-Klon | offen | | | |
+| T-1.2 | Git-CLI-Wrapper (Version prüfen, Timeouts, Abbruch, Fehlertexte) + Mirror-Klon | offen | | | Namen aus dem Netz dürfen mit `-` beginnen: Pfade/URLs nur absolut oder nach `--` übergeben (aus T-0.5) |
 | T-1.3 | Abgleich mit Force-Push-Schutz (Backup-Refs vor verändernden Fetches); Tests mit lokalem Fake-Upstream | offen | | | |
 | T-1.4 | Zeitplaner: Intervalle, Verteilung über die Zeit, 30-Tage-Ruhe für archivierte | offen | | | |
 | T-1.5 | Upstream-Status und Host-Gesundheit (alle Repos eines Hosts ≥ 24 h) | offen | | | |
 | T-1.6 | `upstream.json`-Snapshot mit Historie; Lizenz-Erkennung | offen | | | |
-| T-1.7 | Releases und Assets herunterladen (SHA-256, Dubletten) | offen | | | |
+| T-1.7 | Releases und Assets herunterladen (SHA-256, Dubletten) | offen | | | Git-Tags dürfen `/` enthalten (`release/1.0`), `safepath` lehnt das ab → Abbildung auf Ordnernamen festlegen (aus T-0.5) |
 | T-1.8 | CLI: `add`, `sync`, `list`, `reindex`, `doctor` | offen | | | |
 | T-1.9 | Weboberfläche: Grundlayout, Seitenleiste, Bibliothek (Entwurf `design/quellen/Main.dc.html`) | offen | | | |
 | T-1.10 | Weboberfläche: Repo-Detail mit README (goldmark/GFM) | offen | | | |
 | T-1.11 | Weboberfläche: Repo hinzufügen | offen | | | |
+| T-1.12 | Namenskollisionen erkennen: Repos, deren Pfad sich nur in Groß-/Kleinschreibung oder Unicode-Normalisierung (NFC/NFD) unterscheidet, landen auf macOS/Windows im selben Ordner – beim Hinzufügen ablehnen mit Meldung | offen | | | aus T-0.5 |
 
 ### Phase 2 – Organisation
 
@@ -207,6 +215,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-08 · Claude Code · T-0.5 atomares Schreiben + Pfadprüfung (internal/atomicfile, internal/safepath) → Review; F-013, T-0.13, T-1.12 neu
 - 2026-11-08 · Claude Code · T-0.3 gemergt und gepusht (erledigt); Schema-Festlegungen von Dennis bestätigt
 - 2026-11-08 · Claude Code · T-0.3 `repo.yaml`-Schema (docs/SCHEMA.md, internal/repometa) → Review
 - 2026-11-08 · Claude Code · F-008 entschieden (7373, D-016); T-0.2 umgesetzt, gemergt und gepusht (erledigt); T-0.12 neu
