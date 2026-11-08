@@ -3,6 +3,7 @@
 package repometa
 
 import (
+	"strings"
 	"time"
 )
 
@@ -41,6 +42,25 @@ type Source struct {
 	Owner string `yaml:"owner"`
 	Name  string `yaml:"name"`
 }
+
+// HostName is the host without port. It names the host folder (D-018).
+func (s Source) HostName() string {
+	name, _, _ := strings.Cut(s.Host, ":")
+	return name
+}
+
+// Segments are the folder names below repos/, meta/ or releases/ for this
+// repository: host name, each owner level, name. They are only safe to use
+// after Validate.
+func (s Source) Segments() []string {
+	segs := []string{s.HostName()}
+	segs = append(segs, strings.Split(s.Owner, "/")...)
+	return append(segs, s.Name)
+}
+
+// Key identifies the repository by its folder: hostname/owner/name. Two
+// repositories with the same key would share one folder.
+func (s Source) Key() string { return strings.Join(s.Segments(), "/") }
 
 // Kind is the role of a repository (KONZEPT 3).
 type Kind string

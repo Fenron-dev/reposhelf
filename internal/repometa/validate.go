@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -19,6 +20,7 @@ const (
 	// minSyncInterval protects upstream hosts and API limits (60/h without
 	// token) from overly eager schedules.
 	minSyncInterval = 5 * time.Minute
+	maxPort         = 65535
 	// minTargetSegments is host/owner/name.
 	minTargetSegments = 3
 )
@@ -127,7 +129,7 @@ func (v *validator) source(s Source) {
 			}
 		}
 	}
-	if p := validSegment(s.Host); p != "" {
+	if p := validHost(s.Host); p != "" {
 		v.add("source.host", p)
 	}
 	if s.Owner == "" {
@@ -194,8 +196,12 @@ func (v *validator) target(field, ref string, self *Repo) {
 		v.add(field, "must be a ULID or host/owner/name")
 		return
 	}
-	for _, seg := range segs {
-		if p := validSegment(seg); p != "" {
+	for i, seg := range segs {
+		check := validSegment
+		if i == 0 {
+			check = validHost
+		}
+		if p := check(seg); p != "" {
 			v.add(field, p)
 			return
 		}
@@ -247,6 +253,22 @@ func validSegment(s string) string {
 	var se *safepath.SegmentError
 	if errors.As(safepath.CheckSegment(s), &se) {
 		return se.Problem
+	}
+	return ""
+}
+
+// validHost accepts hostname[:port] (D-018). Only the hostname becomes a
+// folder name, so it must be a valid segment; the port must be a number.
+func validHost(s string) string {
+	name, port, hasPort := strings.Cut(s, ":")
+	if p := validSegment(name); p != "" {
+		return p
+	}
+	if hasPort {
+		n, err := strconv.Atoi(port)
+		if err != nil || n < 1 || n > maxPort || strconv.Itoa(n) != port {
+			return "port must be a number from 1 to 65535 (IPv6 addresses are not supported)"
+		}
 	}
 	return ""
 }

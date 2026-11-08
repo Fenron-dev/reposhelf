@@ -37,6 +37,13 @@ func TestValidateAcceptsValid(t *testing.T) {
 		},
 		"override":  func(r *Repo) { r.StatusOverride = ptrTo(UpstreamArchived) },
 		"keep zero": func(r *Repo) { r.Retention.ReleasesKeep = ptrTo(0) },
+		"host with port": func(r *Repo) {
+			r.Source.Host = "gitea.local:3000"
+			r.Source.URL = "http://gitea.local:3000/Fenron-dev/Fero"
+		},
+		"target with port": func(r *Repo) {
+			r.Relations = []Relation{{Type: "related", Target: "gitea.local:3000/a/b", State: RelationConfirmed}}
+		},
 	}
 	for name, mutate := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -74,7 +81,10 @@ func TestValidateRejects(t *testing.T) {
 		{"name windows device", "source.name", func(r *Repo) { r.Source.Name = "con" }},
 		{"name trailing dot", "source.name", func(r *Repo) { r.Source.Name = "Fero." }},
 		{"owner windows char", "source.owner", func(r *Repo) { r.Source.Owner = "group/a?b" }},
-		{"host with port", "source.host", func(r *Repo) { r.Source.Host = "gitea.local:3000" }},
+		{"host bad port", "source.host", func(r *Repo) { r.Source.Host = "gitea.local:http" }},
+		{"host port zero", "source.host", func(r *Repo) { r.Source.Host = "gitea.local:0" }},
+		{"host port too big", "source.host", func(r *Repo) { r.Source.Host = "gitea.local:65536" }},
+		{"host ipv6", "source.host", func(r *Repo) { r.Source.Host = "[::1]:3000" }},
 		{"collection device", "collections[0]", func(r *Repo) { r.Collections = []string{"NUL"} }},
 		{"target device", "relations[0].target", func(r *Repo) {
 			r.Relations = []Relation{{Type: "related", Target: "github.com/a/aux.git", State: RelationConfirmed}}
@@ -137,5 +147,18 @@ func TestValidateReportsAllProblems(t *testing.T) {
 	err := r.Validate()
 	if !strings.Contains(err.Error(), "id:") || !strings.Contains(err.Error(), "kind:") {
 		t.Errorf("Validate() = %v, want both id and kind", err)
+	}
+}
+
+func TestSourcePaths(t *testing.T) {
+	s := Source{Host: "gitea.local:3000", Owner: "group/sub", Name: "Fero"}
+	if s.HostName() != "gitea.local" {
+		t.Errorf("HostName = %q", s.HostName())
+	}
+	if got := strings.Join(s.Segments(), "|"); got != "gitea.local|group|sub|Fero" {
+		t.Errorf("Segments = %q", got)
+	}
+	if s.Key() != "gitea.local/group/sub/Fero" {
+		t.Errorf("Key = %q", s.Key())
 	}
 }
