@@ -3,10 +3,12 @@
 package githttp
 
 import (
+	"compress/gzip"
 	"context"
+	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
-	"net/http/cgi"
 	"strings"
 
 	"github.com/Fenron-dev/reposhelf/internal/auth"
@@ -44,7 +46,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	push := tail == "/git-receive-pack" || r.URL.Query().Get("service") == "git-receive-pack"
-	if !push && tail != "/git-upload-pack" && tail != "/info/refs" && !strings.HasPrefix(tail, "/objects/") && tail != "/HEAD" {
+	if !push && tail != "/git-upload-pack" && tail != "/info/refs" {
 		http.NotFound(w, r)
 		return
 	}
@@ -67,35 +69,114 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Rewrite to the stored folder name (case may differ on Linux).
-	r2 := r.Clone(r.Context())
-	r2.URL.Path = Prefix + repo.Entry.Key + layout.MirrorSuffix + tail
 	user := id.Name
 	if user == "" {
 		user = "reposhelf"
 	}
-	backend := &cgi.Handler{
-		Path: h.Lib.Git.Path,
-		Root: strings.TrimSuffix(Prefix, "/"),
-		Args: []string{"http-backend"},
-		Env: append([]string{
-			"GIT_PROJECT_ROOT=" + h.Lib.Layout.Path(layout.DirRepos),
-			"GIT_HTTP_EXPORT_ALL=1",
-			"REMOTE_USER=" + user,
-		}, h.Lib.Git.Env...),
-		Logger: nil,
-	}
+	service := "git-upload-pack"
 	if push {
-		backend.Env = append(backend.Env, "GIT_CONFIG_COUNT=1", "GIT_CONFIG_KEY_0=http.receivepack", "GIT_CONFIG_VALUE_0=true")
-	} else {
-		backend.Env = append(backend.Env, "GIT_CONFIG_COUNT=1", "GIT_CONFIG_KEY_0=http.receivepack", "GIT_CONFIG_VALUE_0=false")
+		service = "git-receive-pack"
 	}
-	backend.ServeHTTP(w, r2)
+	switch {
+	case tail == "/info/refs" && r.Method == http.MethodGet:
+		h.advertise(w, r, repo.Paths.Mirror, service)
+	case (tail == "/git-upload-pack" || tail == "/git-receive-pack") && r.Method == http.MethodPost:
+		h.rpc(w, r, repo.Paths.Mirror, strings.TrimPrefix(tail, "/"))
+		if push {
+			// Statistics and index after the push; detached from the request.
+			go h.Lib.RefreshAfterPush(context.WithoutCancel(r.Context()), repo.R().ID, "git:"+user)
+		}
+	default:
+		// The dumb protocol is not offered; every git since 1.6.6 speaks smart HTTP.
+		http.Error(w, "Nur Smart-HTTP wird unterstützt", http.StatusNotFound)
+	}
+}
 
-	if push && tail == "/git-receive-pack" && r.Method == http.MethodPost {
-		// Statistics and index after the push; detached from the request.
-		go h.Lib.RefreshAfterPush(context.WithoutCancel(r.Context()), repo.R().ID, "git:"+user)
+// advertise answers GET info/refs (smart HTTP discovery). It calls
+// git upload-pack / receive-pack directly instead of git http-backend,
+// which minimal Git builds (Alpine, MinGit) do not ship.
+func (h *Handler) advertise(w http.ResponseWriter, r *http.Request, dir, service string) {
+	if r.URL.Query().Get("service") != service {
+		http.Error(w, "unbekannter Dienst", http.StatusForbidden)
+		return
 	}
+	proto := protocolHeader(r)
+	cmd := h.Lib.Git.Command(r.Context(), dir, strings.TrimPrefix(service, "git-"), "--stateless-rpc", "--advertise-refs", ".")
+	if proto != "" && service == "git-upload-pack" {
+		cmd.Env = append(cmd.Env, "GIT_PROTOCOL="+proto)
+	}
+	out, err := cmd.Output()
+	if err != nil {
+		h.Log.Warn("git advertise", "dir", dir, "err", err)
+		http.Error(w, "git-Fehler", http.StatusInternalServerError)
+		return
+	}
+	hd := w.Header()
+	hd.Set("Content-Type", "application/x-"+service+"-advertisement")
+	hd.Set("Cache-Control", "no-cache, max-age=0, must-revalidate")
+	if !strings.Contains(proto, "version=2") || service != "git-upload-pack" {
+		w.Write(pktLine("# service=" + service + "\n"))
+		w.Write([]byte("0000"))
+	}
+	w.Write(out)
+}
+
+// rpc answers POST git-upload-pack / git-receive-pack.
+func (h *Handler) rpc(w http.ResponseWriter, r *http.Request, dir, service string) {
+	if r.Header.Get("Content-Type") != "application/x-"+service+"-request" {
+		http.Error(w, "falscher Inhaltstyp", http.StatusUnsupportedMediaType)
+		return
+	}
+	var body io.Reader = r.Body
+	if r.Header.Get("Content-Encoding") == "gzip" {
+		gz, err := gzip.NewReader(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		defer func() { _ = gz.Close() }()
+		body = gz
+	}
+	cmd := h.Lib.Git.Command(r.Context(), dir, strings.TrimPrefix(service, "git-"), "--stateless-rpc", ".")
+	if proto := protocolHeader(r); proto != "" && service == "git-upload-pack" {
+		cmd.Env = append(cmd.Env, "GIT_PROTOCOL="+proto)
+	}
+	cmd.Stdin = body
+	var stderr strings.Builder
+	cmd.Stderr = &stderr
+	w.Header().Set("Content-Type", "application/x-"+service+"-result")
+	w.Header().Set("Cache-Control", "no-cache, max-age=0, must-revalidate")
+	cmd.Stdout = flushWriter{w}
+	if err := cmd.Run(); err != nil {
+		h.Log.Warn("git rpc", "service", service, "dir", dir, "err", err, "stderr", strings.TrimSpace(stderr.String()))
+	}
+}
+
+// protocolHeader passes only well-formed protocol requests to git.
+func protocolHeader(r *http.Request) string {
+	p := r.Header.Get("Git-Protocol")
+	for _, c := range p {
+		allowed := strings.ContainsRune("=:.-_", c) || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')
+		if !allowed {
+			return ""
+		}
+	}
+	return p
+}
+
+func pktLine(s string) []byte {
+	return []byte(fmt.Sprintf("%04x%s", len(s)+4, s))
+}
+
+// flushWriter streams large packs instead of buffering them.
+type flushWriter struct{ w http.ResponseWriter }
+
+func (f flushWriter) Write(p []byte) (int, error) {
+	n, err := f.w.Write(p)
+	if fl, ok := f.w.(http.Flusher); ok {
+		fl.Flush()
+	}
+	return n, err
 }
 
 // CloneURL returns the clone address of a repository for base (scheme://host).

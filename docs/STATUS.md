@@ -221,6 +221,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-08 · Claude Code · F-007/F-014 entschieden (D-021, D-022); Code-Suche (T-9.5); Prüflauf `smoke.yml` fand Fehler: Docker-Image und MinGit haben kein `git http-backend` → Smart-HTTP jetzt eigen (upload-pack/receive-pack); Release `v0.1.3`
 - 2026-11-08 · Claude Code · Release `v0.1.1` gebaut (alle Jobs grün). `v0.1.0` schlug fehl (Wails-Bindings, Artefakt-Kontingent voll) – Workflow korrigiert; Tag `v0.1.0` bleibt bestehen (Löschen nicht erlaubt)
 - 2026-11-08 · Claude Code · Phasen 5–8 und Rest von 9 umgesetzt (Docker, Unraid, Desktop, Release, Kapseln, Builds, Abgleich, ZIP); T-0.6/0.7/0.10/1.13 erledigt; F-014 neu
 - 2026-11-08 · Claude Code · F-004/F-005/F-010/F-013 entschieden (D-017–D-020); Phasen 0–4 und große Teile von 9 umgesetzt (Kern, CLI, Web, API, Git-HTTP, MCP); T-1.13 neu
