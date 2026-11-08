@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+version: "2"
+linters:
+  default: standard
+  settings:
+    errcheck:
+      exclude-functions:
+        - (net/http.ResponseWriter).Write
+        - (*net/http.Request).ParseForm
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - (*bytes.Buffer).WriteTo
+        - (*encoding/json.Encoder).Encode
+        - (*os.File).Close
+        - (*os.File).Write
+        - os.Remove
+        - os.RemoveAll
+        - (io.Closer).Close
+        - (*database/sql.Tx).Rollback
+        - (*database/sql.DB).Close
+        - (*text/tabwriter.Writer).Flush
+        - (*github.com/modelcontextprotocol/go-sdk/mcp.ClientSession).Close
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters: [errcheck]

@@ -1,0 +1,170 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Release (T-5.5): on a v* tag, or manually. Linux runners build all CLI
+# binaries and the Docker image; the macOS and Windows runners only package
+# the desktop app (D-012: they cost more minutes).
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      desktop:
+        description: "Desktop-Apps (macOS/Windows) bauen"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  # Git for Windows (MinGit) bundled with the Windows packages (D-020).
+  MINGIT_VERSION: "2.56.0.windows.4"
+  MINGIT_FILE: "MinGit-2.56.0.4-64-bit.zip"
+  MINGIT_SHA256: "e3bf78351fe777fba47ddee5950082f8a98bb0f02604fdc7ba3ee2cb68ffa877"
+
+jobs:
+  binaries:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Version
+        id: v
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+      - name: Build
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          set -e
+          mkdir -p dist
+          LDFLAGS="-s -w -X github.com/Fenron-dev/reposhelf/internal/buildinfo.Version=${{ steps.v.outputs.version }} -X github.com/Fenron-dev/reposhelf/internal/buildinfo.Commit=${GITHUB_SHA::7}"
+          for t in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64; do
+            os=${t%/*}; arch=${t#*/}; name=reposhelf-${{ steps.v.outputs.version }}-$os-$arch
+            mkdir -p "build/$name"
+            ext=""; [ "$os" = windows ] && ext=".exe"
+            GOOS=$os GOARCH=$arch go build -trimpath -ldflags "$LDFLAGS" -o "build/$name/reposhelf$ext" ./cmd/reposhelf
+            cp LICENSE README.md THIRD_PARTY.md docs/BETRIEB.md "build/$name/"
+            mkdir -p "build/$name/RepoShelf-Daten"
+          done
+      - name: Bundle MinGit for Windows
+        run: |
+          set -e
+          curl -sSL -o mingit.zip "https://github.com/git-for-windows/git/releases/download/v${MINGIT_VERSION}/${MINGIT_FILE}"
+          echo "${MINGIT_SHA256}  mingit.zip" | sha256sum -c -
+          for d in build/*windows*; do mkdir -p "$d/git" && unzip -q mingit.zip -d "$d/git"; done
+      - name: Archives
+        run: |
+          set -e
+          cd build
+          for d in *; do
+            case "$d" in
+              *windows*) zip -qr "../dist/$d.zip" "$d" ;;
+              *) tar -czf "../dist/$d.tar.gz" "$d" ;;
+            esac
+          done
+          cd ../dist && sha256sum * > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: dist/*
+      - name: GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "RepoShelf $GITHUB_REF_NAME" --generate-notes || gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Tags
+        id: meta
+        run: |
+          v=${GITHUB_REF_NAME#v}
+          img=ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then echo "tags=$img:$v,$img:latest" >> "$GITHUB_OUTPUT"; else echo "tags=$img:edge" >> "$GITHUB_OUTPUT"; fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+            COMMIT=${{ github.sha }}
+
+  desktop-macos:
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.desktop
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Wails v2
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.17.1
+      - name: Build app (universal)
+        working-directory: cmd/reposhelf-desktop
+        run: wails build -platform darwin/universal -trimpath
+      - name: DMG
+        run: |
+          set -e
+          mkdir -p dmg && cp -R cmd/reposhelf-desktop/build/bin/RepoShelf.app dmg/
+          cp LICENSE docs/BETRIEB.md dmg/
+          hdiutil create -volname RepoShelf -srcfolder dmg -ov -format UDZO RepoShelf-macOS.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-macos
+          path: RepoShelf-macOS.dmg
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" RepoShelf-macOS.dmg --clobber
+
+  desktop-windows:
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.desktop
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Wails v2
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.17.1
+      - name: Build
+        working-directory: cmd/reposhelf-desktop
+        run: wails build -platform windows/amd64 -trimpath
+      - name: Portable package with MinGit
+        shell: bash
+        run: |
+          set -e
+          mkdir -p pkg/RepoShelf/git pkg/RepoShelf/RepoShelf-Daten
+          cp cmd/reposhelf-desktop/build/bin/RepoShelf.exe pkg/RepoShelf/
+          curl -sSL -o mingit.zip "https://github.com/git-for-windows/git/releases/download/v${MINGIT_VERSION}/${MINGIT_FILE}"
+          echo "${MINGIT_SHA256}  mingit.zip" | sha256sum -c -
+          unzip -q mingit.zip -d pkg/RepoShelf/git
+          cp LICENSE THIRD_PARTY.md docs/BETRIEB.md pkg/RepoShelf/
+          cd pkg && 7z a -bd ../RepoShelf-Windows-portable.zip RepoShelf >/dev/null
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows
+          path: RepoShelf-Windows-portable.zip
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" RepoShelf-Windows-portable.zip --clobber

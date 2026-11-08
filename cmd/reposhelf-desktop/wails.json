@@ -1,0 +1,19 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "RepoShelf",
+  "outputfilename": "RepoShelf",
+  "frontend:install": "",
+  "frontend:build": "",
+  "frontend:dir": "frontend",
+  "wailsjsdir": "",
+  "author": {
+    "name": "Dennis"
+  },
+  "info": {
+    "companyName": "Fenron-dev",
+    "productName": "RepoShelf",
+    "productVersion": "0.1.0",
+    "copyright": "GPL-3.0-or-later",
+    "comments": "Archiv und Bereitstellung für Git-Repositories"
+  }
+}
