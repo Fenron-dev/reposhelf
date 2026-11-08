@@ -92,7 +92,7 @@ func TestReplaceListGet(t *testing.T) {
 	check(Query{License: "none"}, "Fero", "tool")
 	check(Query{License: "MIT"}, "Fundus2")
 	check(Query{Text: "bücher"}, "Fero")
-	check(Query{Text: "buch"}, "Fero")    // prefix, diacritics removed
+	check(Query{Text: "buch"}, "Fero")     // prefix, diacritics removed
 	check(Query{Text: "beschaff"}, "Fero") // tag words are searchable
 	check(Query{Text: `fero") (`}, "Fero")
 	check(Query{Text: "NEAR( *"})
