@@ -14,6 +14,8 @@ type Extensions struct {
 // Builds is implemented by the runner package (Phase 6/7).
 type Builds interface {
 	Routes(s *Server, mux *http.ServeMux)
+	// Panel returns data for the build/capsule card of a repository.
+	Panel(r *http.Request, repoID string) any
 }
 
 // Peers is implemented by the peer package (Phase 8).
@@ -46,3 +48,9 @@ func Redirect(w http.ResponseWriter, r *http.Request, to string) { redirect(w, r
 
 // WithMsg adds a flash message to a URL.
 func WithMsg(to, key, msg string) string { return withMsg(to, key, msg) }
+
+// IdentityOf exposes the identity resolver to extensions.
+func (s *Server) IdentityOf(r *http.Request) (string, bool) {
+	tok, ok := s.Identity(r)
+	return tok.Name, ok
+}

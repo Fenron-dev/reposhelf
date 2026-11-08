@@ -383,7 +383,7 @@ type linkRewriter struct {
 }
 
 func (t *linkRewriter) Transform(doc *ast.Document, _ gtext.Reader, _ parser.Context) {
-	ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
 		}

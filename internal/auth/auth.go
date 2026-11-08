@@ -86,7 +86,6 @@ type Store struct {
 	adminHash string
 	now       func() time.Time
 	cache     *repometa.File[file]
-	lastSave  time.Time
 }
 
 // Open loads the token file at path. adminToken (may be empty) is accepted

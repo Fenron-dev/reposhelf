@@ -181,7 +181,9 @@ func (r *Repo) Git(args ...string) string { return r.f.run(r.Work, args...) }
 // Commit writes a file and commits it; returns the commit ID.
 func (r *Repo) Commit(file, content, msg string) string {
 	p := filepath.Join(r.Work, file)
-	os.MkdirAll(filepath.Dir(p), 0o755)
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		r.f.t.Fatal(err)
+	}
 	if err := os.WriteFile(p, []byte(content), 0o644); err != nil {
 		r.f.t.Fatal(err)
 	}

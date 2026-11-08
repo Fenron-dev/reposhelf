@@ -255,7 +255,7 @@ func (s *Server) Run(ctx context.Context, addr string, ready func(addr string)) 
 	case <-ctx.Done():
 		sctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		srv.Shutdown(sctx)
+		_ = srv.Shutdown(sctx) // shutting down anyway
 		return nil
 	case err := <-errc:
 		if errors.Is(err, http.ErrServerClosed) {

@@ -327,5 +327,5 @@ func (g *Git) FixHead(ctx context.Context, dir string) {
 			break
 		}
 	}
-	g.SetHead(ctx, dir, pick)
+	_ = g.SetHead(ctx, dir, pick) // best effort; stats work without it
 }

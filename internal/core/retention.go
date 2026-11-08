@@ -114,6 +114,7 @@ func (l *Library) CleanupPlan(ctx context.Context) ([]CleanupItem, error) {
 		items = append(items, l.capsuleCandidates(r, ret)...)
 	}
 	items = append(items, l.buildCandidates()...)
+	items = append(items, l.blobCandidates()...)
 	items = slices.DeleteFunc(items, func(it CleanupItem) bool { return slices.Contains(st.Kept, it.ID) })
 	sort.SliceStable(items, func(i, j int) bool { return items[i].Size > items[j].Size })
 	return items, nil
@@ -359,9 +360,22 @@ func (l *Library) trashItem(ctx context.Context, it CleanupItem, actor string) e
 		if _, err := l.Git.MoveRefs(ctx, r.Paths.Mirror, it.Ref, te.TrashRef); err != nil {
 			return err
 		}
-	case ItemCapsule, ItemBuild:
+	case ItemCapsule:
 		if err := move(it.Path); err != nil {
 			return err
+		}
+		if err := move(strings.TrimSuffix(it.Path, ".yaml") + ".files.json"); err != nil {
+			return err
+		}
+	case ItemBuild:
+		if err := move(it.Path); err != nil {
+			return err
+		}
+	case ItemBlobs:
+		for _, p := range strings.Split(it.Path, "\n") {
+			if err := move(p); err != nil {
+				return err
+			}
 		}
 	case ItemRepo:
 		r, err := l.Get(ctx, it.RepoID)
@@ -380,7 +394,9 @@ func (l *Library) trashItem(ctx context.Context, it CleanupItem, actor string) e
 		}
 		st := l.readCleanupState()
 		st.Marked = slices.DeleteFunc(st.Marked, func(s string) bool { return s == r.R().ID })
-		l.writeCleanupState(st)
+		if err := l.writeCleanupState(st); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unknown item kind %q", it.Kind)
 	}
@@ -508,7 +524,9 @@ func (l *Library) restoreReleaseManifest(te TrashEntry) {
 			}
 			rel.Stored = append(rel.Stored, StoredAsset{Name: name, File: f, Size: size, SHA256: fileSHA(filepath.Join(dir, f))})
 		}
-		writeRelease(dir, rel)
+		if err := writeRelease(dir, rel); err != nil {
+			l.Log.Warn("restore release manifest", "dir", dir, "err", err)
+		}
 	}
 }
 

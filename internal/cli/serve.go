@@ -22,6 +22,7 @@ import (
 	"github.com/Fenron-dev/reposhelf/internal/layout"
 	"github.com/Fenron-dev/reposhelf/internal/logx"
 	"github.com/Fenron-dev/reposhelf/internal/mcp"
+	"github.com/Fenron-dev/reposhelf/internal/runner"
 	"github.com/Fenron-dev/reposhelf/internal/server"
 )
 
@@ -73,6 +74,11 @@ func runServe(args []string, sys system) int {
 		log.Info("removed stale temporary files", "count", len(removed))
 	}
 	opts := server.Options{Log: log, LookupEnv: sys.lookupEnv}
+	builds := runner.New(lib, log)
+	builds.LookupEnv = sys.lookupEnv
+	builds.Start(ctx)
+	go everyHour(ctx, func() { builds.AutoCapsules(ctx) })
+	opts.Ext.Builds, opts.MCPBuilds = builds, runner.MCP{M: builds}
 	if Hooks.Server != nil {
 		Hooks.Server(lib, &opts)
 	}
@@ -138,7 +144,10 @@ func runMCP(args []string, sys system) int {
 	if base == "" {
 		base = "http://" + strings.Replace(cfg.Server.Listen, "0.0.0.0", "127.0.0.1", 1)
 	}
-	srv := mcp.New(lib, mcp.Options{Rights: rights, Client: *client, CloneBase: func() string { return base }})
+	// Builds started here are executed by the running server (it picks up
+	// queued builds from the data folder).
+	builds := runner.New(lib, log)
+	srv := mcp.New(lib, mcp.Options{Rights: rights, Client: *client, CloneBase: func() string { return base }, Builds: runner.MCP{M: builds}})
 	if err := srv.Run(ctx, &sdk.StdioTransport{}); err != nil && ctx.Err() == nil {
 		fmt.Fprintln(sys.stderr, errText(err))
 		return ExitError
@@ -200,3 +209,16 @@ func runToken(args []string, sys system) int {
 }
 
 var _ = datadir.EnvVar
+
+func everyHour(ctx context.Context, f func()) {
+	t := time.NewTicker(time.Hour)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			f()
+		}
+	}
+}

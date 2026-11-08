@@ -16,7 +16,7 @@ func TestNewID(t *testing.T) {
 	if a[:10] >= b[:10] {
 		t.Errorf("IDs do not sort by time: %s %s", a, b)
 	}
-	if NewID(t0) == NewID(t0) {
+	if a2 := NewID(t0); a2 == a {
 		t.Error("IDs not random")
 	}
 	// Known timestamp encoding: 1469918176385 ms → 01ARYZ6S41 (ULID spec).

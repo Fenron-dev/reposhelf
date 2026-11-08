@@ -214,7 +214,9 @@ func (l *Library) CreateLocal(ctx context.Context, owner, name, description stri
 	}
 	if description != "" {
 		if err := repo.Doc.SetExtra("description", description); err == nil {
-			l.save(ctx, repo)
+			if err := l.save(ctx, repo); err != nil {
+				return nil, err
+			}
 		}
 	}
 	l.Record(Activity{Actor: actorOr(actor), Action: "create", RepoID: r.ID, Detail: r.Source.Key()})
@@ -256,7 +258,7 @@ func (l *Library) Fork(ctx context.Context, ref, owner, name, actor string) (*Re
 		return nil, err
 	}
 	// The fork's origin is the mirror; never fetch automatically.
-	l.Git.Run(ctx, p.Mirror, nil, "remote", "remove", "origin")
+	_, _ = l.Git.Run(ctx, p.Mirror, nil, "remote", "remove", "origin") // no remote is fine too
 	repo, err := l.create(ctx, r, sources.Parsed{Source: r.Source, Provider: "local"}, orig.Upstream.Metadata, "")
 	if err != nil {
 		return nil, err

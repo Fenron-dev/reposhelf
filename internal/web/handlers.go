@@ -246,6 +246,9 @@ func (s *Server) baseRepoData(r *http.Request, repo *core.Repo) repoData {
 		Retention: s.Lib.EffectiveRetention(repo), Names: map[string]string{},
 		RelTypes: repometa.KnownRelationTypes, CanWrite: tok.Has(auth.Write), CanAdmin: tok.Has(auth.Admin), CanBuild: tok.Has(auth.Build)}
 	d.CloneURL = githttp.CloneURL(s.CloneBase(r), repo.Entry.Key)
+	if s.Ext.Builds != nil {
+		d.Builds = s.Ext.Builds.Panel(r, repo.R().ID)
+	}
 	d.Collections, _ = s.Lib.Collections(r.Context())
 	for _, bl := range repo.Backlinks {
 		if e, err := s.Lib.Store.Get(r.Context(), bl.From); err == nil {
