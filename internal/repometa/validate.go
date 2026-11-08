@@ -113,7 +113,9 @@ func (v *validator) addf(field, format string, args ...any) {
 func (v *validator) err() error { return errors.Join(v.errs...) }
 
 func (v *validator) source(s Source) {
-	if s.URL == "" {
+	if s.URL == "" && s.Host == LocalHost {
+		// Repositories that exist only in RepoShelf have no upstream.
+	} else if s.URL == "" {
 		v.add("source.url", "is required")
 	} else if u, err := url.Parse(s.URL); err != nil || u.Host == "" {
 		v.add("source.url", "must be an absolute URL with host")

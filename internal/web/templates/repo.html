@@ -1,0 +1,298 @@
+{{define "repo"}}{{template "head" .}}{{$d := .Data}}{{$r := $d.Repo}}{{$e := $r.Entry}}{{$id := $r.R.ID}}
+<nav class="crumbs small" aria-label="Pfad"><a href="/">Bibliothek</a> / <span class="muted">{{$e.Host}} / {{$e.Owner}}</span> / {{$e.Name}}</nav>
+
+<header class="repo-head">
+  <div class="repo-head-main">
+    <h1>{{$e.Name}}</h1>
+    <div class="row-wrap">
+      {{template "kind" $e.Kind}}
+      {{template "status" $e.Status}}
+      {{if $e.StatusOverride}}<span class="pill" title="Von dir festgelegt – schlägt die Erkennung">festgelegt</span>{{end}}
+      {{if $e.Buildable}}<span class="pill pill-accent">Baubar halten</span>{{end}}
+      {{if $e.UpstreamArchived}}<span class="pill">beim Original archiviert</span>{{end}}
+      {{if $d.Marked}}<span class="pill pill-warn">zum Löschen vorgemerkt</span>{{end}}
+    </div>
+    {{if $e.Description}}<p class="lead">{{$e.Description}}</p>{{end}}
+    <p class="small muted">
+      {{if $e.URL}}Quelle: {{if $r.Upstream.WebURL}}<a href="{{$r.Upstream.WebURL}}" rel="noopener noreferrer" target="_blank">{{$e.URL}}</a>{{else}}<span class="mono">{{$e.URL}}</span>{{end}} · {{end}}
+      Abgleich {{intervalText $e}} · zuletzt {{ago $e.LastSuccess}}
+      {{if $e.Language}} · {{$e.Language}}{{end}}{{if $e.License}} · Lizenz {{$e.License}}{{else}} · <span class="warn" title="Ohne Lizenz gilt: alle Rechte vorbehalten">keine Lizenz erkannt</span>{{end}}
+    </p>
+    {{if $e.LastError}}<div class="alert alert-error small" role="alert"><strong>Letzter Abgleich fehlgeschlagen:</strong> {{$e.LastError}}{{if $r.Upstream.HostDown}} – der ganze Host ist seit über 24 h gestört, das Repo gilt deshalb nicht als verschwunden.{{end}}</div>{{end}}
+    {{if $r.Upstream.LastBackup}}<div class="alert small">Das Original hat Geschichte umgeschrieben. Der alte Stand ist gesichert unter <span class="mono">{{$r.Upstream.LastBackup}}</span> (siehe „Versionen“).</div>{{end}}
+  </div>
+  <div class="repo-actions">
+    {{if $d.CanWrite}}
+    {{if ne $e.Host "local"}}<form method="post" action="/repo/{{$id}}/sync" class="inline"><button class="btn btn-primary" type="submit" {{if $d.Busy}}disabled{{end}}>{{if $d.Busy}}◐ Abgleich läuft …{{else}}Jetzt synchronisieren{{end}}</button></form>{{end}}
+    {{end}}
+    {{if and $d.CanBuild .Sidebar.Builds}}<a class="btn" href="/builds?repo={{$id}}">Build starten</a>{{end}}
+    <div class="clone">
+      <label for="clone-url" class="small muted">Klonen</label>
+      <div class="copy-field"><input id="clone-url" class="mono" readonly value="git clone {{$d.CloneURL}}"><button class="btn btn-small" type="button" data-copy="#clone-url">Kopieren</button></div>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs" aria-label="Bereiche">
+  <a href="/repo/{{$id}}" {{if eq $d.Tab "overview"}}aria-current="page"{{end}}>Übersicht</a>
+  <a href="/repo/{{$id}}/tree/" {{if eq $d.Tab "code"}}aria-current="page"{{end}}>Code</a>
+  <a href="/repo/{{$id}}?tab=versions" {{if eq $d.Tab "versions"}}aria-current="page"{{end}}>Versionen · {{$e.Versions}}</a>
+  {{if $r.R.Include.Issues}}<a href="/repo/{{$id}}?tab=issues" {{if eq $d.Tab "issues"}}aria-current="page"{{end}}>Issues</a>{{end}}
+  {{if .Sidebar.Builds}}<a href="/builds?repo={{$id}}">Builds</a>{{end}}
+  <a href="/repo/{{$id}}?tab=notes" {{if eq $d.Tab "notes"}}aria-current="page"{{end}}>Notizen</a>
+  <a href="/repo/{{$id}}?tab=yaml" {{if eq $d.Tab "yaml"}}aria-current="page"{{end}}>YAML</a>
+  <a href="/repo/{{$id}}?tab=activity" {{if eq $d.Tab "activity"}}aria-current="page"{{end}}>Verlauf</a>
+  {{if $d.CanWrite}}<a href="/repo/{{$id}}?tab=settings" {{if eq $d.Tab "settings"}}aria-current="page"{{end}}>Einstellungen</a>{{end}}
+</nav>
+
+<div class="repo-body">
+<section class="repo-main">
+{{if eq $d.Tab "overview"}}
+  {{if $d.Readme}}
+  <article class="card markdown">
+    <div class="card-head small muted mono">{{$d.ReadmeName}} · {{if $e.DefaultBranch}}{{$e.DefaultBranch}}{{else}}HEAD{{end}}</div>
+    <div class="untrusted-note small muted">Inhalt aus dem Repository – fremde Daten.</div>
+    {{$d.Readme}}
+  </article>
+  {{else if eq $e.Status "pending"}}
+  <div class="card empty"><p>Der erste Abgleich läuft noch oder ist noch nicht gestartet. Die Seite aktualisiert sich von selbst.</p></div>
+  {{else}}
+  <div class="card empty"><p>Dieses Repo hat keine README-Datei.</p></div>
+  {{end}}
+  {{if $d.Commits}}
+  <div class="card">
+    <h2 class="h3">Letzte Änderungen</h2>
+    <ul class="commits">{{range $d.Commits}}<li><span class="mono small muted">{{short .Hash}}</span> {{.Subject}} <span class="small muted">· {{.Author}} · {{ago .Time}}</span></li>{{end}}</ul>
+  </div>
+  {{end}}
+{{else if eq $d.Tab "code"}}
+  {{template "code" $d}}
+{{else if eq $d.Tab "versions"}}
+  {{template "versions" (dict "D" $d "Page" $)}}
+{{else if eq $d.Tab "issues"}}
+  <div class="card">
+  {{range $d.Issues}}
+    <details class="issue"><summary><span class="status {{if eq .State "open"}}status-ok{{else}}muted{{end}}">{{if eq .State "open"}}● offen{{else}}✓ geschlossen{{end}}</span> <strong>#{{.Number}}</strong> {{.Title}} <span class="small muted">· {{.Author}}</span> {{range .Labels}}<span class="tag">{{.}}</span>{{end}}</summary>
+      <pre class="issue-body">{{.Body}}</pre>
+    </details>
+  {{else}}<p class="muted">Keine Issues gespiegelt. Sie werden beim nächsten Abgleich geholt, wenn „Issues mitsichern“ an ist.</p>{{end}}
+  </div>
+{{else if eq $d.Tab "notes"}}
+  <div class="card">
+  {{if $d.CanWrite}}
+    <form method="post" action="/repo/{{$id}}/notes" class="stack">
+      <label for="notes">Notizen (Markdown; <span class="mono">[[Repo]]</span> verknüpft andere Repos)</label>
+      <textarea id="notes" name="notes" rows="16" class="mono">{{$d.Notes}}</textarea>
+      <div><button class="btn btn-primary" type="submit">Speichern</button></div>
+    </form>
+  {{end}}
+  {{if $d.Notes}}<h2 class="h3">Vorschau</h2><div class="markdown">{{$d.NotesHTML}}</div>{{else}}<p class="muted">Noch keine Notizen.</p>{{end}}
+  </div>
+{{else if eq $d.Tab "yaml"}}
+  <div class="card">
+    <p class="small muted">Datei <span class="mono">{{$r.Paths.RepoFile}}</span> – die Wahrheit über dieses Repo. Du kannst sie von Hand bearbeiten; unbekannte Felder und Kommentare bleiben erhalten.</p>
+    <pre class="code mono">{{$d.YAML}}</pre>
+  </div>
+{{else if eq $d.Tab "activity"}}
+  <div class="card">{{template "activity-list" (dict "Acts" $d.Activity "Names" (dict))}}</div>
+{{else if eq $d.Tab "settings"}}
+  {{template "repo-settings" $d}}
+{{end}}
+</section>
+
+<aside class="repo-side">
+  <div class="card">
+    <h2 class="h3">Schlagwörter</h2>
+    <div class="row-wrap">{{range $r.R.Tags}}<a class="tag" href="/?tag={{queryEsc .}}">{{.}}</a>{{else}}<span class="muted small">keine</span>{{end}}</div>
+    {{if $d.CanWrite}}
+    <details class="edit"><summary class="small">bearbeiten</summary>
+      <form method="post" action="/repo/{{$id}}/tags" class="stack">
+        <input name="tags" value="{{join $r.R.Tags ", "}}" aria-label="Schlagwörter, durch Komma getrennt" placeholder="ttrpg/tool, rust">
+        <button class="btn btn-small" type="submit">Speichern</button>
+      </form>
+    </details>
+    {{end}}
+    <h2 class="h3">Sammlungen</h2>
+    <div class="row-wrap">{{range $r.R.Collections}}<a class="tag" href="/collections/{{.}}">{{.}}</a>{{else}}<span class="muted small">keine</span>{{end}}</div>
+    {{if and $d.CanWrite $d.Collections}}
+    <details class="edit"><summary class="small">zuordnen</summary>
+      <form method="post" action="/repo/{{$id}}/collections" class="stack">
+        {{range $d.Collections}}{{if not .Smart}}<label class="check"><input type="checkbox" name="collection" value="{{.ID}}" {{if has $r.R.Collections .ID}}checked{{end}}> {{.Name}}</label>{{end}}{{end}}
+        <button class="btn btn-small" type="submit">Speichern</button>
+      </form>
+    </details>
+    {{end}}
+  </div>
+
+  <div class="card">
+    <h2 class="h3">Beziehungen</h2>
+    <ul class="rels">
+    {{range $r.R.Relations}}{{if ne .State "rejected"}}
+      <li class="{{if eq .State "suggested"}}suggested{{end}}">
+        <span class="small muted">{{relText .Type}}</span> →
+        {{$t := .Target}}{{with index $d.Names $t}}<a class="mono small" href="/repo/{{.}}">{{$t}}</a>{{else}}<span class="mono small">{{$t}}</span>{{end}}
+        {{if eq .State "suggested"}}<div class="small muted">Vorschlag · {{relSource .Source}}</div>
+          {{if $d.CanWrite}}<form method="post" action="/repo/{{$id}}/relation" class="inline"><input type="hidden" name="type" value="{{.Type}}"><input type="hidden" name="target" value="{{.Target}}"><button class="btn btn-small" name="action" value="confirm">Bestätigen</button> <button class="btn btn-small btn-ghost" name="action" value="reject">Ablehnen</button></form>{{end}}
+        {{else if .Source}}<div class="small muted">{{relSource .Source}}</div>{{end}}
+      </li>
+    {{end}}{{end}}
+    {{with $r.R.ForkOf}}<li><span class="small muted">Fork von</span> → {{with index $d.Names .}}<a href="/repo/{{.}}">Original</a>{{else}}<span class="mono small">{{.}}</span>{{end}}</li>{{end}}
+    </ul>
+    {{if not $r.R.Relations}}{{if not $r.R.ForkOf}}<p class="muted small">Noch keine.</p>{{end}}{{end}}
+    {{if $d.CanWrite}}
+    <details class="edit"><summary class="small">+ Beziehung</summary>
+      <form method="post" action="/repo/{{$id}}/relation" class="stack">
+        <select name="type" aria-label="Art der Beziehung">{{range $d.RelTypes}}<option value="{{.}}">{{relText .}}</option>{{end}}</select>
+        <input name="target" placeholder="host/owner/name oder Name" aria-label="Ziel-Repo" required>
+        <button class="btn btn-small" name="action" value="confirm" type="submit">Hinzufügen</button>
+      </form>
+    </details>
+    {{end}}
+    <h2 class="h3">Backlinks · verweist hierher</h2>
+    <ul class="rels">
+    {{range $r.Backlinks}}<li><a href="/repo/{{.From}}">{{with index $d.Names .From}}{{.}}{{else}}{{.From}}{{end}}</a> <span class="small muted">· {{relBackText .Type}}{{if eq .State "suggested"}} (Vorschlag){{end}}{{if .Source}} · {{relSource .Source}}{{end}}</span></li>
+    {{else}}<li class="muted small">Keine.</li>{{end}}
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2 class="h3">Aufbewahrung</h2>
+    <dl class="kv small">
+      <dt>Releases</dt><dd>neueste {{$d.Retention.ReleasesKeep}} <span class="muted">({{index $d.Retention.From "releases_keep"}})</span></dd>
+      <dt>Angeheftet</dt><dd class="mono">{{if $d.Retention.Pinned}}{{join $d.Retention.Pinned ", "}}{{else}}–{{end}}</dd>
+      <dt>Force-Push-Sicherung</dt><dd>{{dur $d.Retention.ForcePushBackupsKeepFor}} <span class="muted">({{index $d.Retention.From "force_push_backups"}})</span></dd>
+      <dt>Snapshots</dt><dd>{{if $d.Retention.SnapshotsEvery}}alle {{dur $d.Retention.SnapshotsEvery}}, {{dur $d.Retention.SnapshotsKeepFor}} behalten{{else}}aus{{end}}</dd>
+      <dt>Issues</dt><dd>{{if $r.R.Include.Issues}}mitsichern{{else}}aus{{end}}</dd>
+      <dt>Größe</dt><dd class="mono">{{size $e.SizeBytes}}</dd>
+    </dl>
+  </div>
+
+  {{if $d.CanWrite}}
+  <div class="card">
+    <h2 class="h3">Aktionen</h2>
+    {{if ne $e.Kind "fork"}}
+    <details class="edit"><summary class="small">Fork anlegen (beschreibbare Kopie)</summary>
+      <form method="post" action="/repo/{{$id}}/fork" class="stack">
+        <input name="name" value="{{$e.Name}}" aria-label="Name des Forks">
+        <button class="btn btn-small" type="submit">Fork anlegen</button>
+      </form>
+    </details>
+    {{end}}
+    {{if $d.CanAdmin}}
+    <form method="post" action="/repo/{{$id}}/mark" class="inline">
+      {{if $d.Marked}}<input type="hidden" name="mark" value="0"><button class="btn btn-small" type="submit">Vormerkung zum Löschen aufheben</button>
+      {{else}}<button class="btn btn-small btn-ghost" type="submit">Zum Löschen vormerken …</button>{{end}}
+    </form>
+    <p class="small muted">Vorgemerkte Repos landen erst nach deiner Bestätigung im Papierkorb.</p>
+    {{end}}
+  </div>
+  {{end}}
+</aside>
+</div>
+{{template "foot" .}}{{end}}
+
+{{define "code"}}{{$id := .Repo.R.ID}}
+<div class="card">
+  <div class="code-head">
+    <nav class="crumbs small mono" aria-label="Pfad">{{range $i, $c := .Crumbs}}{{if $i}} / {{end}}<a href="{{$c.URL}}">{{$c.Name}}</a>{{end}}</nav>
+    <form method="get" action="/repo/{{$id}}/tree/{{.Path}}" class="inline">
+      <label class="small muted">Stand
+        <select name="ref" data-autosubmit>
+          <option value="HEAD" {{if eq .Ref "HEAD"}}selected{{end}}>HEAD</option>
+          {{range .Branches}}<option value="{{.Name}}" {{if eq $.Ref .Name}}selected{{end}}>Branch {{.Name}}</option>{{end}}
+          {{range .Versions}}<option value="{{.Name}}" {{if eq $.Ref .Name}}selected{{end}}>Version {{.Name}}</option>{{end}}
+        </select>
+      </label>
+    </form>
+  </div>
+  {{if .File}}{{with .File}}
+    <div class="file-head small muted mono">{{.Path}} · {{size .Size}} · <a href="/repo/{{$id}}/raw/{{.Path}}?ref={{queryEsc $.Ref}}">roh</a></div>
+    {{if .TooLarge}}<p class="muted">Die Datei ist zu groß für die Anzeige. <a href="/repo/{{$id}}/raw/{{.Path}}?ref={{queryEsc $.Ref}}">Herunterladen</a></p>
+    {{else if .Image}}<img class="file-image" src="/repo/{{$id}}/raw/{{.Path}}?ref={{queryEsc $.Ref}}" alt="{{.Name}}">
+    {{else if .Binary}}<p class="muted">Binärdatei. <a href="/repo/{{$id}}/raw/{{.Path}}?ref={{queryEsc $.Ref}}">Herunterladen</a></p>
+    {{else if .Markdown}}<div class="markdown">{{.Markdown}}</div>
+    {{else}}<div class="code-view"><table class="code mono"><tbody>{{range $i, $l := .Lines}}<tr id="L{{add $i 1}}"><td class="ln"><a href="#L{{add $i 1}}">{{add $i 1}}</a></td><td class="lc">{{$l}}</td></tr>{{end}}</tbody></table></div>{{end}}
+  {{end}}{{else}}
+    {{if .Tree}}
+    <table class="tree"><tbody>
+      {{range .Tree}}<tr>
+        <td>{{if eq .Type "tree"}}📁 <a href="/repo/{{$id}}/tree/{{.Path}}?ref={{queryEsc $.Ref}}">{{.Name}}</a>{{else if eq .Type "commit"}}🔗 {{.Name}} <span class="small muted">(Submodul)</span>{{else}}📄 <a href="/repo/{{$id}}/blob/{{.Path}}?ref={{queryEsc $.Ref}}">{{.Name}}</a>{{end}}</td>
+        <td class="num small muted mono">{{if eq .Type "blob"}}{{size .Size}}{{end}}</td>
+      </tr>{{end}}
+    </tbody></table>
+    {{else}}<p class="muted">Leer – noch nicht abgeglichen oder keine Dateien in diesem Stand.</p>{{end}}
+  {{end}}
+</div>
+{{end}}
+
+{{define "versions"}}{{$d := .D}}{{$id := $d.Repo.R.ID}}
+<div class="card">
+  <h2 class="h3">Releases</h2>
+  {{range $d.Releases}}
+  <details class="release" {{if has $d.Retention.Pinned .Tag}}open{{end}}>
+    <summary><span class="mono"><strong>{{.Tag}}</strong></span> {{if .Name}}– {{.Name}}{{end}} {{if .Prerelease}}<span class="pill">Vorabversion</span>{{end}} {{if has $d.Retention.Pinned .Tag}}<span class="pill pill-accent">📌 angeheftet</span>{{end}} <span class="small muted">{{if .Published}}{{dt .Published}}{{end}} · {{len .Stored}} von {{len .Assets}} Dateien gesichert</span></summary>
+    {{if .Body}}<pre class="issue-body">{{.Body}}</pre>{{end}}
+    <ul class="assets">
+      {{$tag := .Tag}}
+      {{range .Stored}}<li><a href="/repo/{{$id}}/asset?tag={{queryEsc $tag}}&amp;name={{queryEsc .Name}}">{{.Name}}</a> <span class="small muted mono">{{size .Size}} · sha256 {{short .SHA256}}{{if .SameAs}} · identisch mit {{.SameAs}}{{end}}</span></li>{{end}}
+    </ul>
+    {{if and $d.CanWrite (not (has $d.Retention.Pinned .Tag))}}<form method="post" action="/repo/{{$id}}/pin" class="inline"><input type="hidden" name="version" value="{{.Tag}}"><button class="btn btn-small" type="submit">📌 Anheften (immer behalten)</button></form>{{end}}
+    {{if and $d.CanWrite (has $d.Retention.Pinned .Tag)}}<form method="post" action="/repo/{{$id}}/pin" class="inline"><input type="hidden" name="version" value="{{.Tag}}"><input type="hidden" name="pin" value="0"><button class="btn btn-small btn-ghost" type="submit">Lösen</button></form>{{end}}
+  </details>
+  {{else}}<p class="muted small">Keine Releases gesichert.{{if not $d.Repo.R.Include.Releases}} „Releases mitsichern“ ist aus.{{end}}</p>{{end}}
+</div>
+<div class="card">
+  <h2 class="h3">Versionen (Git-Tags) · {{len $d.Versions}}</h2>
+  <ul class="cols">{{range $d.Versions}}<li><a class="mono" href="/repo/{{$id}}/tree/?ref={{queryEsc .Name}}">{{.Name}}</a> <span class="small muted">{{date .Time}}</span></li>{{else}}<li class="muted small">Keine.</li>{{end}}</ul>
+  <h2 class="h3">Branches · {{len $d.Branches}}</h2>
+  <ul class="cols">{{range $d.Branches}}<li><a class="mono" href="/repo/{{$id}}/tree/?ref={{queryEsc .Name}}">{{.Name}}</a> <span class="small muted">{{ago .Time}}</span></li>{{end}}</ul>
+  {{with $d.Repo.Upstream.DeletedUpstream}}<p class="small"><strong>Beim Original gelöscht, hier erhalten:</strong> <span class="mono">{{join . ", "}}</span></p>{{end}}
+</div>
+<div class="card">
+  <h2 class="h3">Force-Push-Sicherungen</h2>
+  {{range $d.Backups}}<details><summary>{{dt .Time}} · {{len .Refs}} Refs</summary><ul class="small mono">{{range $ref, $oid := .Refs}}<li>{{$ref}} → <a href="/repo/{{$id}}/tree/?ref={{$oid}}">{{short $oid}}</a></li>{{end}}</ul></details>
+  {{else}}<p class="muted small">Keine – das Original hat bisher keine Geschichte umgeschrieben.</p>{{end}}
+</div>
+{{end}}
+
+{{define "repo-settings"}}{{$r := .Repo.R}}{{$id := $r.ID}}
+<form method="post" action="/repo/{{$id}}/settings" class="card stack">
+  <h2 class="h3">Art und Abgleich</h2>
+  {{if ne $r.Kind "fork"}}
+  <fieldset><legend>Art</legend>
+    <label class="check"><input type="radio" name="kind" value="mirror" {{if eq $r.Kind "mirror"}}checked{{end}}> Spiegel – schreibgeschützte, vollständige Kopie</label>
+    <label class="check"><input type="radio" name="kind" value="own" {{if eq $r.Kind "own"}}checked{{end}}> Eigenes Projekt – Push über RepoShelf möglich</label>
+  </fieldset>
+  {{end}}
+  <fieldset><legend>Aktualisierung</legend>
+    <label class="check"><input type="radio" name="mode" value="follow" {{if eq $r.Sync.Mode "follow"}}checked{{end}}> Aktuell halten, alle <input name="interval" class="short" value="{{deref $r.Sync.Interval}}" aria-label="Intervall, z. B. 6h"></label>
+    <label class="check"><input type="radio" name="mode" value="once" {{if eq $r.Sync.Mode "once"}}checked{{end}}> Einmalig</label>
+    <label class="check"><input type="radio" name="mode" value="manual" {{if eq $r.Sync.Mode "manual"}}checked{{end}}> Nur von Hand</label>
+  </fieldset>
+  <fieldset><legend>Mitsichern</legend>
+    <label class="check"><input type="checkbox" name="releases" {{if $r.Include.Releases}}checked{{end}}> Releases &amp; Dateien</label>
+    <label class="check"><input type="checkbox" name="lfs" {{if $r.Include.LFS}}checked{{end}}> Git LFS</label>
+    <label class="check"><input type="checkbox" name="submodules" {{if $r.Include.Submodules}}checked{{end}}> Submodule (als eigene Spiegel)</label>
+    <label class="check"><input type="checkbox" name="issues" {{if $r.Include.Issues}}checked{{end}}> Issues</label>
+    <label class="check"><input type="checkbox" name="wiki" {{if $r.Include.Wiki}}checked{{end}}> Wiki</label>
+    <label class="check"><input type="checkbox" name="buildable" {{if $r.Buildable.Enabled}}checked{{end}}> Baubar halten (Build-Kapseln)</label>
+  </fieldset>
+  <fieldset><legend>Status festlegen</legend>
+    <select name="override" aria-label="Status">
+      <option value="">automatisch erkennen</option>
+      <option value="ok" {{if eq (deref $r.StatusOverride) "ok"}}selected{{end}}>Aktuell</option>
+      <option value="degraded" {{if eq (deref $r.StatusOverride) "degraded"}}selected{{end}}>Gestört</option>
+      <option value="gone" {{if eq (deref $r.StatusOverride) "gone"}}selected{{end}}>Upstream weg</option>
+      <option value="archived" {{if eq (deref $r.StatusOverride) "archived"}}selected{{end}}>Archiviert</option>
+    </select>
+    <p class="small muted">Deine Festlegung schlägt die automatische Erkennung.</p>
+  </fieldset>
+  <fieldset><legend>Aufbewahrung (leer = erben von Sammlung/global)</legend>
+    <label>Neueste Releases behalten <input name="releases_keep" class="short" value="{{deref $r.Retention.ReleasesKeep}}" inputmode="numeric"></label>
+    <label>Snapshot alle <input name="snapshots_every" class="short" value="{{deref $r.Retention.Snapshots.Every}}" placeholder="30d"></label>
+    <label>Snapshots behalten <input name="snapshots_keep_for" class="short" value="{{deref $r.Retention.Snapshots.KeepFor}}" placeholder="180d"></label>
+    <label>Force-Push-Sicherungen behalten <input name="backups_keep_for" class="short" value="{{deref $r.Retention.ForcePushBackups.KeepFor}}" placeholder="180d"></label>
+  </fieldset>
+  <div><button class="btn btn-primary" type="submit">Speichern</button></div>
+</form>
+{{end}}

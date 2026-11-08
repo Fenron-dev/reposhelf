@@ -24,8 +24,12 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"go.yaml.in/yaml/v3"
+
+	"github.com/Fenron-dev/reposhelf/internal/atomicfile"
+	"github.com/Fenron-dev/reposhelf/internal/repometa"
 )
 
 const (
@@ -52,23 +56,105 @@ var (
 	ErrInvalid     = errors.New("invalid configuration")
 )
 
-// Config is the instance configuration.
+// Config is the instance configuration. New sections are additive: a file
+// without them gets the defaults, so the schema number stays 1.
 type Config struct {
-	Schema int    `yaml:"schema"`
-	Server Server `yaml:"server"`
+	Schema    int       `yaml:"schema"`
+	Instance  Instance  `yaml:"instance"`
+	Server    Server    `yaml:"server"`
+	Sync      Sync      `yaml:"sync"`
+	Retention Retention `yaml:"retention"`
+	Runner    Runner    `yaml:"runner"`
+}
+
+// Instance names this installation (shown in the UI and to paired peers).
+type Instance struct {
+	Name string `yaml:"name"`
 }
 
 // Server configures the HTTP listener (web UI, API, Git HTTP, MCP HTTP).
 type Server struct {
 	// Listen is host:port. An empty host means all interfaces.
 	Listen string `yaml:"listen"`
+	// PublicURL is how others reach this instance (clone URLs, MCP). Empty:
+	// derived from each request.
+	PublicURL string `yaml:"public_url"`
+	// AnonymousRead allows reading (web, git clone) without a token when
+	// the server is reachable from the network (KONZEPT 6.14).
+	AnonymousRead bool `yaml:"anonymous_read"`
 }
+
+// Sync holds defaults of the mirror scheduler (KONZEPT 6.2).
+type Sync struct {
+	DefaultInterval  repometa.Duration `yaml:"default_interval"`
+	ArchivedInterval repometa.Duration `yaml:"archived_interval"`
+	Concurrency      int               `yaml:"concurrency"`
+	// Paused stops automatic syncs (manual ones still work).
+	Paused bool `yaml:"paused"`
+}
+
+// Retention holds the global retention rules (KONZEPT 6.10). Collections and
+// repositories override them.
+type Retention struct {
+	ReleasesKeep            int               `yaml:"releases_keep"`
+	SnapshotsEvery          repometa.Duration `yaml:"snapshots_every"`
+	SnapshotsKeepFor        repometa.Duration `yaml:"snapshots_keep_for"`
+	ForcePushBackupsKeepFor repometa.Duration `yaml:"force_push_backups_keep_for"`
+	CapsulesKeep            int               `yaml:"capsules_keep"`
+	BuildsKeep              int               `yaml:"builds_keep"`
+	TrashDays               int               `yaml:"trash_days"`
+}
+
+// Runner enables the build role of this instance (KONZEPT 6.12).
+type Runner struct {
+	Enabled      bool     `yaml:"enabled"`
+	Capabilities []string `yaml:"capabilities"`
+	MaxParallel  int      `yaml:"max_parallel"`
+	// Confirm makes every build wait for a confirmation in the UI (weak
+	// machines such as a laptop with little disk space).
+	Confirm bool `yaml:"confirm"`
+	// MinFreeGB refuses builds when less disk space is free.
+	MinFreeGB int `yaml:"min_free_gb"`
+	// MemoryLimit and CPULimit are passed to docker (e.g. "4g", "2").
+	MemoryLimit string `yaml:"memory_limit"`
+	CPULimit    string `yaml:"cpu_limit"`
+}
+
+const (
+	day                     = 24 * time.Hour
+	defaultSyncInterval     = 6 * time.Hour
+	defaultArchivedInterval = 30 * day
+	defaultConcurrency      = 2
+	defaultReleasesKeep     = 5
+	defaultSnapshotsEvery   = 30 * day
+	defaultKeepFor          = 180 * day
+	defaultCapsulesKeep     = 3
+	defaultBuildsKeep       = 10
+	defaultTrashDays        = 30
+	defaultMinFreeGB        = 5
+)
 
 // Default returns the built-in configuration.
 func Default() Config {
 	return Config{
-		Schema: CurrentSchema,
-		Server: Server{Listen: net.JoinHostPort(defaultHost, strconv.Itoa(DefaultPort))},
+		Schema:   CurrentSchema,
+		Instance: Instance{Name: "RepoShelf"},
+		Server:   Server{Listen: net.JoinHostPort(defaultHost, strconv.Itoa(DefaultPort))},
+		Sync: Sync{
+			DefaultInterval:  repometa.Duration(defaultSyncInterval),
+			ArchivedInterval: repometa.Duration(defaultArchivedInterval),
+			Concurrency:      defaultConcurrency,
+		},
+		Retention: Retention{
+			ReleasesKeep:            defaultReleasesKeep,
+			SnapshotsEvery:          repometa.Duration(defaultSnapshotsEvery),
+			SnapshotsKeepFor:        repometa.Duration(defaultKeepFor),
+			ForcePushBackupsKeepFor: repometa.Duration(defaultKeepFor),
+			CapsulesKeep:            defaultCapsulesKeep,
+			BuildsKeep:              defaultBuildsKeep,
+			TrashDays:               defaultTrashDays,
+		},
+		Runner: Runner{MaxParallel: 1, Confirm: true, MinFreeGB: defaultMinFreeGB, MemoryLimit: "4g", CPULimit: "2"},
 	}
 }
 
@@ -141,11 +227,42 @@ func decode(raw []byte, cfg *Config) ([]string, error) {
 	return warnings, nil
 }
 
+// EnvPublicURL overrides server.public_url.
+const EnvPublicURL = "REPOSHELF_PUBLIC_URL"
+
 func applyEnv(cfg *Config, lookupEnv func(string) (string, bool)) {
 	if v, ok := lookupEnv(EnvListen); ok && v != "" {
 		cfg.Server.Listen = v
 	}
+	if v, ok := lookupEnv(EnvPublicURL); ok && v != "" {
+		cfg.Server.PublicURL = v
+	}
 }
+
+// Save writes the configuration file atomically, keeping unknown keys and
+// comments of an existing file.
+func Save(dataDir string, cfg Config) error {
+	path := filepath.Join(dataDir, FileName)
+	f := repometa.NewFile(cfg)
+	if raw, err := os.ReadFile(path); err == nil {
+		parsed, err := repometa.ParseFile(raw, Default())
+		if err != nil {
+			return fmt.Errorf("parse %s: %w", path, err)
+		}
+		parsed.Value = cfg
+		f = parsed
+	}
+	if err := validate(cfg); err != nil {
+		return err
+	}
+	out, err := f.Marshal()
+	if err != nil {
+		return err
+	}
+	return atomicfile.WriteFile(path, out, filePerm)
+}
+
+const filePerm = 0o644
 
 func validate(cfg Config) error {
 	switch {
@@ -156,6 +273,15 @@ func validate(cfg Config) error {
 	}
 	if err := validateListen(cfg.Server.Listen); err != nil {
 		return fmt.Errorf("%w: server.listen: %w", ErrInvalid, err)
+	}
+	if cfg.Sync.Concurrency < 1 {
+		return fmt.Errorf("%w: sync.concurrency must be at least 1", ErrInvalid)
+	}
+	if cfg.Retention.ReleasesKeep < 0 || cfg.Retention.TrashDays < 1 || cfg.Retention.CapsulesKeep < 0 {
+		return fmt.Errorf("%w: retention values out of range", ErrInvalid)
+	}
+	if cfg.Sync.DefaultInterval < repometa.Duration(5*time.Minute) {
+		return fmt.Errorf("%w: sync.default_interval must be at least 5m", ErrInvalid)
 	}
 	return nil
 }

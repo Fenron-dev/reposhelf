@@ -1,0 +1,121 @@
+{{define "library"}}{{template "head" .}}{{$d := .Data}}
+<div class="toolbar">
+  <form class="search" role="search" action="/" method="get" hx-get="/" hx-target="#results" hx-select="#results" hx-swap="outerHTML" hx-trigger="input changed delay:300ms from:#search, submit" hx-push-url="true">
+    <label for="search" class="sr-only">Suche</label>
+    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+    <input id="search" name="q" type="search" value="{{$d.Query.Text}}" placeholder="Repos, README und Notizen durchsuchen …">
+    {{range $k, $v := dict "kind" $d.Query.Kind "tag" $d.Query.Tag "status" $d.Query.Status "collection" $d.Query.Collection}}{{if $v}}<input type="hidden" name="{{$k}}" value="{{$v}}">{{end}}{{end}}
+    <kbd>⌘K</kbd>
+  </form>
+  {{if .Identity.Has "write"}}<a class="btn btn-primary" href="/add">+ Repo hinzufügen</a>{{end}}
+</div>
+
+{{if $d.ShowRev}}
+<div class="card review-banner" role="region" aria-label="Lösch-Prüfung">
+  <strong>{{len $d.Review.Pending}} Einträge sind nach deinen Aufbewahrungsregeln zur Löschung vorgemerkt{{if $d.Review.Due}}, {{len $d.Review.Due}} Papierkorb-Einträge sind älter als die Frist{{end}}.</strong>
+  <span class="muted">Nichts wird ohne deine Bestätigung entfernt.</span>
+  <a class="btn btn-primary" href="/cleanup">Prüfen</a>
+  <form method="post" action="/cleanup" class="inline"><input type="hidden" name="action" value="later"><button class="btn" type="submit">Beim nächsten Start erneut fragen</button></form>
+</div>
+{{end}}
+
+<div class="title-row">
+  <div>
+    <h1>Bibliothek</h1>
+    <p class="muted">{{$d.Total}} Repos · {{index $d.Kinds "own"}} eigene · {{index $d.Kinds "mirror"}} Spiegel · {{index $d.Kinds "fork"}} Forks · {{size .Sidebar.Size}}</p>
+  </div>
+  <div class="segmented" role="group" aria-label="Ansicht">
+    <a href="{{filterURL $d.Query "list" "view" ""}}" aria-pressed="{{eq $d.View "list"}}">Liste</a>
+    <a href="{{filterURL $d.Query "tiles" "view" "tiles"}}" aria-pressed="{{eq $d.View "tiles"}}">Kacheln</a>
+    <a href="{{filterURL $d.Query "folders" "view" "folders"}}" aria-pressed="{{eq $d.View "folders"}}">Ordner</a>
+  </div>
+</div>
+
+<div class="chips" role="group" aria-label="Filter">
+  <a class="chip" href="{{filterURL $d.Query $d.View "all" ""}}" {{if not $d.Filtered}}aria-current="true"{{end}}>Alle</a>
+  <a class="chip" href="{{filterURL $d.Query $d.View "kind" "own"}}" {{if eq $d.Query.Kind "own"}}aria-current="true"{{end}}>Eigen · {{index $d.Kinds "own"}}</a>
+  <a class="chip" href="{{filterURL $d.Query $d.View "kind" "mirror"}}" {{if eq $d.Query.Kind "mirror"}}aria-current="true"{{end}}>Spiegel · {{index $d.Kinds "mirror"}}</a>
+  <a class="chip" href="{{filterURL $d.Query $d.View "kind" "fork"}}" {{if eq $d.Query.Kind "fork"}}aria-current="true"{{end}}>Fork · {{index $d.Kinds "fork"}}</a>
+  <span class="chip-sep" aria-hidden="true"></span>
+  {{with index $d.Statuses "gone"}}<a class="chip chip-warn" href="{{filterURL $d.Query $d.View "status" "gone"}}" {{if eq $d.Query.Status "gone"}}aria-current="true"{{end}}>▲ Upstream weg · {{.}}</a>{{end}}
+  {{with index $d.Statuses "degraded"}}<a class="chip chip-warn" href="{{filterURL $d.Query $d.View "status" "degraded"}}" {{if eq $d.Query.Status "degraded"}}aria-current="true"{{end}}>◐ Gestört · {{.}}</a>{{end}}
+  {{if $d.Build}}<a class="chip" href="{{filterURL $d.Query $d.View "buildable" "1"}}" {{if $d.Query.Buildable}}aria-current="true"{{end}}>Baubar halten · {{$d.Build}}</a>{{end}}
+  {{if $d.Query.Tag}}<a class="chip chip-active" href="{{filterURL $d.Query $d.View "tag" ""}}" aria-label="Schlagwort-Filter entfernen">Schlagwort: <span class="mono">{{$d.Query.Tag}}</span> ✕</a>{{end}}
+  {{if $d.Query.Collection}}<a class="chip chip-active" href="{{filterURL $d.Query $d.View "collection" ""}}">Sammlung: {{$d.Query.Collection}} ✕</a>{{end}}
+  {{if $d.Query.Language}}<a class="chip chip-active" href="{{filterURL $d.Query $d.View "language" ""}}">Sprache: {{$d.Query.Language}} ✕</a>{{end}}
+  {{if $d.Query.License}}<a class="chip chip-active" href="{{filterURL $d.Query $d.View "license" ""}}">Lizenz: {{if eq $d.Query.License "none"}}keine erkannt{{else}}{{$d.Query.License}}{{end}} ✕</a>{{end}}
+  <span class="grow"></span>
+  <form method="get" action="/" class="inline sort">
+    {{range $k, $v := dict "q" $d.Query.Text "kind" $d.Query.Kind "tag" $d.Query.Tag "status" $d.Query.Status "collection" $d.Query.Collection "view" $d.View}}{{if $v}}<input type="hidden" name="{{$k}}" value="{{$v}}">{{end}}{{end}}
+    <label class="small muted">Sortiert nach
+      <select name="sort" data-autosubmit>
+        <option value="updated" {{if eq $d.Query.Sort "updated"}}selected{{end}}>Zuletzt synchronisiert</option>
+        <option value="name" {{if eq $d.Query.Sort "name"}}selected{{end}}>Name</option>
+        <option value="added" {{if eq $d.Query.Sort "added"}}selected{{end}}>Zuletzt hinzugefügt</option>
+        <option value="size" {{if eq $d.Query.Sort "size"}}selected{{end}}>Größe</option>
+      </select>
+    </label>
+    <noscript><button class="btn" type="submit">Sortieren</button></noscript>
+  </form>
+</div>
+
+{{template "results" $d}}
+{{template "foot" .}}{{end}}
+
+{{define "results"}}
+<div id="results" hx-get="" hx-trigger="sse-repo from:body delay:1s" hx-select="#results" hx-swap="outerHTML">
+{{if not .Entries}}
+  <div class="empty card">
+    {{if .Filtered}}
+      <p><strong>Keine Treffer.</strong> Aktive Filter:
+      {{if .Query.Text}} Suche „{{.Query.Text}}“{{end}}{{if .Query.Kind}} · Art {{kindText .Query.Kind}}{{end}}{{if .Query.Tag}} · Schlagwort {{.Query.Tag}}{{end}}{{if .Query.Status}} · Status {{statusText .Query.Status}}{{end}}{{if .Query.Collection}} · Sammlung {{.Query.Collection}}{{end}}{{if .Query.Buildable}} · baubar{{end}}.</p>
+      <p><a class="btn" href="/">Filter zurücksetzen</a></p>
+    {{else}}
+      <p><strong>Noch keine Repos.</strong> Füge eines per Link hinzu – RepoShelf sichert es dauerhaft, auch wenn das Original verschwindet.</p>
+      <p><a class="btn btn-primary" href="/add">+ Repo hinzufügen</a></p>
+    {{end}}
+  </div>
+{{else if eq .View "tiles"}}
+  <ul class="tiles">
+  {{range .Entries}}
+    <li class="tile card">
+      <a href="/repo/{{.ID}}" class="tile-title"><span class="muted">{{.Owner}} /</span> {{.Name}}</a>
+      <p class="muted small clamp">{{.Description}}</p>
+      <div class="row-wrap">{{template "kind" .Kind}} {{template "status" .Status}}</div>
+      <div class="row-wrap">{{range .Tags}}<a class="tag" href="/?tag={{queryEsc .}}">{{.}}</a>{{end}}</div>
+      <div class="small muted mono">{{size .SizeBytes}} · {{ago .LastSuccess}}</div>
+    </li>
+  {{end}}
+  </ul>
+{{else if eq .View "folders"}}
+  {{range .Groups}}
+  <details class="folder card" open>
+    <summary><span class="mono">{{.Name}}</span> <span class="count">{{len .Entries}}</span></summary>
+    {{template "table" (dict "Entries" .Entries "Busy" $.Busy)}}
+  </details>
+  {{end}}
+{{else}}
+  {{template "table" (dict "Entries" .Entries "Busy" .Busy)}}
+{{end}}
+</div>
+{{end}}
+
+{{define "table"}}
+<div class="table-wrap card">
+<table class="repos">
+  <thead><tr><th scope="col">Repo</th><th scope="col">Art</th><th scope="col">Schlagwörter</th><th scope="col">Aktualisierung</th><th scope="col">Status</th><th scope="col" class="num">Größe</th></tr></thead>
+  <tbody>
+  {{range .Entries}}
+  <tr>
+    <td><a href="/repo/{{.ID}}" class="repo-link"><span class="repo-name"><span class="muted">{{.Owner}} /</span> {{.Name}}</span><span class="muted small clamp">{{.Description}}</span></a></td>
+    <td>{{template "kind" .Kind}}</td>
+    <td><div class="row-wrap">{{range .Tags}}<a class="tag" href="/?tag={{queryEsc .}}">{{.}}</a>{{end}}</div></td>
+    <td class="small"><div>{{intervalText .}}</div><div class="muted">{{if index $.Busy .ID}}<span class="running">◐ läuft …</span>{{else}}{{ago .LastSuccess}}{{end}}</div></td>
+    <td>{{template "status" .Status}}{{if .LastError}}<div class="small muted clamp" title="{{.LastError}}">{{.LastError}}</div>{{end}}</td>
+    <td class="num mono">{{size .SizeBytes}}</td>
+  </tr>
+  {{end}}
+  </tbody>
+</table>
+</div>
+{{end}}

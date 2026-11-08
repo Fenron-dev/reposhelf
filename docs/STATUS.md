@@ -12,36 +12,32 @@
 
 ## Aktueller Stand
 
-- **Phase:** 0 – Gerüst (begonnen)
-- **Letzte Änderung:** 2026-11-08 · T-0.5 umgesetzt (atomares Schreiben, Pfadprüfung), im Review (Branch `t0.5-atomic-paths`)
-- **Nächster Schritt:** `t0.5-atomic-paths` prüfen und mergen; F-013 (Host mit Port) entscheiden; danach T-0.12 (Datenordner einrichten) oder T-0.4 (SQLite-Index)
+- **Phase:** 0–4 umgesetzt; 5–8 in Arbeit (Ziel von Dennis: Projekt nach Konzept fertigstellen)
+- **Letzte Änderung:** 2026-11-08 · Kern, CLI, Weboberfläche, Git-HTTP, MCP, Aufbewahrung und Papierkorb fertig und getestet
+- **Nächster Schritt:** Phase 5 (Docker, Unraid, Desktop, Release-Workflow), CI (T-0.7), Phase 6/7 (Kapseln, Builds), Phase 8 (Abgleich zwischen Instanzen)
 
 ## Übergabe-Notiz
 
 > Wird am Ende **jeder** Sitzung überschrieben (Agent oder Mensch). Kurz: was
 > wurde gemacht, was ist halb fertig, worauf muss der Nächste achten.
 
-**2026-11-08 · Claude Code:** T-0.5 auf Branch `t0.5-atomic-paths`
-(`f5619cb`), noch **nicht** gemergt/gepusht.
-- `internal/atomicfile`: `WriteFile`/`Write` – Zwischendatei
-  `.reposhelf-tmp-*` im Zielordner, `fsync`, `rename`, danach `fsync` des
-  Ordners (Windows: entfällt; EINVAL/ENOTSUP/ENOTTY werden als „kann dieses
-  Dateisystem nicht“ hingenommen). Legt **keine** Ordner an (Invariante 5).
-  Ist das Ziel ein Symlink, wird die verlinkte Datei ersetzt, der Link bleibt.
-  Test mit gleichzeitigem Lesen: nie eine halbe Datei.
-- `internal/safepath`: `CheckSegment`, `Split`, `Join`. Eine Regel für alle
-  Systeme (portabler Datenordner): Windows-Gerätenamen, `<>:"|?*`, Punkt am
-  Ende, Steuerzeichen, 255 Bytes, Präfix `.reposhelf-tmp-`. Fuzz-Test für
-  `Join`. Symlinks im Datenordner werden absichtlich nicht blockiert
-  (Nutzer darf Teile auf andere Platten legen).
-- `repometa` prüft Segmente jetzt mit `safepath`; `docs/SCHEMA.md`
-  („Segment“) angepasst. Folge: Host mit Port wird abgelehnt → **F-013**.
-- Neu eingetragen: T-0.13 (Zwischendateien aufräumen), T-1.12
-  (Namenskollisionen Groß-/Kleinschreibung, NFC/NFD), Hinweise an T-1.2
-  (`-`-Namen in Git-Aufrufen) und T-1.7 (Tags mit `/`).
-**Achtung:** `repometa.Document` hat noch kein `Save`; wer zuerst speichert,
-nimmt `atomicfile.WriteFile(path, d.Marshal(), 0o644)` und baut den Pfad mit
-`safepath.Join`. ULID-Erzeugung fehlt weiter (T-1.8/T-1.11).
+**2026-11-08 · Claude Code:** Großer Umsetzungsschritt im Auftrag „Projekt fertigstellen“.
+Gemergt nach `main` (siehe Verlauf). Was es jetzt gibt:
+- **Kern** `internal/core`: hinzufügen, abgleichen (Force-Push-Sicherung), Status mit
+  Host-Gesundheit, Zeitplaner, Metadaten mit Historie (`upstream.json`), Lizenz,
+  Releases (SHA-256, Dedup per Hardlink), Issues, Wiki, LFS, Submodule, Snapshots,
+  Schlagwörter, Sammlungen, smarte Sammlungen, Beziehungen mit Vorschlägen,
+  Notizen mit Wiki-Links, Aufbewahrung auf drei Ebenen, Papierkorb, Verlauf.
+- **Oberflächen**: CLI (`reposhelf help`), Weboberfläche (htmx), REST-API
+  (`/api/…`), Git-HTTP (`/git/<host>/<owner>/<name>.git`), MCP (stdio und `/mcp`).
+- **Zugang**: Tokens (nur Hash gespeichert), lokal vertrauenswürdig, sonst Anmeldung;
+  `REPOSHELF_ADMIN_TOKEN` für Docker.
+- **Tests**: Fake-Host (`internal/testutil`: git http-backend + JSON-API), keine
+  Netzzugriffe in Unit-Tests.
+**Achtung:** Lokal keine großen Repos testen – Release-Dateien können sehr groß
+werden (T-1.13). Die Vorschau der Desktop-App startet Programme aus `~/Documents`
+nicht (macOS-Freigabe); Server zum Ansehen per Terminal starten.
+Entscheidungen D-017–D-020 (htmx, Host ohne Port, Wails v2, MinGit) eingetragen.
 
 ---
 
@@ -97,66 +93,67 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-0.1 | Git-Repo + Go-Modul anlegen; Struktur `cmd/reposhelf`, `internal/…`; `.gitignore`, `LICENSE` (nach F-002/F-003) | erledigt | Claude Code | 2026-11-08 | `132ca84`, gemergt `337d001` (ohne Review, Wunsch Dennis) |
 | T-0.2 | Konfiguration (`reposhelf.yaml` + Umgebungsvariablen) und Datenordner-Kette (Konzept 4.4) | erledigt | Claude Code | 2026-11-08 | `304e735`, gemergt `76c3bfb` (ohne Review, Wunsch Dennis) |
 | T-0.3 | `repo.yaml`-Schema in `docs/SCHEMA.md` festschreiben; Lesen/Schreiben mit Erhalt unbekannter Felder; Validierung; Tests inkl. Vorversion | erledigt | Claude Code | 2026-11-08 | `6cb6be0`, gemergt `7df78c3` (ohne Review, Wunsch Dennis; Festlegungen bestätigt) |
-| T-0.4 | SQLite-Treiber ohne CGO mit FTS5 wählen und begründen; Index-Schema; `reindex` aus Dateien | offen | | | |
+| T-0.4 | SQLite-Treiber ohne CGO mit FTS5 wählen und begründen; Index-Schema; `reindex` aus Dateien | erledigt | Claude Code | 2026-11-08 | `64cb17a` – modernc.org/sqlite (rein Go, FTS5); Index wird bei Schemawechsel neu aufgebaut |
 | T-0.5 | Atomares Schreiben und Pfad-Sanitizing, mit Tests (Fero-Invarianten) | erledigt | Claude Code | 2026-11-08 | `f5619cb`, gemergt `fc8b09f` (ohne Review, Wunsch Dennis) |
 | T-0.6 | Gitea-Quellcode sichten: Übernahme-Kandidaten mit Pfad + Commit in `docs/GITEA-UEBERNAHMEN.md`; `THIRD_PARTY.md` anlegen | offen | | | Seit D-015 auch Forgejo-Code übernehmbar |
 | T-0.7 | CI (GitHub Actions): `go vet`, `go test`, `golangci-lint`, Cross-Build linux/darwin/windows – **alles auf Linux-Runnern** (Go baut darwin/windows ohne CGO per Cross-Compile); macOS-/Windows-Runner nur manuell oder bei `v*`-Tag (D-012) | offen | | | |
-| T-0.8 | Logging- und Fehlerkonzept (strukturiertes Log, Fehlerarten) | offen | | | |
-| T-0.9 | SQLite auf exFAT/FAT erkennen → `journal_mode=DELETE` | offen | | | |
+| T-0.8 | Logging- und Fehlerkonzept (strukturiertes Log, Fehlerarten) | erledigt | Claude Code | 2026-11-08 | `64cb17a` – `internal/logx` (slog, Rotation, Token-Schwärzung); Fehlerarten als Sentinel-Fehler |
+| T-0.9 | SQLite auf exFAT/FAT erkennen → `journal_mode=DELETE` | erledigt | Claude Code | 2026-11-08 | `64cb17a` – `internal/fsinfo` |
 | T-0.10 | Prüfen: selbst gehosteter GitHub-Actions-Runner auf Unraid (Docker) für private Repos – kostet keine Actions-Minuten | offen | | | Vorstufe zu Phase 7 |
 | T-0.11 | Privates GitHub-Repo `Fenron-dev/reposhelf` anlegen (D-012, D-013), `main` und Branches pushen | erledigt | Claude Code | 2026-11-08 | https://github.com/Fenron-dev/reposhelf |
-| T-0.12 | Datenordner einrichten: Zeigerdatei atomar schreiben (nach T-0.5), Grundstruktur anlegen, CLI `reposhelf init <ordner>`; später Einrichtungsdialog | offen | | | aus T-0.2; `datadir.PointerPath` gibt den Ort vor |
-| T-0.13 | Liegengebliebene Zwischendateien (`.reposhelf-tmp-*`, nach Absturz) beim Start bzw. in `doctor` erkennen und aufräumen – nur reguläre Dateien mit diesem Präfix | offen | | | aus T-0.5; `atomicfile.IsTemp` |
+| T-0.12 | Datenordner einrichten: Zeigerdatei atomar schreiben (nach T-0.5), Grundstruktur anlegen, CLI `reposhelf init <ordner>`; später Einrichtungsdialog | erledigt | Claude Code | 2026-11-08 | `fad38bc` – `reposhelf init [ordner]`, Zeigerdatei atomar; aus T-0.2; `datadir.PointerPath` gibt den Ort vor |
+| T-0.13 | Liegengebliebene Zwischendateien (`.reposhelf-tmp-*`, nach Absturz) beim Start bzw. in `doctor` erkennen und aufräumen – nur reguläre Dateien mit diesem Präfix | erledigt | Claude Code | 2026-11-08 | `64cb17a`, `fad38bc` – beim Start von `serve` und in `doctor`; aus T-0.5; `atomicfile.IsTemp` |
 
 ### Phase 1 – Spiegel-Kern
 
 | ID | Aufgabe | Status | Wer | Datum | Notiz / Commit |
 |---|---|---|---|---|---|
-| T-1.1 | Quelle GitHub: URL-Parser, Metadaten-Abruf, Token-Handling, Rate-Limit-Beachtung | offen | | | |
-| T-1.2 | Git-CLI-Wrapper (Version prüfen, Timeouts, Abbruch, Fehlertexte) + Mirror-Klon | offen | | | Namen aus dem Netz dürfen mit `-` beginnen: Pfade/URLs nur absolut oder nach `--` übergeben (aus T-0.5) |
-| T-1.3 | Abgleich mit Force-Push-Schutz (Backup-Refs vor verändernden Fetches); Tests mit lokalem Fake-Upstream | offen | | | |
-| T-1.4 | Zeitplaner: Intervalle, Verteilung über die Zeit, 30-Tage-Ruhe für archivierte | offen | | | |
-| T-1.5 | Upstream-Status und Host-Gesundheit (alle Repos eines Hosts ≥ 24 h) | offen | | | |
-| T-1.6 | `upstream.json`-Snapshot mit Historie; Lizenz-Erkennung | offen | | | |
-| T-1.7 | Releases und Assets herunterladen (SHA-256, Dubletten) | offen | | | Git-Tags dürfen `/` enthalten (`release/1.0`), `safepath` lehnt das ab → Abbildung auf Ordnernamen festlegen (aus T-0.5) |
-| T-1.8 | CLI: `add`, `sync`, `list`, `reindex`, `doctor` | offen | | | |
-| T-1.9 | Weboberfläche: Grundlayout, Seitenleiste, Bibliothek (Entwurf `design/quellen/Main.dc.html`) | offen | | | |
-| T-1.10 | Weboberfläche: Repo-Detail mit README (goldmark/GFM) | offen | | | |
-| T-1.11 | Weboberfläche: Repo hinzufügen | offen | | | |
-| T-1.12 | Namenskollisionen erkennen: Repos, deren Pfad sich nur in Groß-/Kleinschreibung oder Unicode-Normalisierung (NFC/NFD) unterscheidet, landen auf macOS/Windows im selben Ordner – beim Hinzufügen ablehnen mit Meldung | offen | | | aus T-0.5 |
+| T-1.1 | Quelle GitHub: URL-Parser, Metadaten-Abruf, Token-Handling, Rate-Limit-Beachtung | erledigt | Claude Code | 2026-11-08 | `1ac3cd1` – auch Gitea/Forgejo/Codeberg und GitLab; ETag-Cache |
+| T-1.2 | Git-CLI-Wrapper (Version prüfen, Timeouts, Abbruch, Fehlertexte) + Mirror-Klon | erledigt | Claude Code | 2026-11-08 | `b6ff029` – Schutz gegen Optionen in Namen (`--`, `--end-of-options`); Namen aus dem Netz dürfen mit `-` beginnen: Pfade/URLs nur absolut oder nach `--` übergeben (aus T-0.5) |
+| T-1.3 | Abgleich mit Force-Push-Schutz (Backup-Refs vor verändernden Fetches); Tests mit lokalem Fake-Upstream | erledigt | Claude Code | 2026-11-08 | `b6ff029` – erst Fetch ohne Zwang, dann Sicherung unter `refs/reposhelf/backup/<zeit>/` und gezielter Force-Fetch |
+| T-1.4 | Zeitplaner: Intervalle, Verteilung über die Zeit, 30-Tage-Ruhe für archivierte | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` |
+| T-1.5 | Upstream-Status und Host-Gesundheit (alle Repos eines Hosts ≥ 24 h) | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` |
+| T-1.6 | `upstream.json`-Snapshot mit Historie; Lizenz-Erkennung | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` – Lizenz aus API und LICENSE-Datei |
+| T-1.7 | Releases und Assets herunterladen (SHA-256, Dubletten) | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` – Tags mit `/` als `%2F` abgelegt (umkehrbar); Git-Tags dürfen `/` enthalten (`release/1.0`), `safepath` lehnt das ab → Abbildung auf Ordnernamen festlegen (aus T-0.5) |
+| T-1.8 | CLI: `add`, `sync`, `list`, `reindex`, `doctor` | erledigt | Claude Code | 2026-11-08 | `fad38bc` – zusätzlich create, fork, show, tags, rename-tag, cleanup, trash, import |
+| T-1.9 | Weboberfläche: Grundlayout, Seitenleiste, Bibliothek (Entwurf `design/quellen/Main.dc.html`) | erledigt | Claude Code | 2026-11-08 | `9dc73ff` |
+| T-1.10 | Weboberfläche: Repo-Detail mit README (goldmark/GFM) | erledigt | Claude Code | 2026-11-08 | `9dc73ff` |
+| T-1.11 | Weboberfläche: Repo hinzufügen | erledigt | Claude Code | 2026-11-08 | `9dc73ff` |
+| T-1.12 | Namenskollisionen erkennen: Repos, deren Pfad sich nur in Groß-/Kleinschreibung oder Unicode-Normalisierung (NFC/NFD) unterscheidet, landen auf macOS/Windows im selben Ordner – beim Hinzufügen ablehnen mit Meldung | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` – Index-Schlüssel ohne Groß-/Kleinschreibung, NFC; aus T-0.5 |
+| T-1.13 | Release-Dateien begrenzen: Höchstgröße je Datei/Release einstellbar, erwartete Downloadgröße im Hinzufügen-Dialog anzeigen | offen | | | aus Praxistest: zwei Repos luden mit „neueste 5 Releases“ 1,4 GB |
 
 ### Phase 2 – Organisation
 
 | ID | Aufgabe | Status | Wer | Datum | Notiz / Commit |
 |---|---|---|---|---|---|
-| T-2.1 | Schlagwörter hierarchisch; global umbenennen/zusammenführen | offen | | | |
-| T-2.2 | Sammlungen (manuell), Farbe/Icon | offen | | | |
-| T-2.3 | Beziehungen (Edge-Modell) und Backlinks | offen | | | |
-| T-2.4 | Smarte Sammlungen – SmartFilter-Schema aus MediaShelf/OracleVault übernehmen | offen | | | |
-| T-2.5 | Beziehungs-Vorschläge: README-Links, Abhängigkeitsdateien, Fork-Herkunft | offen | | | |
-| T-2.6 | Notizen mit Wiki-Links `[[…]]` | offen | | | |
-| T-2.7 | Volltextsuche (FTS5) und Befehlspalette ⌘K | offen | | | |
+| T-2.1 | Schlagwörter hierarchisch; global umbenennen/zusammenführen | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` |
+| T-2.2 | Sammlungen (manuell), Farbe/Icon | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` |
+| T-2.3 | Beziehungen (Edge-Modell) und Backlinks | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` |
+| T-2.4 | Smarte Sammlungen – SmartFilter-Schema aus MediaShelf/OracleVault übernehmen | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` – Format `{logic, rules}` aus OracleVault/MediaShelf |
+| T-2.5 | Beziehungs-Vorschläge: README-Links, Abhängigkeitsdateien, Fork-Herkunft | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` |
+| T-2.6 | Notizen mit Wiki-Links `[[…]]` | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` |
+| T-2.7 | Volltextsuche (FTS5) und Befehlspalette ⌘K | erledigt | Claude Code | 2026-11-08 | `9dc73ff` |
 
 ### Phase 3 – Aufbewahrung
 
 | ID | Aufgabe | Status | Wer | Datum | Notiz / Commit |
 |---|---|---|---|---|---|
-| T-3.1 | Regel-Engine auf drei Ebenen (global → Sammlung → Repo) | offen | | | |
-| T-3.2 | Anheften | offen | | | |
-| T-3.3 | Lösch-Prüfung beim Start (Entwurf `design/quellen/Cleanup.dc.html`) | offen | | | |
-| T-3.4 | Papierkorb: Manifest, Wiederherstellen, endgültiges Löschen nach Bestätigung | offen | | | |
-| T-3.5 | Vorschau „Was würde die nächste Bereinigung entfernen?“ | offen | | | |
+| T-3.1 | Regel-Engine auf drei Ebenen (global → Sammlung → Repo) | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` |
+| T-3.2 | Anheften | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` |
+| T-3.3 | Lösch-Prüfung beim Start (Entwurf `design/quellen/Cleanup.dc.html`) | erledigt | Claude Code | 2026-11-08 | `9dc73ff` |
+| T-3.4 | Papierkorb: Manifest, Wiederherstellen, endgültiges Löschen nach Bestätigung | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` |
+| T-3.5 | Vorschau „Was würde die nächste Bereinigung entfernen?“ | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` |
 
 ### Phase 4 – Bereitstellen für Agenten
 
 | ID | Aufgabe | Status | Wer | Datum | Notiz / Commit |
 |---|---|---|---|---|---|
-| T-4.1 | Git Smart-HTTP lesend (clone/fetch) | offen | | | |
-| T-4.2 | `git push` für `own`/`fork` | offen | | | |
-| T-4.3 | Tokens mit Rechten (lesen/schreiben/bauen) | offen | | | |
-| T-4.4 | MCP-Server stdio mit Lesewerkzeugen | offen | | | |
-| T-4.5 | MCP Streamable HTTP | offen | | | |
-| T-4.6 | MCP-Schreibwerkzeuge und Aktionsprotokoll | offen | | | |
+| T-4.1 | Git Smart-HTTP lesend (clone/fetch) | erledigt | Claude Code | 2026-11-08 | `98f3ade` |
+| T-4.2 | `git push` für `own`/`fork` | erledigt | Claude Code | 2026-11-08 | `98f3ade` |
+| T-4.3 | Tokens mit Rechten (lesen/schreiben/bauen) | erledigt | Claude Code | 2026-11-08 | `98f3ade` |
+| T-4.4 | MCP-Server stdio mit Lesewerkzeugen | erledigt | Claude Code | 2026-11-08 | `98f3ade` |
+| T-4.5 | MCP Streamable HTTP | erledigt | Claude Code | 2026-11-08 | `9dc73ff` |
+| T-4.6 | MCP-Schreibwerkzeuge und Aktionsprotokoll | erledigt | Claude Code | 2026-11-08 | `98f3ade` |
 
 ### Phase 5 – Verpackung
 
@@ -202,12 +199,12 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 | ID | Aufgabe | Status | Wer | Datum | Notiz / Commit |
 |---|---|---|---|---|---|
-| T-9.1 | GitHub-Issues spiegeln | offen | | | |
-| T-9.2 | Weitere Quellen: GitLab, Codeberg/Gitea/Forgejo, Git-URL, ZIP | offen | | | |
-| T-9.3 | Themes (hell, Akzentfarbe) | offen | | | |
-| T-9.4 | Graph-Ansicht Beziehungen | offen | | | |
-| T-9.5 | Code-Volltextsuche (nach F-007) | offen | | | |
-| T-9.6 | Massenimport (eigene / gesternte GitHub-Repos) | offen | | | |
+| T-9.1 | GitHub-Issues spiegeln | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` – Markdown mit YAML-Frontmatter unter `meta/…/issues/` |
+| T-9.2 | Weitere Quellen: GitLab, Codeberg/Gitea/Forgejo, Git-URL, ZIP | in Arbeit | Claude Code | 2026-11-08 | GitLab, Gitea/Forgejo/Codeberg, beliebige Git-URL fertig (`1ac3cd1`); ZIP-Import fehlt |
+| T-9.3 | Themes (hell, Akzentfarbe) | erledigt | Claude Code | 2026-11-08 | `9dc73ff` – hell/dunkel |
+| T-9.4 | Graph-Ansicht Beziehungen | erledigt | Claude Code | 2026-11-08 | `9dc73ff` |
+| T-9.5 | Code-Volltextsuche (nach F-007) | blockiert | Claude Code | 2026-11-08 | wartet auf F-007 |
+| T-9.6 | Massenimport (eigene / gesternte GitHub-Repos) | erledigt | Claude Code | 2026-11-08 | `fad38bc` – `reposhelf import [--starred]` |
 
 ---
 
@@ -215,6 +212,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-08 · Claude Code · F-004/F-005/F-010/F-013 entschieden (D-017–D-020); Phasen 0–4 und große Teile von 9 umgesetzt (Kern, CLI, Web, API, Git-HTTP, MCP); T-1.13 neu
 - 2026-11-08 · Claude Code · T-0.5 gemergt und gepusht (erledigt)
 - 2026-11-08 · Claude Code · T-0.5 atomares Schreiben + Pfadprüfung (internal/atomicfile, internal/safepath) → Review; F-013, T-0.13, T-1.12 neu
 - 2026-11-08 · Claude Code · T-0.3 gemergt und gepusht (erledigt); Schema-Festlegungen von Dennis bestätigt

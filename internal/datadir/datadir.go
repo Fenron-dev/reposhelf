@@ -18,6 +18,7 @@ package datadir
 import (
 	"errors"
 	"fmt"
+	"github.com/Fenron-dev/reposhelf/internal/atomicfile"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -225,4 +226,17 @@ func requireDir(path string, src Source) (Location, error) {
 		return Location{}, &UnreachableError{Path: path, Source: src, Err: ErrNotDir}
 	}
 	return Location{Path: path, Source: src}, nil
+}
+
+// WritePointer stores dir as the chosen data folder in the user profile
+// (chain step 3). dir must be absolute. The file is written atomically.
+func WritePointer(userConfigDir, dir string) error {
+	if !filepath.IsAbs(dir) {
+		return ErrPointerRelative
+	}
+	p := PointerPath(userConfigDir)
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		return err
+	}
+	return atomicfile.WriteFile(p, []byte(dir+"\n"), 0o644)
 }

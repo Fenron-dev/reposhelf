@@ -1,0 +1,339 @@
+{{define "add"}}{{template "head" .}}{{$d := .Data}}
+<div class="dialog-page">
+<form method="post" action="/add" class="card dialog stack" id="add-form">
+  <h1>Repo hinzufügen</h1>
+  <label for="url">Link zum Repository</label>
+  <input id="url" name="url" type="url" required value="{{$d.URL}}" placeholder="https://github.com/owner/name" autofocus
+         hx-get="/add/preview" hx-trigger="input changed delay:600ms, load" hx-target="#preview" hx-include="this" hx-params="url" hx-indicator="#preview-spin">
+  <div id="preview" aria-live="polite">{{template "add-preview" $d}}</div>
+  <span id="preview-spin" class="htmx-indicator small muted">Prüfe Link …</span>
+
+  <fieldset class="options"><legend>Art</legend>
+    <label class="option"><input type="radio" name="kind" value="mirror" checked> <span><strong>Spiegel</strong><small>Schreibgeschützte, vollständige Kopie</small></span></label>
+    <label class="option"><input type="radio" name="kind" value="own"> <span><strong>Eigenes Projekt</strong><small>Issues und Builds standardmäßig an, Push über RepoShelf</small></span></label>
+    <p class="small muted">Einen <strong>Fork</strong> (eigene Änderungen, mit Original verknüpft) legst du nach dem Hinzufügen in der Repo-Ansicht an.</p>
+  </fieldset>
+
+  <fieldset class="options"><legend>Aktualisierung</legend>
+    <label class="option"><input type="radio" name="mode" value="once"> <span><strong>Einmalig herunterladen</strong></span></label>
+    <label class="option"><input type="radio" name="mode" value="follow" checked> <span><strong>Aktuell halten</strong> alle
+      <select name="interval" aria-label="Intervall"><option value="1h">1 Stunde</option><option value="6h" selected>6 Stunden</option><option value="24h">24 Stunden</option><option value="7d">7 Tage</option></select></span></label>
+    <p class="small muted">Vor jedem Abgleich wird der bisherige Stand gesichert. Ein Force-Push oder gelöschte Branches beim Original überschreiben nichts.</p>
+  </fieldset>
+
+  <fieldset><legend>Mitsichern</legend>
+    <label class="check"><input type="checkbox" checked disabled> Code &amp; alle Branches (immer)</label>
+    <label class="check"><input type="checkbox" name="releases" checked> Releases &amp; Dateien</label>
+    <label class="check"><input type="checkbox" name="lfs" checked> Git LFS</label>
+    <label class="check"><input type="checkbox" name="submodules" checked> Submodule (werden eigene Spiegel)</label>
+    <label class="check"><input type="checkbox" name="issues"> Issues</label>
+    <label class="check"><input type="checkbox" name="wiki"> Wiki</label>
+    <label class="check"><input type="checkbox" checked disabled> Metadaten (Beschreibung, Topics, Lizenz)</label>
+  </fieldset>
+
+  <label class="check"><input type="checkbox" name="buildable"> <span><strong>Baubar halten</strong> – sichert pro festgehaltener Version alle Abhängigkeiten und die Toolchain-Version.</span></label>
+
+  <label for="tags">Schlagwörter <span class="small muted">(durch Komma getrennt, Hierarchie mit /)</span></label>
+  <input id="tags" name="tags" placeholder="ttrpg/tool, rust">
+
+  {{if $d.Collections}}
+  <fieldset><legend>Sammlung</legend>
+    {{range $d.Collections}}{{if not .Smart}}<label class="check"><input type="checkbox" name="collection" value="{{.ID}}"> {{.Name}}</label>{{end}}{{end}}
+  </fieldset>
+  {{end}}
+  <p class="small muted">Aufbewahrung: neueste {{$d.Defaults.Retention.ReleasesKeep}} Releases (globaler Standard; Sammlungen können abweichen).</p>
+
+  <div class="row-end">
+    <a class="btn" href="/">Abbrechen</a>
+    <button class="btn btn-primary" type="submit">Hinzufügen &amp; klonen</button>
+  </div>
+</form>
+
+<details class="card dialog">
+  <summary><strong>Neues eigenes Projekt nur in RepoShelf anlegen</strong></summary>
+  <form method="post" action="/create" class="stack">
+    <label>Name <input name="name" required placeholder="mein-projekt"></label>
+    <label>Bereich <input name="owner" placeholder="projekte"></label>
+    <label>Beschreibung <input name="description"></label>
+    <label>Schlagwörter <input name="tags"></label>
+    <button class="btn" type="submit">Anlegen</button>
+    <p class="small muted">Danach mit <span class="mono">git push</span> an die angezeigte Klon-Adresse befüllen.</p>
+  </form>
+</details>
+</div>
+{{template "foot" .}}{{end}}
+
+{{define "add-preview"}}
+{{if .Error}}<div class="alert alert-error small" role="alert">{{.Error}}</div>
+{{else if .Preview}}{{with .Preview}}
+<div class="preview card-inset">
+  {{if .Existing}}<div class="alert alert-error small">Schon vorhanden: <a href="/repo/{{.Existing.ID}}">{{.Existing.Key}}</a></div>{{end}}
+  <div><span class="status status-ok">● Erkannt</span> <strong>{{.Parsed.Provider}}</strong> · <span class="mono">{{.Parsed.Source.Owner}}/{{.Parsed.Source.Name}}</span></div>
+  {{with .Metadata}}
+  <p class="small">{{.Description}}</p>
+  <div class="small muted">{{if .Language}}Sprache: {{.Language}} · {{end}}Lizenz: {{if .License}}{{.License}}{{else}}keine erkannt{{end}} · Wiki: {{if .HasWiki}}ja{{else}}nein{{end}}{{if .Archived}} · archiviert{{end}}{{if .Fork}} · ist ein Fork von {{.ForkParent}}{{end}}</div>
+  {{if .Topics}}<div class="small">Vorschläge aus Topics: {{range .Topics}}<button type="button" class="tag" data-add-tag="{{.}}">{{.}}</button> {{end}}</div>{{end}}
+  {{else}}
+  <div class="small muted">{{if .MetaError}}Keine Metadaten: {{.MetaError}}{{else}}Ohne API – nur Git.{{end}}</div>
+  {{end}}
+  <div class="small muted">Wird gespeichert unter <span class="mono">meta/{{.Parsed.Source.Key}}/repo.yaml</span></div>
+</div>
+{{end}}{{end}}
+{{end}}
+
+{{define "tags"}}{{template "head" .}}
+<h1>Schlagwörter</h1>
+<p class="muted">Hierarchie mit „/“. Ein Klick filtert die Bibliothek; „/*“ schließt alle Unterebenen ein.</p>
+<div class="layout-2">
+<div class="card">
+  {{template "tagtree" .Data}}
+  {{if not .Data}}<p class="muted">Noch keine Schlagwörter vergeben.</p>{{end}}
+</div>
+{{if .Identity.Has "write"}}
+<form method="post" action="/tags/rename" class="card stack">
+  <h2 class="h3">Umbenennen oder zusammenführen</h2>
+  <p class="small muted">Gilt für alle Repos und alle Unterebenen: „ttrpg“ → „rpg“ macht aus „ttrpg/tool“ „rpg/tool“. Gibt es das Ziel schon, werden beide zusammengeführt.</p>
+  <label>Von <input name="from" required class="mono"></label>
+  <label>Nach <input name="to" required class="mono"></label>
+  <button class="btn btn-primary" type="submit">Überall ändern</button>
+</form>
+{{end}}
+</div>
+{{template "foot" .}}{{end}}
+
+{{define "tagtree"}}<ul class="tagtree">{{range .}}<li><a class="tag" href="/?tag={{queryEsc .Path}}{{if .Children}}/*{{end}}">{{.Name}}</a> <span class="count">{{.Total}}</span>{{if .Children}}{{template "tagtree" .Children}}{{end}}</li>{{end}}</ul>{{end}}
+
+{{define "collection"}}{{template "head" .}}{{$d := .Data}}
+<div class="title-row">
+  <div>
+    <h1><span class="dot big" style="background:{{if $d.C.Color}}{{$d.C.Color}}{{else}}var(--text-muted){{end}}"></span> {{$d.C.Name}} {{if $d.C.Smart}}<span class="pill">✦ smart</span>{{end}}</h1>
+    {{if $d.C.Description}}<p class="muted">{{$d.C.Description}}</p>{{end}}
+    {{if $d.C.Smart}}<p class="small muted">Regel ({{if eq (lower $d.C.Smart.Logic) "or"}}eine muss passen{{else}}alle müssen passen{{end}}): {{range $i, $r := $d.C.Smart.Rules}}{{if $i}} · {{end}}<span class="mono">{{$r.Field}} {{$r.Op}} {{anyStr $r.Value}}</span>{{end}}</p>{{end}}
+  </div>
+  {{if .Identity.Has "write"}}<a class="btn" href="/collections/{{$d.C.ID}}/edit">Bearbeiten</a>{{end}}
+</div>
+{{if $d.Entries}}{{template "table" (dict "Entries" $d.Entries "Busy" $d.Busy)}}
+{{else}}<div class="card empty"><p>{{if $d.C.Smart}}Kein Repo passt auf die Regeln dieser smarten Sammlung.{{else}}Noch keine Repos in dieser Sammlung. Ordne sie in der Repo-Ansicht unter „Sammlungen“ zu.{{end}}</p></div>{{end}}
+{{template "foot" .}}{{end}}
+
+{{define "collection-edit"}}{{template "head" .}}{{$d := .Data}}
+<form method="post" action="/collections/{{if $d.New}}_new{{else}}{{$d.C.ID}}{{end}}" class="card stack dialog">
+  <h1>{{if $d.New}}Neue {{if $d.C.Smart}}smarte {{end}}Sammlung{{else}}Sammlung bearbeiten{{end}}</h1>
+  <label>Name <input name="name" value="{{$d.C.Name}}" required></label>
+  <label>Beschreibung <input name="description" value="{{$d.C.Description}}"></label>
+  <div class="row-wrap">
+    <label>Farbe <input type="color" name="color" value="{{if $d.C.Color}}{{$d.C.Color}}{{else}}#f2b544{{end}}"></label>
+    <label>Symbol <input name="icon" value="{{$d.C.Icon}}" class="short" placeholder="📚"></label>
+  </div>
+  {{if $d.C.Smart}}
+  <input type="hidden" name="smart" value="1">
+  <fieldset><legend>Regeln (Format wie MediaShelf/OracleVault)</legend>
+    <label>Verknüpfung <select name="logic"><option value="and" {{if ne (lower $d.C.Smart.Logic) "or"}}selected{{end}}>alle Regeln (und)</option><option value="or" {{if eq (lower $d.C.Smart.Logic) "or"}}selected{{end}}>eine Regel (oder)</option></select></label>
+    {{range $d.Rules}}{{$r := .}}
+    <div class="rule row-wrap">
+      <select name="field" aria-label="Feld"><option value="">–</option>{{range $d.Fields}}<option value="{{.}}" {{if eq . $r.Field}}selected{{end}}>{{.}}</option>{{end}}</select>
+      <select name="op" aria-label="Vergleich">{{range $d.Ops}}<option value="{{.}}" {{if eq . $r.Op}}selected{{end}}>{{.}}</option>{{end}}</select>
+      <input name="value" value="{{anyStr $r.Value}}" aria-label="Wert" placeholder="z. B. ttrpg/* oder 2026-01-01">
+    </div>
+    {{end}}
+    <p class="small muted">Felder: kind, status, tag, collection, topic, host, owner, name, description, language, license, buildable, stars, size_mb, releases, versions, created, last_success, pushed_at, text. Leere Zeilen werden ignoriert.</p>
+  </fieldset>
+  {{end}}
+  <fieldset><legend>Aufbewahrung für Mitglieder (leer = global)</legend>
+    <label>Neueste Releases behalten <input name="releases_keep" class="short" value="{{deref $d.C.Retention.ReleasesKeep}}"></label>
+    <label>Snapshot alle <input name="snapshots_every" class="short" value="{{deref $d.C.Retention.SnapshotsEvery}}" placeholder="30d"></label>
+    <label>Force-Push-Sicherungen behalten <input name="backups_keep_for" class="short" value="{{deref $d.C.Retention.ForcePushBackupsKeepFor}}" placeholder="180d"></label>
+    <label>Build-Kapseln behalten <input name="capsules_keep" class="short" value="{{deref $d.C.Retention.CapsulesKeep}}"></label>
+  </fieldset>
+  <div class="row-end"><a class="btn" href="/">Abbrechen</a><button class="btn btn-primary" type="submit">Speichern</button></div>
+</form>
+{{template "foot" .}}{{end}}
+
+{{define "graph"}}{{template "head" .}}
+<h1>Beziehungen</h1>
+<p class="muted">Repos mit Beziehungen. Gestrichelt: Vorschläge. Ziehen verschiebt, Klick öffnet.</p>
+<div class="card graph-card"><svg id="graph" role="img" aria-label="Beziehungsgraph" width="100%" height="640"></svg>
+<p id="graph-empty" class="muted" hidden>Noch keine Beziehungen. Sie entstehen von Hand, aus README-Links, Abhängigkeiten, Fork-Herkunft und Wiki-Links in Notizen.</p></div>
+<script src="/static/graph.js" defer></script>
+{{template "foot" .}}{{end}}
+
+{{define "activity"}}{{template "head" .}}
+<h1>Verlauf</h1>
+<p class="muted">Wer hat wann was geändert – Weboberfläche, Kommandozeile, Zeitplaner und KI-Agenten (MCP).</p>
+<div class="card">{{template "activity-list" .Data}}</div>
+{{template "foot" .}}{{end}}
+
+{{define "activity-list"}}
+<table class="list small"><thead><tr><th>Zeit</th><th>Wer</th><th>Was</th><th>Repo</th><th>Details</th></tr></thead><tbody>
+{{range .Acts}}<tr><td class="mono">{{dt .Time}}</td><td>{{.Actor}}</td><td>{{.Action}}</td><td>{{if .RepoID}}<a href="/repo/{{.RepoID}}">{{with index $.Names .RepoID}}{{.}}{{else}}{{short .RepoID}}…{{end}}</a>{{end}}</td><td class="muted">{{.Detail}}</td></tr>
+{{else}}<tr><td colspan="5" class="muted">Noch nichts.</td></tr>{{end}}
+</tbody></table>
+{{end}}
+
+{{define "cleanup"}}{{template "head" .}}{{$d := .Data}}
+<form method="post" action="/cleanup" class="card dialog-wide stack">
+  <p class="small muted">Beim Start · Aufbewahrungsregeln</p>
+  <h1>{{len $d.Review.Pending}} Einträge sind zur Löschung vorgemerkt</h1>
+  <p>Sie werden in den <strong>Papierkorb</strong> verschoben, nicht sofort gelöscht. Endgültig entfernt wird erst nach {{$d.Days}} Tagen – und auch dann nur nach deiner Bestätigung. Angeheftete Versionen tauchen hier nie auf.</p>
+  <div class="stats">
+    <div><span class="small muted">Vorgemerkt gesamt</span><strong class="mono">{{size $d.TotalSize}}</strong></div>
+    <div><span class="small muted">Betroffene Repos</span><strong>{{$d.Repos}}</strong></div>
+    <div><span class="small muted">Papierkorb jetzt</span><strong>{{$d.TrashLen}} Einträge</strong></div>
+  </div>
+  {{if $d.Review.Pending}}
+  <div class="table-wrap">
+  <table class="list">
+    <thead><tr><th scope="col"><span class="sr-only">Auswahl</span></th><th scope="col">Eintrag</th><th scope="col">Grund</th><th scope="col" class="num">Größe</th><th scope="col">Aktion</th></tr></thead>
+    <tbody>
+    {{range $d.Review.Pending}}
+    <tr>
+      <td><input type="checkbox" name="item" value="{{.ID}}" checked aria-label="{{.Label}} auswählen"></td>
+      <td><strong>{{.Label}}</strong><div class="small muted">{{.Key}}</div></td>
+      <td class="small">{{.Reason}}</td>
+      <td class="num mono">{{if .Size}}{{size .Size}}{{else}}–{{end}}</td>
+      <td><button class="btn btn-small" name="keep" value="{{.ID}}">{{if eq .Kind "release_assets"}}📌 Anheften{{else}}Behalten{{end}}</button></td>
+    </tr>
+    {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{else}}<p class="muted">Die Regeln schlagen gerade nichts vor.</p>{{end}}
+  <div class="row-end">
+    <a class="btn btn-ghost" href="/settings#aufbewahrung">Regeln bearbeiten</a>
+    <button class="btn" type="submit" name="action" value="later">Beim nächsten Start erneut fragen</button>
+    {{if $d.Review.Pending}}<button class="btn btn-primary" type="submit" name="action" value="trash">Ausgewählte in den Papierkorb</button>{{end}}
+  </div>
+  {{if $d.Review.Due}}
+  <div class="alert">{{len $d.Review.Due}} Einträge liegen länger als {{$d.Days}} Tage im Papierkorb. <a href="/trash">Im Papierkorb entscheiden</a></div>
+  {{end}}
+</form>
+{{template "foot" .}}{{end}}
+
+{{define "trash"}}{{template "head" .}}{{$d := .Data}}
+<h1>Papierkorb</h1>
+<p class="muted">Einträge bleiben {{$d.Days}} Tage wiederherstellbar. Endgültig gelöscht wird nur, wenn du es hier bestätigst.</p>
+{{if $d.List}}
+<form method="post" action="/trash/purge" class="card stack" id="purge-form">
+<div class="table-wrap">
+<table class="list">
+  <thead><tr><th scope="col"><span class="sr-only">Auswahl</span></th><th scope="col">Eintrag</th><th scope="col">Grund</th><th scope="col">Seit</th><th scope="col">Endgültig ab</th><th scope="col" class="num">Größe</th><th scope="col">Aktion</th></tr></thead>
+  <tbody>
+  {{range $d.List}}
+  <tr>
+    <td><input type="checkbox" name="id" value="{{.ID}}" aria-label="{{.Label}} auswählen"></td>
+    <td><strong>{{.Label}}</strong><div class="small muted">{{.Key}}</div></td>
+    <td class="small">{{.Reason}}</td>
+    <td class="small">{{date .TrashedAt}} <span class="muted">({{.By}})</span></td>
+    <td class="small {{if $d.Now.After .Due}}warn{{end}}">{{date .Due}}</td>
+    <td class="num mono">{{if .Size}}{{size .Size}}{{else}}–{{end}}</td>
+    <td><button class="btn btn-small" type="submit" formaction="/trash/restore" name="restore" value="{{.ID}}">Wiederherstellen</button></td>
+  </tr>
+  {{end}}
+  </tbody>
+</table>
+</div>
+<fieldset class="danger">
+  <legend>Endgültig löschen</legend>
+  <p class="small">Ausgewählte Einträge werden unwiderruflich entfernt. Zum Bestätigen <strong>endgültig</strong> eintippen.</p>
+  <div class="row-wrap"><input name="confirm" autocomplete="off" aria-label="Bestätigung" placeholder="endgültig" class="short"><button class="btn btn-danger" type="submit">Ausgewählte endgültig löschen</button></div>
+</fieldset>
+</form>
+{{else}}<div class="card empty"><p>Der Papierkorb ist leer.</p><p><a href="/cleanup">Was würde die nächste Bereinigung entfernen?</a></p></div>{{end}}
+{{template "foot" .}}{{end}}
+
+{{define "settings"}}{{template "head" .}}{{$d := .Data}}{{$c := $d.Cfg}}
+<h1>Einstellungen</h1>
+<p class="muted">Gespeichert in <span class="mono">{{$d.DataDir}}/reposhelf.yaml</span>. Tokens und Schlüssel stehen nie darin.</p>
+{{range $d.Warnings}}<div class="alert small">{{.}}</div>{{end}}
+<form method="post" action="/settings" class="stack">
+<div class="layout-2">
+  <fieldset class="card"><legend>Instanz &amp; Server</legend>
+    <label>Name dieser Instanz <input name="instance" value="{{$c.Instance.Name}}"></label>
+    <label>Öffentliche Adresse <input name="public_url" value="{{$c.Server.PublicURL}}" placeholder="http://reposhelf.local:7373"><span class="small muted">Für Klon-Adressen und MCP. Leer = aus der Anfrage ableiten.</span></label>
+    <p class="small">Adresse: <span class="mono">{{$c.Server.Listen}}</span> <span class="muted">(REPOSHELF_LISTEN)</span></p>
+    <label class="check"><input type="checkbox" name="anonymous_read" {{if $c.Server.AnonymousRead}}checked{{end}}> Im Netz ohne Anmeldung lesen und klonen erlauben</label>
+  </fieldset>
+  <fieldset class="card"><legend>Abgleich</legend>
+    <label>Standard-Intervall <input name="default_interval" class="short" value="{{$c.Sync.DefaultInterval}}"></label>
+    <label>Archivierte/verschwundene prüfen alle <input name="archived_interval" class="short" value="{{$c.Sync.ArchivedInterval}}"></label>
+    <label>Gleichzeitige Abgleiche <input name="concurrency" class="short" value="{{$c.Sync.Concurrency}}" inputmode="numeric"></label>
+    <label class="check"><input type="checkbox" name="paused" {{if $c.Sync.Paused}}checked{{end}}> Automatischen Abgleich pausieren</label>
+  </fieldset>
+  <fieldset class="card" id="aufbewahrung"><legend>Aufbewahrung (global)</legend>
+    <label>Neueste Releases behalten <input name="releases_keep" class="short" value="{{$c.Retention.ReleasesKeep}}" inputmode="numeric"></label>
+    <label>Snapshot alle <input name="snapshots_every" class="short" value="{{$c.Retention.SnapshotsEvery}}"><span class="small muted">0 = aus</span></label>
+    <label>Snapshots behalten <input name="snapshots_keep_for" class="short" value="{{$c.Retention.SnapshotsKeepFor}}"></label>
+    <label>Force-Push-Sicherungen behalten <input name="backups_keep_for" class="short" value="{{$c.Retention.ForcePushBackupsKeepFor}}"></label>
+    <label>Build-Kapseln je Repo <input name="capsules_keep" class="short" value="{{$c.Retention.CapsulesKeep}}"></label>
+    <label>Build-Ergebnisse je Repo <input name="builds_keep" class="short" value="{{$c.Retention.BuildsKeep}}"></label>
+    <label>Tage im Papierkorb <input name="trash_days" class="short" value="{{$c.Retention.TrashDays}}"></label>
+    <p class="small muted">Sammlungen und einzelne Repos können abweichen (die spezifischere Regel gewinnt).</p>
+  </fieldset>
+  <fieldset class="card"><legend>Runner (Builds)</legend>
+    <label class="check"><input type="checkbox" name="runner" {{if $c.Runner.Enabled}}checked{{end}}> Diese Instanz baut (braucht Docker)</label>
+    <label>Fähigkeiten <input name="capabilities" value="{{join $c.Runner.Capabilities ", "}}" placeholder="linux/amd64, android, docker"></label>
+    <label>Gleichzeitige Builds <input name="max_parallel" class="short" value="{{$c.Runner.MaxParallel}}"></label>
+    <label class="check"><input type="checkbox" name="confirm" {{if $c.Runner.Confirm}}checked{{end}}> Jeden Build bestätigen (wenig Speicher)</label>
+    <label>Mindestens frei (GB) <input name="min_free_gb" class="short" value="{{$c.Runner.MinFreeGB}}"></label>
+    <label>Speichergrenze je Build <input name="memory_limit" class="short" value="{{$c.Runner.MemoryLimit}}"></label>
+    <label>CPU-Grenze je Build <input name="cpu_limit" class="short" value="{{$c.Runner.CPULimit}}"></label>
+  </fieldset>
+</div>
+<div><button class="btn btn-primary" type="submit">Speichern</button></div>
+</form>
+
+<div class="card">
+  <h2 class="h3">Prüfung (doctor)</h2>
+  <ul class="checks">{{range $d.Doctor.Checks}}<li><span class="{{if .OK}}ok{{else}}error{{end}}">{{if .OK}}✓{{else}}✕{{end}}</span> <strong>{{.Name}}</strong>: {{.Detail}}</li>{{end}}</ul>
+  <p class="small muted">Tokens für Hosts: <span class="mono">REPOSHELF_GITHUB_TOKEN</span> bzw. <span class="mono">REPOSHELF_TOKEN_&lt;HOST&gt;</span> (Docker: <span class="mono">…_FILE</span>), auf dem Mac auch im Schlüsselbund (Dienst „RepoShelf“, Konto = Host).</p>
+</div>
+{{template "foot" .}}{{end}}
+
+{{define "access"}}{{template "head" .}}{{$d := .Data}}
+<h1>KI-Zugriff &amp; Tokens</h1>
+<p class="muted">Agenten dürfen Repos lesen, suchen, organisieren und Builds anstoßen – je nach Token. Löschen, Papierkorb und Aufbewahrungsregeln bleiben dir vorbehalten (über MCP gibt es diese Werkzeuge nicht).</p>
+
+{{if $d.NewSecret}}
+<div class="card alert-ok stack" role="status">
+  <strong>Token „{{$d.NewName}}“ angelegt. Kopiere es jetzt – es wird nur dieses eine Mal angezeigt.</strong>
+  <div class="copy-field"><input id="new-token" class="mono" readonly value="{{$d.NewSecret}}"><button class="btn btn-small" type="button" data-copy="#new-token">Kopieren</button></div>
+</div>
+{{end}}
+
+<div class="layout-2">
+<div class="card">
+  <h2 class="h3">Tokens</h2>
+  <table class="list small"><thead><tr><th>Name</th><th>Rechte</th><th>Angelegt</th><th>Zuletzt benutzt</th><th></th></tr></thead><tbody>
+  {{range $d.Tokens}}<tr><td>{{.Name}}</td><td>{{join .Rights ", "}}</td><td>{{date .Created}}</td><td>{{ago .LastUsed}}</td>
+    <td><form method="post" action="/access/tokens/{{.ID}}/revoke" class="inline"><button class="btn btn-small btn-ghost" type="submit">Widerrufen</button></form></td></tr>
+  {{else}}<tr><td colspan="5" class="muted">Noch keine Tokens.</td></tr>{{end}}
+  </tbody></table>
+  <form method="post" action="/access/tokens" class="stack">
+    <h3 class="h4">Neues Token</h3>
+    <label>Name <input name="name" required placeholder="Claude Code auf der Dev-Box"></label>
+    <fieldset class="row-wrap"><legend class="small">Rechte</legend>
+      <label class="check"><input type="checkbox" name="right" value="read" checked> lesen</label>
+      <label class="check"><input type="checkbox" name="right" value="write"> schreiben</label>
+      <label class="check"><input type="checkbox" name="right" value="build"> bauen</label>
+      <label class="check"><input type="checkbox" name="right" value="admin"> verwalten (Weboberfläche)</label>
+    </fieldset>
+    <button class="btn btn-primary" type="submit">Token anlegen</button>
+  </form>
+</div>
+<div class="card stack">
+  <h2 class="h3">Verbinden</h2>
+  <p class="small"><strong>Lokal (stdio)</strong> – Claude Desktop/Code, Codex, LM Studio starten RepoShelf selbst:</p>
+  <pre class="code mono small">{"mcpServers": {"reposhelf": {
+  "command": "{{$d.ExePath}}",
+  "args": ["mcp", "--data", "{{$d.DataDir}}"]
+}}}</pre>
+  <p class="small">Claude Code: <span class="mono">claude mcp add reposhelf -- "{{$d.ExePath}}" mcp --data "{{$d.DataDir}}"</span></p>
+  <p class="small"><strong>Im Netz (Streamable HTTP)</strong>: <span class="mono">{{$d.Base}}/mcp</span> mit Kopfzeile <span class="mono">Authorization: Bearer &lt;Token&gt;</span>.</p>
+  <p class="small"><strong>Git</strong>: <span class="mono">git clone {{$d.Base}}/git/&lt;host&gt;/&lt;owner&gt;/&lt;name&gt;.git</span> – Benutzername beliebig, Passwort = Token.</p>
+  <p class="small muted">ChatGPT-Connectoren rufen von außen an: dafür muss die Instanz per HTTPS erreichbar sein (z. B. Cloudflare Tunnel, Tailscale Funnel) – bewusst optional.</p>
+</div>
+</div>
+{{if $d.Acts}}
+<div class="card"><h2 class="h3">Letzte Agenten-Aktionen</h2>{{template "activity-list" (dict "Acts" $d.Acts "Names" (dict))}}</div>
+{{end}}
+{{template "foot" .}}{{end}}

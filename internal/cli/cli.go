@@ -17,7 +17,12 @@ import (
 	"github.com/Fenron-dev/reposhelf/internal/buildinfo"
 	"github.com/Fenron-dev/reposhelf/internal/config"
 	"github.com/Fenron-dev/reposhelf/internal/datadir"
+	"github.com/Fenron-dev/reposhelf/internal/gitcli"
 )
+
+// extraCommands are registered by files that need heavier imports (serve,
+// mcp, desktop) so the dispatcher stays readable.
+var extraCommands = map[string]func([]string, system) int{}
 
 // Exit codes follow the common shell convention: 2 means wrong usage.
 const (
@@ -32,6 +37,8 @@ type system struct {
 	lookupEnv      func(string) (string, bool)
 	userConfigDir  func() (string, error)
 	executable     func() (string, error)
+	// git overrides the git executable (tests); nil = search.
+	git *gitcli.Git
 }
 
 // Run executes the command given in args (without the program name) and
@@ -61,7 +68,38 @@ func run(args []string, sys system) int {
 		return ExitOK
 	case "config":
 		return runConfig(args[1:], sys)
+	case "init":
+		return runInit(args[1:], sys)
+	case "add":
+		return runAdd(args[1:], sys)
+	case "create":
+		return runCreate(args[1:], sys)
+	case "fork":
+		return runFork(args[1:], sys)
+	case "sync":
+		return runSync(args[1:], sys)
+	case "list", "ls":
+		return runList(args[1:], sys)
+	case "show":
+		return runShow(args[1:], sys)
+	case "tags":
+		return runTags(args[1:], sys)
+	case "rename-tag":
+		return runRenameTag(args[1:], sys)
+	case "reindex":
+		return runReindex(args[1:], sys)
+	case "doctor":
+		return runDoctor(args[1:], sys)
+	case "cleanup":
+		return runCleanup(args[1:], sys)
+	case "trash":
+		return runTrash(args[1:], sys)
+	case "import":
+		return runImport(args[1:], sys)
 	default:
+		if h, ok := extraCommands[args[0]]; ok {
+			return h(args[1:], sys)
+		}
 		fmt.Fprintf(sys.stderr, msgUnknownCommand, args[0])
 		fmt.Fprint(sys.stderr, msgUsage)
 		return ExitUsage

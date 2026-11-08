@@ -159,3 +159,38 @@ func TestLoadSchema1Fixture(t *testing.T) {
 }
 
 func ptr(s string) *string { return &s }
+
+func TestSaveKeepsUnknownAndComments(t *testing.T) {
+	dir := t.TempDir()
+	raw := "# meine Einstellungen\nschema: 1\nserver:\n  listen: \"0.0.0.0:7373\"\nfuture: [x]\n"
+	if err := os.WriteFile(filepath.Join(dir, FileName), []byte(raw), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	l, err := Load(dir, func(string) (string, bool) { return "", false })
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := l.Config
+	cfg.Retention.ReleasesKeep = 7
+	if err := Save(dir, cfg); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.ReadFile(filepath.Join(dir, FileName))
+	s := string(b)
+	if !strings.Contains(s, "# meine Einstellungen") || !strings.Contains(s, "future: [x]") || !strings.Contains(s, "releases_keep: 7") {
+		t.Errorf("saved = %s", s)
+	}
+	l2, err := Load(dir, func(string) (string, bool) { return "", false })
+	if err != nil || l2.Config.Retention.ReleasesKeep != 7 || l2.Config.Sync.DefaultInterval == 0 {
+		t.Errorf("reload = %+v, %v", l2, err)
+	}
+	bad := cfg
+	bad.Sync.Concurrency = 0
+	if err := Save(dir, bad); err == nil {
+		t.Error("invalid config saved")
+	}
+	// New file in an empty folder.
+	if err := Save(t.TempDir(), Default()); err != nil {
+		t.Error(err)
+	}
+}

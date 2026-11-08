@@ -274,3 +274,22 @@ func writeFile(t *testing.T, p, content string) {
 		t.Fatal(err)
 	}
 }
+
+func TestWritePointer(t *testing.T) {
+	profile := t.TempDir()
+	data := t.TempDir()
+	if err := WritePointer(profile, "relative"); err == nil {
+		t.Error("relative path accepted")
+	}
+	if err := WritePointer(profile, data); err != nil {
+		t.Fatal(err)
+	}
+	loc, err := Resolve(Env{
+		LookupEnv:     func(string) (string, bool) { return "", false },
+		UserConfigDir: func() (string, error) { return profile, nil },
+		Executable:    func() (string, error) { return "", os.ErrNotExist },
+	})
+	if err != nil || loc.Source != SourcePointer || loc.Path != data {
+		t.Errorf("Resolve = %+v, %v", loc, err)
+	}
+}
