@@ -48,6 +48,10 @@ type Options struct {
 	Extra map[string]http.Handler
 	// ExtraAuth accepts additional secrets (temporary peer tokens).
 	ExtraAuth func(secret string) (auth.Token, bool)
+	// BaseURL is the address shown for clone links when no public URL is
+	// configured and the request host is not reachable from outside (the
+	// desktop window's internal host).
+	BaseURL string
 }
 
 // Server is the HTTP front of a library.
@@ -202,6 +206,9 @@ func isLocal(r *http.Request) bool {
 func (s *Server) base(r *http.Request) string {
 	if u := s.Lib.Config().Server.PublicURL; u != "" {
 		return strings.TrimSuffix(u, "/")
+	}
+	if s.opts.BaseURL != "" {
+		return strings.TrimSuffix(s.opts.BaseURL, "/")
 	}
 	scheme := "http"
 	if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
