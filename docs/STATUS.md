@@ -227,6 +227,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-08 · Claude Code · Dennis' Test v0.1.6: Datenordner `…/# Meine Apps/App-Vault` ließ sich nicht öffnen – `#` im Pfad beendete den SQLite-Dateinamen (URI) → Pfad wird jetzt maskiert, Test mit Sonderzeichen; Release `v0.1.7`
 - 2026-11-08 · Claude Code · v0.1.6 Prüflauf grün; Actions-Artefakt-Download live gegen GitHub geprüft (SoloSidian)
 - 2026-11-08 · Claude Code · Dennis' Test v0.1.5: Fenster ok, aber nach „Hinzufügen“ keine Weiterleitung (WKWebView folgt 303 im Wails-Schema nicht) → behoben; T-9.7 Actions-Artefakte; Release `v0.1.6`
 - 2026-11-08 · Claude Code · Dennis' Test: Desktop-Fenster blieb weiß (Wails lieferte den Platzhalter `frontend/dist/index.html` statt der Oberfläche) → behoben, Fenster-Test (`cmd/reposhelf-desktop/window_test.go`) auch im Release-Job; Klon-Adresse im Fenster korrigiert; Release `v0.1.5`

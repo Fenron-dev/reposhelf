@@ -72,7 +72,7 @@ func TestSetupFlow(t *testing.T) {
 	// A failing open is shown, not swallowed.
 	s.Open = func(string) error { return errors.New("kaputt") }
 	post(s, url.Values{"mode": {"dir"}, "dir": {dir}})
-	if s.Reason() != "kaputt" {
+	if !strings.Contains(s.Reason(), "konnte nicht geöffnet werden: kaputt") {
 		t.Errorf("reason = %q", s.Reason())
 	}
 }
