@@ -13,8 +13,8 @@
 ## Aktueller Stand
 
 - **Phase:** 0 – Gerüst (begonnen)
-- **Letzte Änderung:** 2026-11-08 · F-008 entschieden (Port 7373, D-016); T-0.2 umgesetzt, im Review (Branch `t0.2-config`)
-- **Nächster Schritt:** `t0.2-config` prüfen und nach `main` mergen; danach T-0.3 (`repo.yaml`-Schema) oder T-0.7 (CI)
+- **Letzte Änderung:** 2026-11-08 · T-0.2 nach `main` gemergt (`76c3bfb`) und gepusht
+- **Nächster Schritt:** T-0.3 (`repo.yaml`-Schema) oder T-0.7 (CI); T-0.5 vor T-0.12
 
 ## Übergabe-Notiz
 
@@ -23,7 +23,8 @@
 
 **2026-11-08 · Claude Code:** F-008 entschieden: Standard-Port **7373**
 (7878 ist Radarr), Standardadresse `127.0.0.1:7373` → D-016. T-0.2 auf
-Branch `t0.2-config` (`304e735`), noch **nicht** gemergt/gepusht:
+Branch `t0.2-config` (`304e735`), auf Wunsch von Dennis ohne separates
+Review nach `main` gemergt (`76c3bfb`) und gepusht:
 - `internal/datadir`: Kette `--data` → `REPOSHELF_DATA` → Zeigerdatei
   (`<Profil>/RepoShelf/datadir.txt`) → `RepoShelf-Daten/` neben der
   Programmdatei (macOS-Bundle: neben dem `.app`; Symlinks aufgelöst). Ein
@@ -92,7 +93,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | ID | Aufgabe | Status | Wer | Datum | Notiz / Commit |
 |---|---|---|---|---|---|
 | T-0.1 | Git-Repo + Go-Modul anlegen; Struktur `cmd/reposhelf`, `internal/…`; `.gitignore`, `LICENSE` (nach F-002/F-003) | erledigt | Claude Code | 2026-11-08 | `132ca84`, gemergt `337d001` (ohne Review, Wunsch Dennis) |
-| T-0.2 | Konfiguration (`reposhelf.yaml` + Umgebungsvariablen) und Datenordner-Kette (Konzept 4.4) | Review | Claude Code | 2026-11-08 | Branch `t0.2-config`, `304e735` |
+| T-0.2 | Konfiguration (`reposhelf.yaml` + Umgebungsvariablen) und Datenordner-Kette (Konzept 4.4) | erledigt | Claude Code | 2026-11-08 | `304e735`, gemergt `76c3bfb` (ohne Review, Wunsch Dennis) |
 | T-0.3 | `repo.yaml`-Schema in `docs/SCHEMA.md` festschreiben; Lesen/Schreiben mit Erhalt unbekannter Felder; Validierung; Tests inkl. Vorversion | offen | | | |
 | T-0.4 | SQLite-Treiber ohne CGO mit FTS5 wählen und begründen; Index-Schema; `reindex` aus Dateien | offen | | | |
 | T-0.5 | Atomares Schreiben und Pfad-Sanitizing, mit Tests (Fero-Invarianten) | offen | | | |
@@ -210,7 +211,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
-- 2026-11-08 · Claude Code · F-008 entschieden (7373, D-016); T-0.2 umgesetzt → Review; T-0.12 neu
+- 2026-11-08 · Claude Code · F-008 entschieden (7373, D-016); T-0.2 umgesetzt, gemergt und gepusht (erledigt); T-0.12 neu
 - 2026-11-08 · Claude Code · T-0.1 gemergt (erledigt); T-0.11 privates GitHub-Repo angelegt und gepusht (erledigt)
 - 2026-11-08 · Claude Code · F-002, F-003, F-012 entschieden (D-013–D-015); Git-Repo angelegt; T-0.1 umgesetzt → Review; T-0.11 neu
 - 2026-11-08 · Claude · F-001 entschieden (privat, D-012); T-0.7 angepasst, T-0.10 neu
