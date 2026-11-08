@@ -14,7 +14,7 @@
 
 - **Phase:** 0–9 umgesetzt (außer T-9.5, wartet auf F-007)
 - **Letzte Änderung:** 2026-11-08 · Builds/Kapseln (6/7), Abgleich zwischen Instanzen (8), ZIP-Import, Größenbegrenzung
-- **Nächster Schritt:** Dennis testet Release `v0.1.3`; alle Pakete sind gestartet und geprüft (Prüflauf `smoke.yml`: Docker, Windows-CLI, Windows-Desktop; macOS-Desktop lokal)
+- **Nächster Schritt:** Dennis testet Release `v0.1.4` (alle Pakete gestartet und geprüft, echte Builds in CI geprüft)
 
 ## Übergabe-Notiz
 
@@ -34,10 +34,14 @@ go build -o bin/reposhelf ./cmd/reposhelf
 ```
 Anleitung für alles Weitere: `docs/BETRIEB.md`.
 
-**Geprüft (v0.1.3):** Docker-Image (Container, API, Abgleich, Klonen), Windows-CLI mit
-MinGit, Windows-Desktop-App (Prüflauf `smoke.yml`), macOS-Desktop-App lokal.
-Noch nicht geprüft: echte Builds in Containern/mit `act` und GitHub-Actions-Dispatch
-(nur mit Ersatz-Docker getestet), Einrichtungsdialog der Desktop-App (nur im Fenster sichtbar).
+**Geprüft (Prüflauf `smoke.yml`, GitHub-Runner):** Docker-Image (Container, API, Abgleich,
+Klonen, Anmeldeschutz), Windows-CLI mit MinGit, Windows-Desktop-App, echte Builds mit
+Docker (Ziel aus `reposhelf-build.yaml` mit Artefakten, Go-Kapsel + Offline-Test, `act`,
+GitHub Actions per workflow_dispatch). macOS-Desktop-App lokal gestartet und geprüft;
+Einrichtungsdialog per Test (`internal/desktop`).
+**Grenzen:** macOS-App nur ad-hoc signiert (Notarisierung braucht ein
+Apple-Entwicklerkonto); Artefakt-Download von GitHub Actions ungeprüft, weil das
+Artefakt-Kontingent des Kontos voll ist.
 
 **Offene Fragen:** keine (F-007 → D-021, F-014 → D-022).
 
@@ -221,6 +225,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-08 · Claude Code · Echte Builds in CI geprüft (Docker-Ziel, Kapsel, act, GitHub Actions); Fehler behoben: git ohne Repo lief im Arbeitsordner (doppelter Auth-Header); Einrichtungsdialog testbar (`internal/desktop`); macOS ad-hoc signiert; Release `v0.1.4`
 - 2026-11-08 · Claude Code · Prüflauf für `v0.1.3` grün (Docker, Windows-CLI, Windows-Desktop); macOS-Desktop lokal geprüft
 - 2026-11-08 · Claude Code · F-007/F-014 entschieden (D-021, D-022); Code-Suche (T-9.5); Prüflauf `smoke.yml` fand Fehler: Docker-Image und MinGit haben kein `git http-backend` → Smart-HTTP jetzt eigen (upload-pack/receive-pack); Release `v0.1.3`
 - 2026-11-08 · Claude Code · Release `v0.1.1` gebaut (alle Jobs grün). `v0.1.0` schlug fehl (Wails-Bindings, Artefakt-Kontingent voll) – Workflow korrigiert; Tag `v0.1.0` bleibt bestehen (Löschen nicht erlaubt)
