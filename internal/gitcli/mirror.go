@@ -52,10 +52,22 @@ func (r MirrorResult) Changed() bool {
 //
 // Refs deleted upstream are kept (no prune).
 func (g *Git) Mirror(ctx context.Context, dir, url string, auth *Auth, now time.Time) (MirrorResult, error) {
-	var res MirrorResult
 	if err := g.SetURL(ctx, dir, url); err != nil {
-		return res, err
+		return MirrorResult{}, err
 	}
+	return g.mirror(ctx, dir, "origin", url, auth, now)
+}
+
+// MirrorFrom fetches from url (e.g. another RepoShelf instance) with the
+// same protection as Mirror, without touching the configured origin.
+func (g *Git) MirrorFrom(ctx context.Context, dir, url string, auth *Auth, now time.Time) (MirrorResult, error) {
+	return g.mirror(ctx, dir, url, url, auth, now)
+}
+
+var mirrorRefspecs = []string{"refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*", "refs/notes/*:refs/notes/*"}
+
+func (g *Git) mirror(ctx context.Context, dir, from, url string, auth *Auth, now time.Time) (MirrorResult, error) {
+	var res MirrorResult
 	remote, err := g.LsRemote(ctx, url, auth)
 	if err != nil {
 		return res, err
@@ -86,7 +98,8 @@ func (g *Git) Mirror(ctx context.Context, dir, url string, auth *Auth, now time.
 	// Step 2: safe fetch. git exits non-zero when it rejects a ref; that
 	// is expected and handled below, any other failure is not.
 	// Not --quiet: git reports rejections only without it.
-	if _, err := g.Run(ctx, dir, auth, "fetch", "--no-progress", "--no-tags", "origin"); err != nil {
+	fetch := append([]string{"fetch", "--no-progress", "--no-tags", "--end-of-options", from}, mirrorRefspecs...)
+	if _, err := g.Run(ctx, dir, auth, fetch...); err != nil {
 		var ge *Error
 		if !errors.As(err, &ge) || !strings.Contains(ge.Stderr, "rejected") {
 			return res, err
@@ -125,7 +138,7 @@ func (g *Git) Mirror(ctx context.Context, dir, url string, auth *Auth, now time.
 			return res, fmt.Errorf("back up %s: %w", c.Ref, err)
 		}
 	}
-	args := append([]string{"fetch", "--quiet", "--no-tags", "origin"}, force...)
+	args := append([]string{"fetch", "--quiet", "--no-tags", "--end-of-options", from}, force...)
 	if _, err := g.Run(ctx, dir, auth, args...); err != nil {
 		return res, err
 	}
