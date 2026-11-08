@@ -1,0 +1,7 @@
+bin/
+.git/
+.claude/
+RepoShelf-Daten/
+.reposhelf/
+*.zip
+design/

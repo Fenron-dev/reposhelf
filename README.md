@@ -12,7 +12,18 @@ Docker-Container (z. B. auf Unraid).
 - Builds auf eigenen Runnern (Unraid, Desktop, Workstation) oder GitHub Actions
 - Für KI-Agenten nutzbar: als Git-Remote und über MCP
 
-**Stand:** Phase 0 – Grundgerüst. Siehe `docs/STATUS.md`.
+**Stand:** Kern, Kommandozeile, Weboberfläche, Git-HTTP, MCP, Aufbewahrung,
+Docker und Desktop-Hülle sind umgesetzt. Details: `docs/STATUS.md`.
+Bedienung und Installation: [`docs/BETRIEB.md`](docs/BETRIEB.md).
+
+## Schnellstart
+
+```bash
+go build -o bin/reposhelf ./cmd/reposhelf
+./bin/reposhelf init ~/RepoShelf-Daten
+./bin/reposhelf add https://github.com/owner/name
+./bin/reposhelf serve            # http://127.0.0.1:7373
+```
 
 ## Bauen
 
@@ -23,10 +34,14 @@ go build -o bin/reposhelf ./cmd/reposhelf
 go test ./...
 ```
 
+Desktop-App (Wails v2, nur in CI): `cd cmd/reposhelf-desktop && wails build`.
+Docker-Image und Releases baut `.github/workflows/release.yml` bei einem `v*`-Tag.
+
 ## Dokumentation
 
 | Datei | Inhalt |
 |---|---|
+| [`docs/BETRIEB.md`](docs/BETRIEB.md) | Installation, Bedienung, Agenten anbinden |
 | [`docs/STATUS.md`](docs/STATUS.md) | Was offen, in Arbeit und erledigt ist |
 | [`docs/KONZEPT.md`](docs/KONZEPT.md) | Funktionen, Architektur, Phasen |
 | [`docs/ENTSCHEIDUNGEN.md`](docs/ENTSCHEIDUNGEN.md) | Grundsatzentscheidungen |

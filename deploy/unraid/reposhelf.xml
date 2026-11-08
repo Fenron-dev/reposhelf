@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!-- Unraid Docker template for RepoShelf (T-5.2). Copy to
+     /boot/config/plugins/dockerMan/templates-user/my-reposhelf.xml -->
+<Container version="2">
+  <Name>RepoShelf</Name>
+  <Repository>ghcr.io/fenron-dev/reposhelf:latest</Repository>
+  <Registry>https://github.com/Fenron-dev/reposhelf/pkgs/container/reposhelf</Registry>
+  <Network>bridge</Network>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/Fenron-dev/reposhelf</Support>
+  <Project>https://github.com/Fenron-dev/reposhelf</Project>
+  <Overview>RepoShelf – selbst gehostetes Archiv für Git-Repositories: spiegelt Repos dauerhaft (auch wenn das Original verschwindet), schützt vor Force-Pushes, verwaltet Releases mit Aufbewahrungsregeln, organisiert per Schlagwörtern, Sammlungen und Beziehungen und stellt alles über Git-HTTP und MCP für KI-Agenten bereit.</Overview>
+  <Category>Backup: Tools: Productivity:</Category>
+  <WebUI>http://[IP]:[PORT:7373]/</WebUI>
+  <Icon>https://raw.githubusercontent.com/Fenron-dev/reposhelf/main/internal/web/static/icon.svg</Icon>
+  <ExtraParams>--restart unless-stopped</ExtraParams>
+  <Config Name="Weboberfläche" Target="7373" Default="7373" Mode="tcp" Description="Port der Weboberfläche, von Git-HTTP und MCP" Type="Port" Display="always" Required="true" Mask="false">7373</Config>
+  <Config Name="Daten" Target="/data" Default="/mnt/user/appdata/reposhelf" Mode="rw" Description="Datenordner (Repos, Metadaten, Releases, Papierkorb)" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/reposhelf</Config>
+  <Config Name="Admin-Token" Target="REPOSHELF_ADMIN_TOKEN" Default="" Mode="" Description="Passwort für die Anmeldung in der Weboberfläche (frei wählen, lang und zufällig)" Type="Variable" Display="always" Required="true" Mask="true"></Config>
+  <Config Name="GitHub-Token" Target="REPOSHELF_GITHUB_TOKEN" Default="" Mode="" Description="Optional: GitHub-Token (5000 statt 60 API-Anfragen pro Stunde, private Repos)" Type="Variable" Display="always" Required="false" Mask="true"></Config>
+  <Config Name="Öffentliche Adresse" Target="REPOSHELF_PUBLIC_URL" Default="" Mode="" Description="Optional: Adresse für Klon-Links und MCP, z. B. http://tower.local:7373" Type="Variable" Display="always" Required="false" Mask="false"></Config>
+  <Config Name="Docker-Socket (Runner)" Target="/var/run/docker.sock" Default="" Mode="rw" Description="Optional: nur für die Runner-Rolle (Builds in Containern). Leer lassen, wenn diese Instanz nicht baut." Type="Path" Display="advanced" Required="false" Mask="false"></Config>
+</Container>

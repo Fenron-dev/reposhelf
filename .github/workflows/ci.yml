@@ -1,0 +1,63 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# CI on Linux runners only (D-012): format, vet, tests (race), lint and
+# cross-builds for linux, macOS and Windows without CGO.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: gofmt
+        run: |
+          out=$(gofmt -l .)
+          if [ -n "$out" ]; then echo "Nicht formatiert:"; echo "$out"; exit 1; fi
+      - name: go vet
+        run: go vet ./...
+      - name: go test
+        run: |
+          git config --global user.name ci
+          git config --global user.email ci@example.com
+          go test -race -count=1 ./...
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: test
+    strategy:
+      matrix:
+        target: [linux/amd64, linux/arm64, darwin/amd64, darwin/arm64, windows/amd64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Cross-build ${{ matrix.target }}
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          GOOS=${{ matrix.target }}; GOOS=${GOOS%/*}
+          GOARCH=${{ matrix.target }}; GOARCH=${GOARCH#*/}
+          GOOS=$GOOS GOARCH=$GOARCH go build -trimpath -o /tmp/reposhelf ./cmd/reposhelf
+          GOOS=$GOOS GOARCH=$GOARCH go vet ./...
