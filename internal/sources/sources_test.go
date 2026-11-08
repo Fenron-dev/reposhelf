@@ -192,3 +192,30 @@ func TestEnvTokens(t *testing.T) {
 		t.Error("nextLink")
 	}
 }
+
+func TestGitHubArtifacts(t *testing.T) {
+	var srvURL string
+	mux := http.NewServeMux()
+	mux.HandleFunc("/repos/a/b/actions/artifacts", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("page") == "2" {
+			fmt.Fprint(w, `{"artifacts":[{"id":2,"name":"old","size_in_bytes":5,"expired":true,"created_at":"2026-10-01T00:00:00Z","archive_download_url":"x","workflow_run":{"id":8}}]}`)
+			return
+		}
+		w.Header().Set("Link", fmt.Sprintf(`<%s/repos/a/b/actions/artifacts?page=2>; rel="next"`, srvURL))
+		fmt.Fprint(w, `{"artifacts":[{"id":1,"name":"app","size_in_bytes":10,"expired":false,"created_at":"2026-11-01T00:00:00Z",
+			"archive_download_url":"https://api/zip","workflow_run":{"id":9,"head_branch":"main","head_sha":"abc"}}]}`)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	srvURL = srv.URL
+	reg := &Registry{BaseURLs: map[string]string{"github.com": srv.URL}}
+	api, _ := reg.API("github.com")
+	arts, err := api.Artifacts(context.Background(), repometa.Source{Owner: "a", Name: "b"})
+	if err != nil || len(arts) != 2 || arts[0].RunID != 9 || arts[0].Branch != "main" || !arts[1].Expired {
+		t.Fatalf("artifacts = %+v, %v", arts, err)
+	}
+	gt, _ := (&Registry{}).API("codeberg.org")
+	if _, err := gt.Artifacts(context.Background(), repometa.Source{}); !errors.Is(err, ErrUnsupported) {
+		t.Errorf("gitea artifacts = %v", err)
+	}
+}

@@ -219,6 +219,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.4 | Graph-Ansicht Beziehungen | erledigt | Claude Code | 2026-11-08 | `9dc73ff` |
 | T-9.5 | Code-Volltextsuche (nach F-007) | erledigt | Claude Code | 2026-11-08 | D-021 – `git grep` in Oberfläche (`/code`), CLI (`reposhelf grep`) und MCP (`search_code`) |
 | T-9.6 | Massenimport (eigene / gesternte GitHub-Repos) | erledigt | Claude Code | 2026-11-08 | `fad38bc` – `reposhelf import [--starred]` |
+| T-9.7 | GitHub-Actions-Artefakte mitsichern, Anzahl der Läufe einstellbar (global/Sammlung/Repo) | erledigt | Claude Code | 2026-11-08 | Wunsch von Dennis beim Test von v0.1.5; `include.actions`, `retention.actions_keep` (SCHEMA ergänzt) |
 
 ---
 
@@ -226,6 +227,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-08 · Claude Code · Dennis' Test v0.1.5: Fenster ok, aber nach „Hinzufügen“ keine Weiterleitung (WKWebView folgt 303 im Wails-Schema nicht) → behoben; T-9.7 Actions-Artefakte; Release `v0.1.6`
 - 2026-11-08 · Claude Code · Dennis' Test: Desktop-Fenster blieb weiß (Wails lieferte den Platzhalter `frontend/dist/index.html` statt der Oberfläche) → behoben, Fenster-Test (`cmd/reposhelf-desktop/window_test.go`) auch im Release-Job; Klon-Adresse im Fenster korrigiert; Release `v0.1.5`
 - 2026-11-08 · Claude Code · Echte Builds in CI geprüft (Docker-Ziel, Kapsel, act, GitHub Actions); Fehler behoben: git ohne Repo lief im Arbeitsordner (doppelter Auth-Header); Einrichtungsdialog testbar (`internal/desktop`); macOS ad-hoc signiert; Release `v0.1.4`
 - 2026-11-08 · Claude Code · Prüflauf für `v0.1.3` grün (Docker, Windows-CLI, Windows-Desktop); macOS-Desktop lokal geprüft

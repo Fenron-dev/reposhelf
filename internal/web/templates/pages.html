@@ -29,6 +29,7 @@
     <label class="check"><input type="checkbox" name="submodules" checked> Submodule (werden eigene Spiegel)</label>
     <label class="check"><input type="checkbox" name="issues"> Issues</label>
     <label class="check"><input type="checkbox" name="wiki"> Wiki</label>
+    <label class="check"><input type="checkbox" name="actions"> GitHub-Actions-Artefakte (neueste {{$d.Defaults.Retention.ActionsKeep}} Läufe, braucht Token)</label>
     <label class="check"><input type="checkbox" checked disabled> Metadaten (Beschreibung, Topics, Lizenz)</label>
   </fieldset>
 
@@ -155,6 +156,7 @@
   {{end}}
   <fieldset><legend>Aufbewahrung für Mitglieder (leer = global)</legend>
     <label>Neueste Releases behalten <input name="releases_keep" class="short" value="{{deref $d.C.Retention.ReleasesKeep}}"></label>
+    <label>Actions-Läufe behalten <input name="actions_keep" class="short" value="{{deref $d.C.Retention.ActionsKeep}}"></label>
     <label>Snapshot alle <input name="snapshots_every" class="short" value="{{deref $d.C.Retention.SnapshotsEvery}}" placeholder="30d"></label>
     <label>Force-Push-Sicherungen behalten <input name="backups_keep_for" class="short" value="{{deref $d.C.Retention.ForcePushBackupsKeepFor}}" placeholder="180d"></label>
     <label>Build-Kapseln behalten <input name="capsules_keep" class="short" value="{{deref $d.C.Retention.CapsulesKeep}}"></label>
@@ -275,6 +277,7 @@
   </fieldset>
   <fieldset class="card" id="aufbewahrung"><legend>Aufbewahrung (global)</legend>
     <label>Neueste Releases behalten <input name="releases_keep" class="short" value="{{$c.Retention.ReleasesKeep}}" inputmode="numeric"></label>
+    <label>Actions-Läufe mit Artefakten behalten <input name="actions_keep" class="short" value="{{$c.Retention.ActionsKeep}}" inputmode="numeric"></label>
     <label>Höchstgröße je Release-Datei (MB) <input name="max_asset_mb" class="short" value="{{$c.Retention.MaxAssetMB}}" inputmode="numeric"><span class="small muted">0 = keine Grenze</span></label>
     <label>Snapshot alle <input name="snapshots_every" class="short" value="{{$c.Retention.SnapshotsEvery}}"><span class="small muted">0 = aus</span></label>
     <label>Snapshots behalten <input name="snapshots_keep_for" class="short" value="{{$c.Retention.SnapshotsKeepFor}}"></label>

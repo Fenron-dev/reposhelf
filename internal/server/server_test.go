@@ -158,7 +158,11 @@ func TestForms(t *testing.T) {
 	if body := e.get("/repo/"+e.other.R().ID, 200); !strings.Contains(body, "bekommt von") {
 		t.Error("backlink not shown")
 	}
-	e.post("/repo/"+id+"/settings", url.Values{"kind": {"mirror"}, "mode": {"follow"}, "interval": {"12h"}, "releases": {"on"}, "releases_keep": {"0"}}, 303)
+	e.post("/repo/"+id+"/settings", url.Values{"kind": {"mirror"}, "mode": {"follow"}, "interval": {"12h"}, "releases": {"on"}, "releases_keep": {"0"}, "actions": {"on"}, "actions_keep": {"2"}}, 303)
+	if r, _ := e.lib.Get(context.Background(), id); !r.R().Include.Actions || *r.R().Retention.ActionsKeep != 2 {
+		t.Errorf("actions settings not saved: %+v", r.R().Retention)
+	}
+	e.get("/repo/"+id+"?tab=versions", 200)
 	e.post("/collections/_new", url.Values{"name": {"Fundus Ökosystem"}, "color": {"#44aa99"}}, 303)
 	e.post("/repo/"+id+"/collections", url.Values{"collection": {"fundus-oekosystem"}}, 303)
 	e.get("/collections/fundus-oekosystem", 200)

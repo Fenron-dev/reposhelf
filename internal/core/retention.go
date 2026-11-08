@@ -112,6 +112,7 @@ func (l *Library) CleanupPlan(ctx context.Context) ([]CleanupItem, error) {
 		items = append(items, l.refCandidates(ctx, r, gitcli.BackupNamespace, ItemBackup, time.Duration(ret.ForcePushBackupsKeepFor), now, false)...)
 		items = append(items, l.refCandidates(ctx, r, SnapshotNamespace, ItemSnapshot, time.Duration(ret.SnapshotsKeepFor), now, true)...)
 		items = append(items, l.capsuleCandidates(r, ret)...)
+		items = append(items, l.actionCandidates(r, ret)...)
 	}
 	items = append(items, l.buildCandidates()...)
 	items = append(items, l.blobCandidates()...)
@@ -367,7 +368,7 @@ func (l *Library) trashItem(ctx context.Context, it CleanupItem, actor string) e
 		if err := move(strings.TrimSuffix(it.Path, ".yaml") + ".files.json"); err != nil {
 			return err
 		}
-	case ItemBuild:
+	case ItemBuild, ItemActions:
 		if err := move(it.Path); err != nil {
 			return err
 		}
@@ -384,7 +385,8 @@ func (l *Library) trashItem(ctx context.Context, it CleanupItem, actor string) e
 		}
 		unlock := l.locks.lock(r.R().ID)
 		defer unlock()
-		for _, p := range []string{r.Paths.Meta, r.Paths.Mirror, l.wikiDir(r), r.Paths.Releases} {
+		actions, _ := l.actionsDir(r)
+		for _, p := range []string{r.Paths.Meta, r.Paths.Mirror, l.wikiDir(r), r.Paths.Releases, actions} {
 			if err := move(p); err != nil {
 				return err
 			}

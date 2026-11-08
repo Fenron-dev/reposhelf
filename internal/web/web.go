@@ -90,6 +90,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /repo/{id}/blob/{path...}", read(s.repoBlob))
 	mux.Handle("GET /repo/{id}/raw/{path...}", read(s.repoRaw))
 	mux.Handle("GET /repo/{id}/asset", read(s.repoAsset))
+	mux.Handle("GET /repo/{id}/action", read(s.repoAction))
 	mux.Handle("POST /repo/{id}/sync", write(s.repoSync))
 	mux.Handle("POST /repo/{id}/tags", write(s.repoTags))
 	mux.Handle("POST /repo/{id}/collections", write(s.repoCollections))

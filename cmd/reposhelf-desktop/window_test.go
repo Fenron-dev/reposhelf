@@ -67,3 +67,19 @@ func TestWindowShowsLibrary(t *testing.T) {
 		t.Fatalf("sub page not routed:\n%s", body)
 	}
 }
+
+func TestWindowFollowsRedirectAfterPost(t *testing.T) {
+	app := &App{}
+	app.handler = desktop.FollowRedirects(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/repo/neu", http.StatusSeeOther)
+	}))
+	srv, err := wailsassets.NewAssetServer("", *assetOptions(app), false, nil, fakeRuntime{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "wails://wails/add", strings.NewReader("url=x")))
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "url=/repo/neu") {
+		t.Fatalf("POST answer = %d %s", rec.Code, rec.Body.String())
+	}
+}

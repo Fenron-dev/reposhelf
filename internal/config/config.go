@@ -97,6 +97,9 @@ type Sync struct {
 // repositories override them.
 type Retention struct {
 	ReleasesKeep int `yaml:"releases_keep"`
+	// ActionsKeep is how many of the newest GitHub Actions runs keep their
+	// artifacts.
+	ActionsKeep int `yaml:"actions_keep"`
 	// MaxAssetMB skips release files larger than this (0 = no limit), so a
 	// project with many platform builds cannot fill a small disk (T-1.13).
 	MaxAssetMB              int               `yaml:"max_asset_mb"`
@@ -129,6 +132,7 @@ const (
 	defaultArchivedInterval = 30 * day
 	defaultConcurrency      = 2
 	defaultReleasesKeep     = 5
+	defaultActionsKeep      = 3
 	defaultSnapshotsEvery   = 30 * day
 	defaultKeepFor          = 180 * day
 	defaultCapsulesKeep     = 3
@@ -150,6 +154,7 @@ func Default() Config {
 		},
 		Retention: Retention{
 			ReleasesKeep:            defaultReleasesKeep,
+			ActionsKeep:             defaultActionsKeep,
 			SnapshotsEvery:          repometa.Duration(defaultSnapshotsEvery),
 			SnapshotsKeepFor:        repometa.Duration(defaultKeepFor),
 			ForcePushBackupsKeepFor: repometa.Duration(defaultKeepFor),
@@ -280,7 +285,7 @@ func validate(cfg Config) error {
 	if cfg.Sync.Concurrency < 1 {
 		return fmt.Errorf("%w: sync.concurrency must be at least 1", ErrInvalid)
 	}
-	if cfg.Retention.ReleasesKeep < 0 || cfg.Retention.TrashDays < 1 || cfg.Retention.CapsulesKeep < 0 || cfg.Retention.MaxAssetMB < 0 {
+	if cfg.Retention.ReleasesKeep < 0 || cfg.Retention.TrashDays < 1 || cfg.Retention.CapsulesKeep < 0 || cfg.Retention.MaxAssetMB < 0 || cfg.Retention.ActionsKeep < 0 {
 		return fmt.Errorf("%w: retention values out of range", ErrInvalid)
 	}
 	if cfg.Sync.DefaultInterval < repometa.Duration(5*time.Minute) {

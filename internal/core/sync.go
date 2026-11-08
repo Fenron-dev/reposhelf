@@ -23,6 +23,7 @@ type SyncReport struct {
 	Status   string
 	Err      error
 	Releases ReleaseReport
+	Actions  ActionsReport
 	Added    []string // repositories added for submodules
 	Notes    []string // non-fatal problems (LFS, wiki, metadata …)
 	Duration time.Duration
@@ -214,6 +215,13 @@ func (l *Library) syncExtras(ctx context.Context, r *Repo, auth *gitcli.Auth, re
 			notes = append(notes, "Releases: "+err.Error())
 		}
 	}
+	if cr.Include.Actions {
+		ar, err := l.syncActions(ctx, r)
+		rep.Actions = ar
+		if err != nil {
+			notes = append(notes, "Actions-Artefakte: "+err.Error())
+		}
+	}
 	if cr.Include.Issues {
 		if err := l.syncIssues(ctx, r); err != nil && !errors.Is(err, sources.ErrNoAPI) {
 			notes = append(notes, "Issues: "+err.Error())
@@ -255,6 +263,9 @@ func (l *Library) hasLFS(ctx context.Context, r *Repo) bool {
 func (l *Library) measure(ctx context.Context, r *Repo) {
 	st := &r.Upstream.Stats
 	st.SizeBytes = gitcli.DirSize(r.Paths.Mirror) + gitcli.DirSize(r.Paths.Releases)
+	if dir, err := l.actionsDir(r); err == nil {
+		st.SizeBytes += gitcli.DirSize(dir)
+	}
 	if br, err := l.Git.Branches(ctx, r.Paths.Mirror); err == nil {
 		st.Branches = len(br)
 	}

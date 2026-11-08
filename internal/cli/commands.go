@@ -190,6 +190,7 @@ func runAdd(args []string, sys system) int {
 	noReleases := fset.Bool("no-releases", false, "")
 	issues := fset.Bool("issues", false, "")
 	wiki := fset.Bool("wiki", false, "")
+	actions := fset.Bool("actions", false, "")
 	pos, code, ok := parseArgs(fset, args, 1, -1, sys)
 	if !ok {
 		return code
@@ -217,6 +218,7 @@ func runAdd(args []string, sys system) int {
 		inc.Releases = !*noReleases
 		inc.Issues = inc.Issues || *issues
 		inc.Wiki = *wiki
+		inc.Actions = *actions
 		req.Include = &inc
 		fmt.Fprintf(sys.stdout, msgAdding, url)
 		r, err := lib.Add(ctx, req)

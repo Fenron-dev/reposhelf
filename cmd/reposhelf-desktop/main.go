@@ -138,7 +138,7 @@ func (a *App) open(dir string) error {
 		}
 	}()
 	lib.StartBackground()
-	a.lib, a.handler, a.cancel = lib, srv.Handler(), cancel
+	a.lib, a.handler, a.cancel = lib, desktop.FollowRedirects(srv.Handler()), cancel
 	return nil
 }
 
@@ -160,7 +160,7 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h := a.handler
 	a.mu.Unlock()
 	if h == nil {
-		a.setup.ServeHTTP(w, r)
+		desktop.FollowRedirects(a.setup).ServeHTTP(w, r)
 		return
 	}
 	r.RemoteAddr = "127.0.0.1:1"

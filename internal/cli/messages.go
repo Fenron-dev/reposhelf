@@ -24,6 +24,7 @@ Repos:
   add <link>…              Repo per Link sichern
        --kind mirror|own   --mode follow|once|manual   --interval 6h
        --tags a,b   --collection x   --buildable   --no-releases   --issues   --wiki
+       --actions           GitHub-Actions-Artefakte mitsichern (neueste Läufe, Anzahl: retention.actions_keep)
   create <name>            Eigenes Projekt nur in RepoShelf anlegen (--owner, --description)
   fork <repo>              Beschreibbare Kopie eines Spiegels anlegen (--name)
   sync <repo>… | --all | --due   Abgleichen (mit Sicherung vor Force-Pushes)

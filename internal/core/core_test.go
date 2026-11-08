@@ -531,3 +531,79 @@ func TestSearchCode(t *testing.T) {
 		t.Errorf("limit = %+v", res)
 	}
 }
+
+func TestActionsArtifacts(t *testing.T) {
+	ctx := context.Background()
+	f := testutil.NewForge(t)
+	up := f.NewRepo("o", "ci")
+	up.AddArtifact(1, "app-linux", "OLD", "2026-11-01T10:00:00Z", false)
+	up.AddArtifact(2, "app-linux", "NEW", "2026-11-05T10:00:00Z", false)
+	up.AddArtifact(2, "app-windows", "WIN", "2026-11-05T10:00:00Z", false)
+	up.AddArtifact(3, "gone", "X", "2026-10-01T10:00:00Z", true)
+	clk := &clock{t: time.Date(2026, 11, 8, 10, 0, 0, 0, time.UTC)}
+	envName := "REPOSHELF_TOKEN_" + strings.NewReplacer(".", "_", ":", "_").Replace(f.Host)
+	l, err := Open(ctx, Options{DataDir: t.TempDir(), Now: clk.Now, Git: f.Git, NoKeychain: true,
+		LookupEnv: func(k string) (string, bool) {
+			if k == envName {
+				return "tok", true
+			}
+			return "", false
+		},
+		SourceKinds: map[string]string{f.Host: sources.KindGitHub}, SourceBaseURLs: map[string]string{f.Host: f.APIBase()}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+	keep := 1
+	inc := repometa.Defaults(repometa.KindMirror).Include
+	inc.Actions = true
+	r, err := l.Add(ctx, AddRequest{URL: f.URL("o", "ci"), Include: &inc, Wait: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := l.UpdateSettings(ctx, r.R().ID, Settings{Mode: repometa.SyncFollow, Include: inc, Retention: repometa.Retention{ActionsKeep: &keep}}, "t"); err != nil {
+		t.Fatal(err)
+	}
+	rep, err := l.Sync(ctx, r.R().ID, "t")
+	if err != nil {
+		t.Fatal(err)
+	}
+	runs, _ := l.ActionRuns(ctx, r.R().ID)
+	// Defaults (3) on add fetched runs 2 and 1; now keep 1 → run 1 is a candidate.
+	if len(runs) != 2 || runs[0].RunID != 2 || len(runs[0].Artifacts) != 2 {
+		t.Fatalf("runs = %+v (report %+v)", runs, rep.Actions)
+	}
+	p, err := l.ActionArtifactPath(ctx, r.R().ID, 2, "app-windows")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(p); string(b) != "WIN" {
+		t.Errorf("artifact = %q", b)
+	}
+	plan, _ := l.CleanupPlan(ctx)
+	found := false
+	for _, it := range plan {
+		if it.Kind == ItemActions && strings.Contains(it.Label, "Lauf 1") {
+			found = true
+			if _, err := l.MoveToTrash(ctx, []string{it.ID}, "t"); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("old run not proposed: %+v", plan)
+	}
+	if runs, _ := l.ActionRuns(ctx, r.R().ID); len(runs) != 1 {
+		t.Errorf("after trash: %d runs", len(runs))
+	}
+	// Without token: a clear note, no crash.
+	l2, _ := openLib(t, f)
+	r2, err := l2.Add(ctx, AddRequest{URL: f.URL("o", "ci"), Include: &inc, Wait: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rep2, _ := l2.Sync(ctx, r2.R().ID, "t")
+	if !strings.Contains(strings.Join(rep2.Notes, " "), "Token") {
+		t.Errorf("notes = %v", rep2.Notes)
+	}
+}

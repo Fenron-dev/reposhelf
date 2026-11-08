@@ -116,6 +116,8 @@ type Include struct {
 	Submodules bool `yaml:"submodules"`
 	Issues     bool `yaml:"issues"`
 	Wiki       bool `yaml:"wiki"`
+	// Actions mirrors build artifacts of GitHub Actions runs.
+	Actions bool `yaml:"actions"`
 }
 
 // Relation is a directed edge from this repository to another one
@@ -150,7 +152,10 @@ var KnownRelationTypes = []string{
 // Retention holds per-repo overrides of the retention rules. null means
 // "inherit from collection or global rules" (KONZEPT 6.10).
 type Retention struct {
-	ReleasesKeep     *int             `yaml:"releases_keep"`
+	ReleasesKeep *int `yaml:"releases_keep"`
+	// ActionsKeep is how many of the newest Actions runs keep their
+	// artifacts (null = inherit).
+	ActionsKeep      *int             `yaml:"actions_keep"`
 	Pinned           []string         `yaml:"pinned"`
 	Snapshots        SnapshotRule     `yaml:"snapshots"`
 	ForcePushBackups ForcePushBackups `yaml:"force_push_backups"`

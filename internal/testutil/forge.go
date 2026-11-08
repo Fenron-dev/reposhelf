@@ -47,16 +47,17 @@ type Forge struct {
 	Server *httptest.Server
 	Host   string // host:port
 
-	mu       sync.Mutex
-	Meta     map[string]map[string]any // "owner/name" → API JSON
-	Releases map[string][]map[string]any
-	Files    map[string][]byte // asset path → content
-	Gone     map[string]bool
+	mu        sync.Mutex
+	Meta      map[string]map[string]any // "owner/name" → API JSON
+	Releases  map[string][]map[string]any
+	Files     map[string][]byte // asset path → content
+	Gone      map[string]bool
+	Artifacts map[string][]map[string]any
 }
 
 // NewForge starts a fake host.
 func NewForge(t testing.TB) *Forge {
-	f := &Forge{t: t, Git: Git(t), Root: t.TempDir(), Meta: map[string]map[string]any{},
+	f := &Forge{t: t, Git: Git(t), Root: t.TempDir(), Meta: map[string]map[string]any{}, Artifacts: map[string][]map[string]any{},
 		Releases: map[string][]map[string]any{}, Files: map[string][]byte{}, Gone: map[string]bool{}}
 	gitPath := f.Git.Path
 	backend := &cgi.Handler{
@@ -135,6 +136,8 @@ func (f *Forge) api(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(f.Releases[key])
 	case len(parts) == 3 && parts[2] == "languages":
 		w.Write([]byte(`{}`))
+	case len(parts) == 4 && parts[2] == "actions" && parts[3] == "artifacts":
+		json.NewEncoder(w).Encode(map[string]any{"artifacts": f.Artifacts[key]})
 	case len(parts) == 3 && parts[2] == "issues":
 		w.Write([]byte(`[]`))
 	default:
@@ -236,4 +239,19 @@ func HasGitHTTPBackend(g *gitcli.Git) bool {
 	cmd := exec.Command(g.Path, "http-backend")
 	cmd.Env = []string{"REQUEST_METHOD=GET", "GIT_PROJECT_ROOT=/nonexistent", "PATH_INFO=/x/info/refs"}
 	return cmd.Run() == nil || cmd.ProcessState != nil
+}
+
+// AddArtifact publishes a CI artifact of run runID (GitHub Actions API).
+func (r *Repo) AddArtifact(runID int64, name, content, created string, expired bool) {
+	f := r.f
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	path := fmt.Sprintf("%s/%s/actions/%d/%s.zip", r.Owner, r.Name, runID, name)
+	f.Files[path] = []byte(content)
+	key := r.Owner + "/" + r.Name
+	f.Artifacts[key] = append(f.Artifacts[key], map[string]any{
+		"id": runID*100 + int64(len(f.Artifacts[key])), "name": name, "size_in_bytes": len(content), "expired": expired,
+		"created_at": created, "archive_download_url": f.Server.URL + "/files/" + path,
+		"workflow_run": map[string]any{"id": runID, "head_branch": "main", "head_sha": "abc"},
+	})
 }
