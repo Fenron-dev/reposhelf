@@ -83,7 +83,7 @@ created: 2026-11-08T10:00:00Z
 | `schema` | Zahl | ja | – | `1` |
 | `id` | ULID | ja | – | 26 Zeichen, Crockford-Base32, Großbuchstaben, erstes Zeichen ≤ `7`. Bleibt bei Umbenennung gleich. |
 | `source.url` | URL | ja | – | Schema `https`, `http`, `ssh` oder `git`; mit Host. Keine Zugangsdaten; nur bei `ssh` ist ein Benutzername ohne Passwort erlaubt (`ssh://git@…`). Lokale Pfade/`file:` sind nicht erlaubt. |
-| `source.host` | Segment | ja | – | siehe „Segment“ |
+| `source.host` | Host | ja | – | `hostname` oder `hostname:port` (Port 1–65535). Der Ordnername ist nur der Hostname (D-018); IPv6-Adressen werden nicht unterstützt. |
 | `source.owner` | Segment(e) | ja | – | ein oder mehrere Segmente mit `/` (verschachtelte GitLab-Gruppen) |
 | `source.name` | Segment | ja | – | siehe „Segment“ |
 | `kind` | Auswahl | ja | – | `own` · `mirror` · `fork` |
@@ -144,10 +144,10 @@ bleiben, auch wenn die Liste umsortiert wird.
     und in keiner Schreibweise;
   - beginnt nicht mit `.reposhelf-tmp-` (Zwischendateien beim Schreiben).
 
-  Ein Host mit Port (`gitea.local:3000`) ist deshalb vorerst nicht möglich
-  (F-013).
+  Ein Host mit Port (`gitea.local:3000`) wird deshalb ohne Port zum Ordner
+  (`gitea.local`, D-018).
 - **Verweis:** die ULID eines Repos oder `host/owner/name` (mindestens drei
-  Segmente).
+  Segmente; der Host darf einen Port haben).
 - **Dauer:** ganze Zahlen mit Einheiten in fester Reihenfolge `d`, `h`, `m`,
   `s`, z. B. `30d`, `6h`, `1d12h`, `90m`. Keine Brüche, keine Wochen.
   Geschrieben wird die kanonische Form (`36h` → `1d12h`).

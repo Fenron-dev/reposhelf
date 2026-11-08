@@ -206,3 +206,58 @@ Desktop-Instanz nicht ungewollt im Netz erreichbar ist.
 **Folgen:** Konstante in `internal/config`; Docker-Image (T-5.1) setzt
 `REPOSHELF_LISTEN=:7373`.
 
+
+### D-017 · Weboberfläche mit Go-Templates und htmx
+2026-11-08 · gültig (beantwortet F-005)
+
+**Entscheidung:** Die Weboberfläche besteht aus Go-Templates (`html/template`)
+und htmx. htmx und das Stylesheet werden in die Binärdatei eingebettet
+(`embed`); es gibt keinen Node-Build.
+
+**Begründung:** Vorschlag aus Konzept 4.2; eine Binärdatei, nichts zu bauen
+außer Go, wenig eigenes JavaScript.
+
+**Folgen:** htmx liegt als Datei im Repo (Lizenz in `THIRD_PARTY.md`).
+
+### D-018 · Ordnername eines Hosts ohne Port
+2026-11-08 · gültig (beantwortet F-013)
+
+**Entscheidung:** `source.host` darf einen Port enthalten
+(`gitea.local:3000`). Der Ordnername unter `repos/`, `meta/`, `releases/`
+usw. ist nur der Hostname **ohne** Port (`gitea.local`). Gibt es bereits ein
+Repo mit demselben Hostnamen, Owner und Namen (z. B. unter einem anderen
+Port), wird das Hinzufügen mit einer Meldung abgelehnt.
+
+**Begründung:** Wunsch von Dennis: Der Port gehört nicht in den Ordnernamen
+(`:` ist unter Windows ohnehin verboten). Zwei gleichnamige Repos auf
+demselben Host unter verschiedenen Ports sind in der Praxis selten; der Fall
+wird erkannt statt still überschrieben (Invariante 5).
+
+**Folgen:** `repometa` prüft `source.host` als `hostname[:port]`; IPv6-Adressen
+als Host werden nicht unterstützt. Pfade entstehen über `repometa.Source.Dir`.
+
+### D-019 · Desktop-Hülle mit Wails v2
+2026-11-08 · gültig (beantwortet F-004)
+
+**Entscheidung:** Die Desktop-App nutzt **Wails v2** (stabil).
+
+**Begründung:** Wails zeigt nur die Weboberfläche in einem nativen Fenster;
+dafür reicht die stabile Version. v3 ist noch Beta.
+
+**Folgen:** Die Desktop-Hülle ist ein eigenes Programm (`cmd/reposhelf-desktop`)
+mit eigenem Build-Tag; der Kern hängt nicht von Wails ab. Gebaut wird sie nur
+in CI (macOS-Runner manuell oder bei `v*`-Tag, D-012).
+
+### D-020 · Portables Git für Windows mitliefern
+2026-11-08 · gültig (beantwortet F-010)
+
+**Entscheidung:** Das Windows-Paket enthält ein portables Git (Git for Windows,
+„MinGit“) neben der Programmdatei. RepoShelf nutzt zuerst ein mitgeliefertes
+Git, sonst das `git` im `PATH`; fehlt beides, gibt es eine klare Meldung.
+
+**Begründung:** Wunsch von Dennis; RepoShelf soll unter Windows ohne
+Installation laufen (portabel, USB-Stick).
+
+**Folgen:** Der Release-Workflow lädt MinGit (GPL-2.0, als eigenständiges
+Programm mitgeliefert, nicht gelinkt) mit geprüfter Prüfsumme und legt es in
+`git/` neben `reposhelf.exe`. Lizenzhinweis in `THIRD_PARTY.md`.
