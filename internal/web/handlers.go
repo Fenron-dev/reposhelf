@@ -11,6 +11,7 @@ import (
 	"io/fs"
 	"mime"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -215,6 +216,7 @@ type repoData struct {
 	CanAdmin    bool
 	CanBuild    bool
 	Builds      any
+	NoteLinks   []string
 }
 
 type crumb struct{ Name, URL string }
@@ -250,6 +252,7 @@ func (s *Server) baseRepoData(r *http.Request, repo *core.Repo) repoData {
 	if s.Ext.Builds != nil {
 		d.Builds = s.Ext.Builds.Panel(r, repo.R().ID)
 	}
+	d.NoteLinks = s.Lib.NoteBacklinks(r.Context(), repo.R().ID)
 	d.Collections, _ = s.Lib.Collections(r.Context())
 	for _, bl := range repo.Backlinks {
 		if e, err := s.Lib.Store.Get(r.Context(), bl.From); err == nil {
@@ -878,6 +881,69 @@ func (s *Server) activityPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	s.render(w, r, "activity", "Verlauf", "activity", map[string]any{"Acts": acts, "Names": names})
+}
+
+// ---- Free notes (KONZEPT 6.8) ----
+
+type noteData struct {
+	Notes []core.Note
+	Note  core.Note
+	HTML  template.HTML
+	Names map[string]string
+	New   bool
+}
+
+func (s *Server) noteNames(r *http.Request, ids ...[]string) map[string]string {
+	names := map[string]string{}
+	for _, list := range ids {
+		for _, id := range list {
+			if e, err := s.Lib.Store.Get(r.Context(), id); err == nil {
+				names[id] = e.Owner + " / " + e.Name
+			}
+		}
+	}
+	return names
+}
+
+func (s *Server) notesPage(w http.ResponseWriter, r *http.Request) {
+	notes, err := s.Lib.FreeNotes(r.Context())
+	if err != nil {
+		s.failErr(w, r, err)
+		return
+	}
+	var all [][]string
+	for _, n := range notes {
+		all = append(all, n.Links)
+	}
+	s.render(w, r, "notes", "Notizen", "notes", noteData{Notes: notes, Names: s.noteNames(r, all...)})
+}
+
+func (s *Server) notePage(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	n, err := s.Lib.FreeNote(r.Context(), name)
+	d := noteData{Note: n}
+	if errors.Is(err, core.ErrNotFound) {
+		d.New, d.Note.Name = true, name
+	} else if err != nil {
+		s.failErr(w, r, err)
+		return
+	}
+	d.HTML = s.renderMarkdown([]byte(n.Text), "", "", "")
+	d.Names = s.noteNames(r, n.Links)
+	s.render(w, r, "note", name, "notes", d)
+}
+
+func (s *Server) noteSave(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	name := strings.TrimSpace(r.PathValue("name"))
+	if name == "_new" {
+		name = strings.TrimSpace(r.Form.Get("name"))
+	}
+	if err := s.Lib.WriteFreeNote(name, r.Form.Get("text"), s.actor(r)); err != nil {
+		s.failErr(w, r, err)
+		return
+	}
+	redirect(w, r, withMsg("/notes/"+url.PathEscape(name), "ok", "Gespeichert."))
 }
 
 // ---- Cleanup and trash (T-3.3, T-3.4) ----

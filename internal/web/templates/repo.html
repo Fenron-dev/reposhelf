@@ -151,7 +151,8 @@
     <h2 class="h3">Backlinks · verweist hierher</h2>
     <ul class="rels">
     {{range $r.Backlinks}}<li><a href="/repo/{{.From}}">{{with index $d.Names .From}}{{.}}{{else}}{{.From}}{{end}}</a> <span class="small muted">· {{relBackText .Type}}{{if eq .State "suggested"}} (Vorschlag){{end}}{{if .Source}} · {{relSource .Source}}{{end}}</span></li>
-    {{else}}<li class="muted small">Keine.</li>{{end}}
+    {{else}}{{if not $d.NoteLinks}}<li class="muted small">Keine.</li>{{end}}{{end}}
+    {{range $d.NoteLinks}}<li><a href="/notes/{{pathEsc .}}">Notiz „{{.}}“</a> <span class="small muted">· Wiki-Link</span></li>{{end}}
     </ul>
   </div>
 

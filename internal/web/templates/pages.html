@@ -352,3 +352,37 @@
 <div class="card"><h2 class="h3">Letzte Agenten-Aktionen</h2>{{template "activity-list" (dict "Acts" $d.Acts "Names" (dict))}}</div>
 {{end}}
 {{template "foot" .}}{{end}}
+
+{{define "notes"}}{{template "head" .}}{{$d := .Data}}
+<div class="title-row"><div><h1>Notizen</h1><p class="muted">Freie Notizen in <span class="mono">notes/</span>. Wiki-Links wie <span class="mono">[[Fero]]</span> erscheinen als Rückverweis beim Repo.</p></div></div>
+{{if .Identity.Has "write"}}
+<form method="post" action="/notes/_new" class="card row-wrap">
+  <label>Neue Notiz <input name="name" required placeholder="Medien-Pipeline"></label>
+  <input type="hidden" name="text" value="">
+  <button class="btn btn-primary" type="submit">Anlegen</button>
+</form>
+{{end}}
+<div class="card">
+<ul class="rels">
+{{range $d.Notes}}<li><a href="/notes/{{pathEsc .Name}}"><strong>{{.Name}}</strong></a> <span class="small muted">· {{dt .Modified}}</span>
+  {{if .Links}}<div class="row-wrap">{{range .Links}}<a class="tag" href="/repo/{{.}}">{{index $d.Names .}}</a>{{end}}</div>{{end}}</li>
+{{else}}<li class="muted">Noch keine freien Notizen.</li>{{end}}
+</ul>
+</div>
+{{template "foot" .}}{{end}}
+
+{{define "note"}}{{template "head" .}}{{$d := .Data}}
+<nav class="crumbs small"><a href="/notes">Notizen</a> / {{$d.Note.Name}}</nav>
+<h1>{{$d.Note.Name}}</h1>
+{{if $d.Note.Links}}<div class="row-wrap small">Verlinkt: {{range $d.Note.Links}}<a class="tag" href="/repo/{{.}}">{{index $d.Names .}}</a>{{end}}</div>{{end}}
+<div class="layout-2">
+{{if .Identity.Has "write"}}
+<form method="post" action="/notes/{{pathEsc $d.Note.Name}}" class="card stack">
+  <label for="text">Markdown</label>
+  <textarea id="text" name="text" rows="20" class="mono">{{$d.Note.Text}}</textarea>
+  <div><button class="btn btn-primary" type="submit">Speichern</button></div>
+</form>
+{{end}}
+<div class="card markdown">{{if $d.Note.Text}}{{$d.HTML}}{{else}}<p class="muted">Noch leer.</p>{{end}}</div>
+</div>
+{{template "foot" .}}{{end}}
