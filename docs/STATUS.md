@@ -226,6 +226,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-08 · Claude Code · Dennis' Test: Desktop-Fenster blieb weiß (Wails lieferte den Platzhalter `frontend/dist/index.html` statt der Oberfläche) → behoben, Fenster-Test (`cmd/reposhelf-desktop/window_test.go`) auch im Release-Job; Klon-Adresse im Fenster korrigiert; Release `v0.1.5`
 - 2026-11-08 · Claude Code · Echte Builds in CI geprüft (Docker-Ziel, Kapsel, act, GitHub Actions); Fehler behoben: git ohne Repo lief im Arbeitsordner (doppelter Auth-Header); Einrichtungsdialog testbar (`internal/desktop`); macOS ad-hoc signiert; Release `v0.1.4`
 - 2026-11-08 · Claude Code · Prüflauf für `v0.1.3` grün (Docker, Windows-CLI, Windows-Desktop); macOS-Desktop lokal geprüft
 - 2026-11-08 · Claude Code · F-007/F-014 entschieden (D-021, D-022); Code-Suche (T-9.5); Prüflauf `smoke.yml` fand Fehler: Docker-Image und MinGit haben kein `git http-backend` → Smart-HTTP jetzt eigen (upload-pack/receive-pack); Release `v0.1.3`

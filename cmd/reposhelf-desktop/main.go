@@ -11,7 +11,6 @@ package main
 
 import (
 	"context"
-	"embed"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -37,9 +36,6 @@ import (
 	"github.com/Fenron-dev/reposhelf/internal/web"
 )
 
-//go:embed frontend/dist
-var assets embed.FS
-
 // App is the desktop application state; its exported methods are callable
 // from the setup page (Wails bindings).
 type App struct {
@@ -61,7 +57,7 @@ func main() {
 		MinWidth:         900,
 		MinHeight:        600,
 		BackgroundColour: &options.RGBA{R: 14, G: 16, B: 20, A: 255},
-		AssetServer:      &assetserver.Options{Assets: assets, Handler: app},
+		AssetServer:      assetOptions(app),
 		OnStartup:        app.startup,
 		OnShutdown:       app.shutdown,
 		Bind:             []interface{}{app},
@@ -71,6 +67,14 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+// assetOptions serves every page through RepoShelf's own handler. No
+// static Assets on purpose: Wails serves files from Assets before the
+// handler, so a placeholder index.html would hide the real UI (the window
+// stayed white in v0.1.4).
+func assetOptions(app *App) *assetserver.Options {
+	return &assetserver.Options{Handler: app}
 }
 
 func (a *App) startup(ctx context.Context) {
@@ -121,7 +125,8 @@ func (a *App) open(dir string) error {
 	peers.RegisterRemotes(builds)
 	go peers.Schedule(a.ctx)
 	srv, err := server.New(lib, server.Options{Log: log, Ext: web.Extensions{Builds: builds, Peers: peers}, MCPBuilds: runner.MCP{M: builds},
-		ExtraAuth: peers.CheckTemp, Extra: map[string]http.Handler{"/peer/": peers.Handler()}})
+		ExtraAuth: peers.CheckTemp, Extra: map[string]http.Handler{"/peer/": peers.Handler()},
+		BaseURL: "http://" + lib.Config().Server.Listen})
 	if err != nil {
 		lib.Close()
 		return err

@@ -118,6 +118,8 @@ jobs:
           go-version-file: go.mod
       - name: Wails v2
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.17.1
+      - name: Window test (what the app window shows)
+        run: go test -tags desktop ./cmd/reposhelf-desktop
       - name: Build app (universal)
         working-directory: cmd/reposhelf-desktop
         # Bindings would be generated without the "desktop" tag (stub); the
