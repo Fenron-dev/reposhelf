@@ -13,37 +13,30 @@
 ## Aktueller Stand
 
 - **Phase:** 0 – Gerüst (begonnen)
-- **Letzte Änderung:** 2026-11-08 · T-0.3 umgesetzt (`repo.yaml`-Schema), im Review (Branch `t0.3-repo-schema`)
-- **Nächster Schritt:** `t0.3-repo-schema` prüfen und mergen; danach T-0.5 (atomares Schreiben, Pfadprüfung) – Voraussetzung für das Speichern von `repo.yaml` und für T-0.12
+- **Letzte Änderung:** 2026-11-08 · T-0.3 (`repo.yaml`-Schema) gemergt und gepusht
+- **Nächster Schritt:** T-0.5 (atomares Schreiben, Pfadprüfung) – Voraussetzung für das Speichern von `repo.yaml` und für T-0.12
 
 ## Übergabe-Notiz
 
 > Wird am Ende **jeder** Sitzung überschrieben (Agent oder Mensch). Kurz: was
 > wurde gemacht, was ist halb fertig, worauf muss der Nächste achten.
 
-**2026-11-08 · Claude Code:** T-0.3 auf Branch `t0.3-repo-schema`
-(`6cb6be0`), noch **nicht** gemergt/gepusht.
-- `docs/SCHEMA.md` ist jetzt verbindlich (Schema 1); Konzept 5.2 verweist
-  darauf. Ein Test prüft, dass das Beispiel dort gültig und kanonisch ist.
-- `internal/repometa`: `Parse`/`Load`/`Marshal`. Speichern führt in den
-  gelesenen YAML-Baum zusammen (`merge.go`, gesteuert über die Go-Typen):
-  unbekannte Schlüssel auf jeder Ebene, Kommentare, Reihenfolge und
-  `[a, b]`-Schreibweise bleiben. Listeneinträge werden über `identityKeys`
-  wiedererkannt (bisher nur `relations`: `type`+`target`) – **neue Listen
-  aus Strukturen dort eintragen**, sonst gehen deren unbekannte Schlüssel
-  verloren.
-- Migrationsgerüst auf dem YAML-Baum (`migrate.go`), Fixtures
-  `testdata/schema1-hand.yaml` und `schema1-minimal.yaml` (nie ändern).
-- **Festlegungen, die Dennis prüfen sollte** (in SCHEMA.md dokumentiert, im
-  Konzept offen gelassen): `status_override` = `ok|degraded|gone|archived`;
-  Beziehungs-Zustand zusätzlich `rejected` (für „abgelehnte Vorschläge
-  merken“); Mindestintervall `5m`; erlaubte URL-Schemata
-  `https|http|ssh|git` (kein `file:`); `releases_keep: 0` = nur
-  angeheftete; Dauer-Syntax `30d`/`1d12h` ohne Wochen.
-**Achtung:** `Marshal` liefert Bytes; das Schreiben auf die Platte folgt
-mit T-0.5 (atomar). Segmentprüfung in `validate.go` ist die Grundprüfung;
-reservierte Namen (Windows) gehören zu T-0.5. ULID-Erzeugung fehlt noch
-(wird beim Hinzufügen gebraucht, T-1.8/T-1.11).
+**2026-11-08 · Claude Code:** T-0.3 gemergt (`7df78c3`) und gepusht; Phase 0
+läuft weiter mit **T-0.5**.
+- `docs/SCHEMA.md` ist verbindlich (Schema 1). Die dort getroffenen
+  Festlegungen hat Dennis beim Mergen bestätigt: `status_override` =
+  `ok|degraded|gone|archived`; Beziehungs-Zustand `rejected`;
+  Mindestintervall `5m`; URL-Schemata `https|http|ssh|git`;
+  `releases_keep: 0` = nur angeheftete; Dauer ohne Wochen.
+- `internal/repometa`: `Parse`/`Load`/`Marshal` mit verlustfreiem Speichern
+  (Zusammenführen in den gelesenen YAML-Baum, `merge.go`). **Neue Listen aus
+  Strukturen in `identityKeys` eintragen**, sonst gehen deren unbekannte
+  Schlüssel verloren. Fixtures in `testdata/schema1-*.yaml` nie ändern.
+- **Für T-0.5:** `Marshal` liefert nur Bytes; atomares Schreiben und die
+  vollständige Pfadprüfung (reservierte Windows-Namen u. a.) kommen dort.
+  Danach kann T-0.12 die Zeigerdatei schreiben.
+- ULID-Erzeugung fehlt noch (T-1.8/T-1.11). `golangci-lint` ist lokal nicht
+  installiert; läuft ab T-0.7 in CI.
 
 ---
 
@@ -97,7 +90,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 |---|---|---|---|---|---|
 | T-0.1 | Git-Repo + Go-Modul anlegen; Struktur `cmd/reposhelf`, `internal/…`; `.gitignore`, `LICENSE` (nach F-002/F-003) | erledigt | Claude Code | 2026-11-08 | `132ca84`, gemergt `337d001` (ohne Review, Wunsch Dennis) |
 | T-0.2 | Konfiguration (`reposhelf.yaml` + Umgebungsvariablen) und Datenordner-Kette (Konzept 4.4) | erledigt | Claude Code | 2026-11-08 | `304e735`, gemergt `76c3bfb` (ohne Review, Wunsch Dennis) |
-| T-0.3 | `repo.yaml`-Schema in `docs/SCHEMA.md` festschreiben; Lesen/Schreiben mit Erhalt unbekannter Felder; Validierung; Tests inkl. Vorversion | Review | Claude Code | 2026-11-08 | Branch `t0.3-repo-schema`, `6cb6be0` |
+| T-0.3 | `repo.yaml`-Schema in `docs/SCHEMA.md` festschreiben; Lesen/Schreiben mit Erhalt unbekannter Felder; Validierung; Tests inkl. Vorversion | erledigt | Claude Code | 2026-11-08 | `6cb6be0`, gemergt `7df78c3` (ohne Review, Wunsch Dennis; Festlegungen bestätigt) |
 | T-0.4 | SQLite-Treiber ohne CGO mit FTS5 wählen und begründen; Index-Schema; `reindex` aus Dateien | offen | | | |
 | T-0.5 | Atomares Schreiben und Pfad-Sanitizing, mit Tests (Fero-Invarianten) | offen | | | |
 | T-0.6 | Gitea-Quellcode sichten: Übernahme-Kandidaten mit Pfad + Commit in `docs/GITEA-UEBERNAHMEN.md`; `THIRD_PARTY.md` anlegen | offen | | | Seit D-015 auch Forgejo-Code übernehmbar |
@@ -214,6 +207,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-08 · Claude Code · T-0.3 gemergt und gepusht (erledigt); Schema-Festlegungen von Dennis bestätigt
 - 2026-11-08 · Claude Code · T-0.3 `repo.yaml`-Schema (docs/SCHEMA.md, internal/repometa) → Review
 - 2026-11-08 · Claude Code · F-008 entschieden (7373, D-016); T-0.2 umgesetzt, gemergt und gepusht (erledigt); T-0.12 neu
 - 2026-11-08 · Claude Code · T-0.1 gemergt (erledigt); T-0.11 privates GitHub-Repo angelegt und gepusht (erledigt)
