@@ -262,6 +262,10 @@ func TestGitHTTPAndMCPOverHTTP(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(dir, "fero", "main.go")); err != nil {
 		t.Error("clone incomplete")
 	}
+	// Protocol v0 (older clients) uses the "# service" advertisement.
+	if _, err := g.Run(ctx, "", nil, "-c", "protocol.version=0", "clone", "--quiet", cloneURL, filepath.Join(dir, "fero-v0")); err != nil {
+		t.Fatalf("clone v0: %v", err)
+	}
 	// Push to a mirror is refused.
 	work := filepath.Join(dir, "fero")
 	os.WriteFile(filepath.Join(work, "x.txt"), []byte("x"), 0o644)
