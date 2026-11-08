@@ -189,3 +189,20 @@ das Forgejo-Verbot in D-002 („würde RepoShelf GPL-pflichtig machen“) entfä
 **Folgen:** Für jede Übernahme Herkunftskommentar (Repo, Pfad, Commit,
 Lizenz) und Eintrag in `THIRD_PARTY.md` (T-0.6). `AGENTS.md` und
 `KONZEPT.md` 7.2 entsprechend angepasst.
+
+### D-016 · Standard-Port 7373
+2026-11-08 · gültig (beantwortet F-008)
+
+**Entscheidung:** Die Weboberfläche nutzt standardmäßig Port **7373** und hört
+ohne weitere Einstellung nur auf `127.0.0.1` (Standardadresse
+`127.0.0.1:7373`). Docker setzt die Adresse per Umgebungsvariable auf alle
+Schnittstellen.
+
+**Begründung:** Der ursprüngliche Vorschlag 7878 ist der Standard-Port von
+Radarr, das auf Unraid oft läuft. 7373 ist nach bisherigem Wissen bei
+gängigen Heimserver-Apps frei. Nur `127.0.0.1` als Vorgabe, damit eine
+Desktop-Instanz nicht ungewollt im Netz erreichbar ist.
+
+**Folgen:** Konstante in `internal/config`; Docker-Image (T-5.1) setzt
+`REPOSHELF_LISTEN=:7373`.
+

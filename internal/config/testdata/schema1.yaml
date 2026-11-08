@@ -1,0 +1,5 @@
+# Fixture of a schema-1 file. Keep it unchanged: later schema versions must
+# still read it (AGENTS.md, test with data of the previous version).
+schema: 1
+server:
+  listen: "0.0.0.0:7373"

@@ -167,13 +167,26 @@ Fero, Fundus2, OracleVault und MediaShelf.
 
 ### 4.4 Datenordner-Kette (aus Fero übernommen)
 
-1. Vom Nutzer **gewählter** Datenordner (Zeiger in einer kleinen Datei im
-   Benutzerprofil). Ist er nicht erreichbar → **Meldung**, kein Ausweichen.
-2. `RepoShelf-Daten/` **neben der Programmdatei** (portabel, USB-Stick).
-3. Docker: fester Pfad `/data` (Volume).
+Reihenfolge (umgesetzt in `internal/datadir`, T-0.2):
 
-Gibt es keinen davon → Einrichtungsdialog. Nie stillschweigend nach
+1. Option `--data <ordner>` (Kommandozeile).
+2. Umgebungsvariable `REPOSHELF_DATA`. Docker: Das Image setzt sie auf den
+   festen Pfad `/data` (Volume).
+3. Vom Nutzer **gewählter** Datenordner (Zeiger in der Datei
+   `RepoShelf/datadir.txt` im Profilordner des Betriebssystems, z. B.
+   `~/Library/Application Support/` auf macOS). Der Zeiger enthält einen
+   absoluten Pfad.
+4. `RepoShelf-Daten/` **neben der Programmdatei** (portabel, USB-Stick); bei
+   einem macOS-App-Bundle neben dem `.app`, nicht darin. Symlinks auf die
+   Programmdatei werden aufgelöst.
+
+Nennt eine Stufe einen Ordner, der nicht erreichbar ist → **Meldung**, kein
+Ausweichen auf die nächste Stufe. Nur Stufe 4 wird über ihr Vorhandensein
+erkannt. Gibt es keine Stufe → Einrichtung. Nie stillschweigend nach
 `~/.reposhelf` ausweichen.
+
+`reposhelf config` zeigt den gefundenen Ordner, die Quelle und die wirksamen
+Einstellungen.
 
 ---
 
