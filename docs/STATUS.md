@@ -40,9 +40,9 @@ Docker (Ziel aus `reposhelf-build.yaml` mit Artefakten, Go-Kapsel + Offline-Test
 GitHub Actions per workflow_dispatch). macOS-Desktop-App lokal gestartet und geprüft;
 Einrichtungsdialog per Test (`internal/desktop`).
 **Grenzen:** macOS-App nur ad-hoc signiert (Notarisierung braucht ein
-Apple-Entwicklerkonto). Artefakt-Download von GitHub Actions per Test gegen nachgebildete
-API geprüft (`internal/runner/github_test.go`); gegen die echte API steht er aus, weil das
-Artefakt-Kontingent des GitHub-Kontos voll ist (wird alle 6–12 h neu berechnet).
+Apple-Entwicklerkonto). Artefakt-Download von GitHub Actions gegen das echte GitHub geprüft (SoloSidian:
+die zwei neuesten Läufe, ZIPs gültig, Prüfsummen stimmen) und per Test gegen eine
+nachgebildete API (`internal/runner/github_test.go`).
 
 **Offene Fragen:** keine (F-007 → D-021, F-014 → D-022).
 
@@ -227,6 +227,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-08 · Claude Code · v0.1.6 Prüflauf grün; Actions-Artefakt-Download live gegen GitHub geprüft (SoloSidian)
 - 2026-11-08 · Claude Code · Dennis' Test v0.1.5: Fenster ok, aber nach „Hinzufügen“ keine Weiterleitung (WKWebView folgt 303 im Wails-Schema nicht) → behoben; T-9.7 Actions-Artefakte; Release `v0.1.6`
 - 2026-11-08 · Claude Code · Dennis' Test: Desktop-Fenster blieb weiß (Wails lieferte den Platzhalter `frontend/dist/index.html` statt der Oberfläche) → behoben, Fenster-Test (`cmd/reposhelf-desktop/window_test.go`) auch im Release-Job; Klon-Adresse im Fenster korrigiert; Release `v0.1.5`
 - 2026-11-08 · Claude Code · Echte Builds in CI geprüft (Docker-Ziel, Kapsel, act, GitHub Actions); Fehler behoben: git ohne Repo lief im Arbeitsordner (doppelter Auth-Header); Einrichtungsdialog testbar (`internal/desktop`); macOS ad-hoc signiert; Release `v0.1.4`
