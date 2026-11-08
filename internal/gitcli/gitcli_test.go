@@ -245,3 +245,25 @@ func TestErrorClassification(t *testing.T) {
 		t.Errorf("auth env = %s", env)
 	}
 }
+
+func TestNoForeignRepoConfig(t *testing.T) {
+	ctx := context.Background()
+	g := testGit(t)
+	up := newUpstream(t, g)
+	up.commit("a", "a", "init")
+	// A repository with a broken extra header, as left by a CI checkout.
+	foreign := t.TempDir()
+	if _, err := g.Run(ctx, "", nil, "init", "--quiet", foreign); err != nil {
+		t.Fatal(err)
+	}
+	g.Run(ctx, foreign, nil, "config", "http.extraHeader", "Authorization: Basic broken")
+	wd, _ := os.Getwd()
+	if err := os.Chdir(foreign); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(wd)
+	out, err := g.Run(ctx, "", nil, "config", "--get", "http.extraHeader")
+	if err == nil && strings.TrimSpace(string(out)) != "" {
+		t.Errorf("foreign repository config leaked: %q", out)
+	}
+}
