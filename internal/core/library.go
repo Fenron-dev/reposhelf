@@ -128,7 +128,7 @@ func Open(ctx context.Context, opts Options) (*Library, error) {
 	l.jobs = newJobs(l)
 	if st.NeedsRebuild() {
 		if _, err := l.Reindex(ctx); err != nil {
-			st.Close()
+			_ = st.Close()
 			return nil, err
 		}
 	}

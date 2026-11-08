@@ -167,6 +167,7 @@
     </dl>
   </div>
 
+  {{if $d.Builds}}{{template "repo-builds" (dict "P" $d.Builds "ID" $id)}}{{end}}
   {{if $d.CanWrite}}
   <div class="card">
     <h2 class="h3">Aktionen</h2>

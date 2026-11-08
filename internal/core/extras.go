@@ -3,7 +3,6 @@
 package core
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -387,19 +386,4 @@ func (l *Library) suggestRelations(ctx context.Context, r *Repo) {
 func hostName(h string) string {
 	n, _, _ := strings.Cut(h, ":")
 	return n
-}
-
-// readLines is a small helper for tests and doctor output.
-func readLines(path string) []string {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil
-	}
-	defer f.Close()
-	var out []string
-	sc := bufio.NewScanner(f)
-	for sc.Scan() {
-		out = append(out, sc.Text())
-	}
-	return out
 }

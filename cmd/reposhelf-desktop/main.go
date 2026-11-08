@@ -31,7 +31,9 @@ import (
 	"github.com/Fenron-dev/reposhelf/internal/datadir"
 	"github.com/Fenron-dev/reposhelf/internal/layout"
 	"github.com/Fenron-dev/reposhelf/internal/logx"
+	"github.com/Fenron-dev/reposhelf/internal/runner"
 	"github.com/Fenron-dev/reposhelf/internal/server"
+	"github.com/Fenron-dev/reposhelf/internal/web"
 )
 
 //go:embed frontend/dist
@@ -105,7 +107,9 @@ func (a *App) open(dir string) error {
 	if err != nil {
 		return err
 	}
-	srv, err := server.New(lib, server.Options{Log: log})
+	builds := runner.New(lib, log)
+	builds.Start(a.ctx)
+	srv, err := server.New(lib, server.Options{Log: log, Ext: web.Extensions{Builds: builds}, MCPBuilds: runner.MCP{M: builds}})
 	if err != nil {
 		lib.Close()
 		return err

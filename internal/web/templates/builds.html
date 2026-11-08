@@ -1,0 +1,116 @@
+{{define "builds"}}{{template "head" .}}{{$d := .Data}}
+<div class="title-row">
+  <div>
+    <h1>Builds &amp; Runner</h1>
+    <p class="muted">Jede RepoShelf-Instanz kann als Runner bauen. Fremder Code läuft nur in Containern; fertige Dateien landen automatisch im Archiv.</p>
+  </div>
+</div>
+
+<div class="runners">
+{{range $d.Runners}}
+  <div class="card runner">
+    <div class="row-wrap"><strong>{{.Label}}</strong> {{if .Online}}<span class="status status-ok">● Online</span>{{else}}<span class="status status-pending">○ Nicht bereit</span>{{end}}</div>
+    <div class="row-wrap">{{range .Capabilities}}<span class="tag">{{.}}</span>{{end}}</div>
+    <div class="small muted">{{if .Slots}}{{.Busy}} von {{.Slots}} Plätzen belegt{{end}}{{if .Note}}{{if .Slots}} · {{end}}{{.Note}}{{end}}</div>
+  </div>
+{{end}}
+</div>
+
+{{if $d.CanBuild}}
+<form method="get" action="/builds" class="card stack">
+  <h2 class="h3">Neuer Build</h2>
+  <div class="row-wrap">
+    <label>Repo
+      <select name="repo" data-autosubmit>
+        <option value="">– wählen –</option>
+        {{range $d.Repos}}<option value="{{.ID}}" {{if eq .ID $d.Repo}}selected{{end}}>{{.Owner}} / {{.Name}}</option>{{end}}
+      </select>
+    </label>
+  </div>
+</form>
+{{if $d.Repo}}
+<form method="post" action="/builds" class="card stack">
+  <input type="hidden" name="repo" value="{{$d.Repo}}">
+  <div class="row-wrap">
+    <label>Ziel
+      <select name="target">
+        {{range $d.Targets}}<option value="{{.}}">{{.}}</option>{{end}}
+        <option value="capsule">Build-Kapsel erstellen</option>
+        <option value="capsule-test">Kapsel-Test (offline)</option>
+      </select>
+    </label>
+    <label>Stand <input name="ref" placeholder="HEAD, main, v1.2.0" class="short"></label>
+    <label>Version (für Kapseln) <input name="version" placeholder="v1.2.0" class="short"></label>
+    <label>Runner
+      <select name="runner"><option value="">automatisch</option>{{range $d.Runners}}<option value="{{.Name}}">{{.Label}}</option>{{end}}</select>
+    </label>
+  </div>
+  {{if not $d.Targets}}<p class="small muted">Dieses Repo hat weder <span class="mono">reposhelf-build.yaml</span> noch Linux-Workflows. Kapseln gehen trotzdem.</p>{{end}}
+  <div><button class="btn btn-primary" type="submit">Build starten</button></div>
+</form>
+{{end}}
+{{end}}
+
+<div class="card table-wrap">
+<table class="list">
+  <thead><tr><th>Status</th><th>Repo · Stand</th><th>Ziel</th><th>Runner</th><th>Angestoßen von</th><th>Ergebnis</th></tr></thead>
+  <tbody>
+  {{range $d.Builds}}
+  <tr>
+    <td>{{template "build-status" .}}<div class="small muted">{{.Duration $d.Now}}</div></td>
+    <td><a href="/builds/{{.ID}}">{{.Key}}</a><div class="small muted mono">{{.Ref}}@{{short .Commit}}</div></td>
+    <td>{{.Target}}</td>
+    <td>{{.Runner}}</td>
+    <td class="small">{{.Actor}}</td>
+    <td class="small">{{range .Artifacts}}<div class="mono">{{.Name}}</div>{{else}}{{if .Error}}<span class="error">{{.Error}}</span>{{end}}{{end}}</td>
+  </tr>
+  {{else}}<tr><td colspan="6" class="muted">Noch keine Builds.</td></tr>{{end}}
+  </tbody>
+</table>
+</div>
+{{template "foot" .}}{{end}}
+
+{{define "build-status"}}{{if eq .Status "success"}}<span class="status status-ok">✓ Fertig</span>{{else if eq .Status "failed"}}<span class="status error">✕ Fehlgeschlagen</span>{{else if eq .Status "running"}}<span class="status running">◐ Läuft</span>{{else if eq .Status "waiting_confirmation"}}<span class="status warn">… Wartet auf Bestätigung</span>{{else if eq .Status "queued"}}<span class="status status-pending">… Wartet</span>{{else}}<span class="status muted">■ Abgebrochen</span>{{end}}{{end}}
+
+{{define "build"}}{{template "head" .}}{{$d := .Data}}{{$b := $d.B}}
+<nav class="crumbs small"><a href="/builds">Builds</a> / {{$b.ID}}</nav>
+<div class="title-row">
+  <div>
+    <h1>{{$b.Target}}</h1>
+    <p>{{template "build-status" $b}} · <a href="/repo/{{$b.RepoID}}">{{$b.Key}}</a> · <span class="mono">{{$b.Ref}}@{{short $b.Commit}}</span> · Runner {{$b.Runner}} · {{$b.Actor}} · {{dt $b.Created}}</p>
+    {{if $b.External}}<p class="small">Extern: <a href="{{$b.External}}" rel="noopener noreferrer" target="_blank">{{$b.External}}</a></p>{{end}}
+    {{if $b.Error}}<div class="alert alert-error">{{$b.Error}}</div>{{end}}
+  </div>
+  <div class="row-wrap">
+    {{if and $d.CanAdmin (eq $b.Status "waiting_confirmation")}}<form method="post" action="/builds/{{$b.ID}}/confirm" class="inline"><button class="btn btn-primary" type="submit">Build bestätigen</button></form>{{end}}
+    {{if and $d.CanBuild (not $b.Done)}}<form method="post" action="/builds/{{$b.ID}}/cancel" class="inline"><button class="btn" type="submit">Abbrechen</button></form>{{end}}
+  </div>
+</div>
+{{if $b.Artifacts}}
+<div class="card">
+  <h2 class="h3">Artefakte (im Archiv)</h2>
+  <ul>{{range $b.Artifacts}}<li><a href="/builds/{{$b.ID}}/artifact?name={{queryEsc .Name}}">{{.Name}}</a> <span class="small muted mono">{{size .Size}} · sha256 {{short .SHA256}}</span></li>{{end}}</ul>
+</div>
+{{end}}
+<div class="card">
+  <h2 class="h3">Log</h2>
+  <pre class="code mono small log" {{if not $b.Done}}hx-get="/builds/{{$b.ID}}/log" hx-trigger="every 3s" hx-swap="innerHTML"{{end}}>{{$d.Log}}</pre>
+</div>
+{{template "foot" .}}{{end}}
+
+{{define "repo-builds"}}{{$p := .P}}{{$id := .ID}}
+<div class="card">
+  <h2 class="h3">Build-Kapsel</h2>
+  {{range $i, $c := $p.Capsules}}{{if lt $i 3}}
+  <div class="capsule">
+    <div>{{if $c.Test}}{{if eq $c.Test.Status "success"}}<span class="status status-ok">● Vollständig</span>{{else}}<span class="status error">✕ Test fehlgeschlagen</span>{{end}}{{else}}<span class="status status-pending">○ Ungetestet</span>{{end}} für <span class="mono">{{$c.Version}}</span></div>
+    <dl class="kv small">
+      {{range $c.Ecosystems}}<dt>{{.Name}}</dt><dd>{{.Toolchain}} · {{.Files}} Dateien</dd>{{end}}
+      <dt>Größe</dt><dd class="mono">{{size $c.Size}}</dd>
+    </dl>
+  </div>
+  {{end}}{{else}}<p class="small muted">Noch keine Kapsel.</p>{{end}}
+  <p class="small"><a href="/builds?repo={{$id}}">Kapsel erstellen, testen oder bauen …</a></p>
+  {{if $p.Builds}}<h3 class="h4">Letzte Builds</h3><ul class="small">{{range $p.Builds}}<li><a href="/builds/{{.ID}}">{{.Target}}</a> {{template "build-status" .}}</li>{{end}}</ul>{{end}}
+</div>
+{{end}}

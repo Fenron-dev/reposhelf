@@ -19,6 +19,8 @@ linters:
         - (io.Closer).Close
         - (*database/sql.Tx).Rollback
         - (*database/sql.DB).Close
+        - (*database/sql.Rows).Close
+        - (*github.com/Fenron-dev/reposhelf/internal/core.Library).Close
         - (*text/tabwriter.Writer).Flush
         - (*github.com/modelcontextprotocol/go-sdk/mcp.ClientSession).Close
   exclusions:
