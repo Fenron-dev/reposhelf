@@ -199,6 +199,7 @@ type repoData struct {
 	Branches    []gitcli.Ref
 	Versions    []gitcli.Ref
 	Releases    []core.StoredRelease
+	ActionRuns  []core.ActionRun
 	Issues      []core.IssueSummary
 	Notes       string
 	NotesHTML   template.HTML
@@ -304,6 +305,7 @@ func (s *Server) repoPage(w http.ResponseWriter, r *http.Request) {
 		d.Versions, _ = s.Lib.Git.Versions(ctx, mirror)
 		d.Branches, _ = s.Lib.Git.Branches(ctx, mirror)
 		d.Releases, _ = s.Lib.Releases(ctx, repo.R().ID)
+		d.ActionRuns, _ = s.Lib.ActionRuns(ctx, repo.R().ID)
 		d.Backups, _ = s.Lib.Git.Backups(ctx, mirror)
 	case "issues":
 		d.Issues, _ = s.Lib.Issues(ctx, repo.R().ID)
@@ -447,6 +449,19 @@ func (s *Server) repoAsset(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, p)
 }
 
+func (s *Server) repoAction(w http.ResponseWriter, r *http.Request) {
+	run, _ := strconv.ParseInt(r.URL.Query().Get("run"), 10, 64)
+	name := r.URL.Query().Get("name")
+	p, err := s.Lib.ActionArtifactPath(r.Context(), r.PathValue("id"), run, name)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Disposition", "attachment; filename=\""+strings.ReplaceAll(name, `"`, "")+".zip\"")
+	w.Header().Set("Content-Type", "application/zip")
+	http.ServeFile(w, r, p)
+}
+
 func (s *Server) actor(r *http.Request) string {
 	tok, _ := s.Identity(r)
 	if tok.ID == auth.Local.ID {
@@ -521,7 +536,8 @@ func (s *Server) repoSettings(w http.ResponseWriter, r *http.Request) {
 		Kind: repometa.Kind(f.Get("kind")),
 		Mode: repometa.SyncMode(f.Get("mode")),
 		Include: repometa.Include{Releases: f.Get("releases") == "on", LFS: f.Get("lfs") == "on",
-			Submodules: f.Get("submodules") == "on", Issues: f.Get("issues") == "on", Wiki: f.Get("wiki") == "on"},
+			Submodules: f.Get("submodules") == "on", Issues: f.Get("issues") == "on", Wiki: f.Get("wiki") == "on",
+			Actions: f.Get("actions") == "on"},
 		Buildable: f.Get("buildable") == "on",
 	}
 	if v := f.Get("interval"); v != "" && set.Mode == repometa.SyncFollow {
@@ -543,6 +559,7 @@ func (s *Server) repoSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	set.Retention = repo.R().Retention
 	set.Retention.ReleasesKeep = optInt(f.Get("releases_keep"))
+	set.Retention.ActionsKeep = optInt(f.Get("actions_keep"))
 	set.Retention.Snapshots.Every = optDuration(f.Get("snapshots_every"))
 	set.Retention.Snapshots.KeepFor = optDuration(f.Get("snapshots_keep_for"))
 	set.Retention.ForcePushBackups.KeepFor = optDuration(f.Get("backups_keep_for"))
@@ -663,7 +680,8 @@ func (s *Server) addSubmit(w http.ResponseWriter, r *http.Request) {
 		req.Interval = &d
 	}
 	inc := repometa.Include{Releases: f.Get("releases") == "on", LFS: f.Get("lfs") == "on",
-		Submodules: f.Get("submodules") == "on", Issues: f.Get("issues") == "on", Wiki: f.Get("wiki") == "on"}
+		Submodules: f.Get("submodules") == "on", Issues: f.Get("issues") == "on", Wiki: f.Get("wiki") == "on",
+		Actions: f.Get("actions") == "on"}
 	req.Include = &inc
 	repo, err := s.Lib.Add(r.Context(), req)
 	if err != nil {
@@ -795,6 +813,7 @@ func (s *Server) collectionSave(w http.ResponseWriter, r *http.Request) {
 		c.Name = id
 	}
 	c.Retention.ReleasesKeep = optInt(f.Get("releases_keep"))
+	c.Retention.ActionsKeep = optInt(f.Get("actions_keep"))
 	c.Retention.SnapshotsEvery = optDuration(f.Get("snapshots_every"))
 	c.Retention.ForcePushBackupsKeepFor = optDuration(f.Get("backups_keep_for"))
 	c.Retention.CapsulesKeep = optInt(f.Get("capsules_keep"))
@@ -1112,7 +1131,7 @@ func (s *Server) settingsSave(w http.ResponseWriter, r *http.Request) {
 			*dst = d
 		}
 	}
-	for key, dst := range map[string]*int{"max_asset_mb": &cfg.Retention.MaxAssetMB, "capsules_keep": &cfg.Retention.CapsulesKeep, "builds_keep": &cfg.Retention.BuildsKeep, "trash_days": &cfg.Retention.TrashDays, "max_parallel": &cfg.Runner.MaxParallel, "min_free_gb": &cfg.Runner.MinFreeGB} {
+	for key, dst := range map[string]*int{"actions_keep": &cfg.Retention.ActionsKeep, "max_asset_mb": &cfg.Retention.MaxAssetMB, "capsules_keep": &cfg.Retention.CapsulesKeep, "builds_keep": &cfg.Retention.BuildsKeep, "trash_days": &cfg.Retention.TrashDays, "max_parallel": &cfg.Runner.MaxParallel, "min_free_gb": &cfg.Runner.MinFreeGB} {
 		if n, err := strconv.Atoi(f.Get(key)); err == nil {
 			*dst = n
 		}

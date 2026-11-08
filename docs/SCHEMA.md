@@ -57,6 +57,7 @@ include:
   submodules: true
   issues: true
   wiki: false
+  actions: false
 tags: [medien/beschaffung, rust, tauri]
 collections: [fundus-oekosystem]
 relations:
@@ -64,6 +65,7 @@ relations:
   - {type: successor_of, target: github.com/Fenron-dev/MediaShelf, state: confirmed, source: manual}
 retention:
   releases_keep: 5
+  actions_keep: null
   pinned: [v0.1.0]
   snapshots: {every: 30d, keep_for: 180d}
   force_push_backups: {keep_for: 180d}
@@ -99,10 +101,12 @@ created: 2026-11-08T10:00:00Z
 | `include.submodules` | ja/nein | nein | `true` | |
 | `include.issues` | ja/nein | nein | `true` bei `own`, sonst `false` | |
 | `include.wiki` | ja/nein | nein | `false` | |
+| `include.actions` | ja/nein | nein | `false` | Artefakte von GitHub-Actions-Läufen mitsichern (braucht ein GitHub-Token) |
 | `tags` | Liste | nein | `[]` | Hierarchie mit `/` (`ttrpg/tool`); jede Ebene ein Segment; kein `*` (für Filter reserviert); keine Doppelten |
 | `collections` | Liste | nein | `[]` | Kennungen von Sammlungen; je ein Segment; keine Doppelten |
 | `relations` | Liste | nein | `[]` | siehe „Beziehungen“ |
 | `retention.releases_keep` | Zahl | nein | `null` (erben) | ≥ 0; `0` = nur angeheftete behalten |
+| `retention.actions_keep` | Zahl | nein | `null` (erben) | ≥ 0; so viele der neuesten Actions-Läufe behalten ihre Artefakte |
 | `retention.pinned` | Liste | nein | `[]` | Versionsnamen (Git-Tags), die immer bleiben; keine Doppelten |
 | `retention.snapshots.every` | Dauer | nein | `null` (erben) | > 0 |
 | `retention.snapshots.keep_for` | Dauer | nein | `null` (erben) | > 0 |
@@ -159,6 +163,7 @@ bleiben, auch wenn die Liste umsortiert wird.
 | Schema | Seit | Änderung |
 |---|---|---|
 | 1 | T-0.3 | erste Version |
+| 1 | 2026-11-08 | ergänzt (ohne neue Nummer, nur optionale Felder mit Standardwert): `include.actions`, `retention.actions_keep` – ältere Dateien ohne diese Felder bleiben gültig |
 
 Neue Schema-Version:
 

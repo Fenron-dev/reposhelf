@@ -109,7 +109,26 @@ type API interface {
 	// ListOwn lists repositories of the token owner (starred: starred ones),
 	// for the mass import (T-9.6).
 	ListOwn(ctx context.Context, starred bool) ([]string, error)
+	// Artifacts lists build artifacts of CI runs, newest first
+	// (GitHub Actions; other hosts return ErrUnsupported).
+	Artifacts(ctx context.Context, src repometa.Source) ([]WorkflowArtifact, error)
 }
+
+// WorkflowArtifact is a file produced by a CI run (GitHub Actions).
+type WorkflowArtifact struct {
+	ID      int64     `json:"id"`
+	Name    string    `json:"name"`
+	Size    int64     `json:"size"`
+	Created time.Time `json:"created"`
+	Expired bool      `json:"expired"`
+	URL     string    `json:"url"` // ZIP download (needs a token)
+	RunID   int64     `json:"run_id"`
+	Branch  string    `json:"branch"`
+	Commit  string    `json:"commit"`
+}
+
+// ErrUnsupported is returned for features a host does not offer.
+var ErrUnsupported = errors.New("not supported by this host")
 
 // Tokens returns the token for a host ("" if none). Tokens come from
 // environment variables or secret files, never from YAML (KONZEPT 4.2).

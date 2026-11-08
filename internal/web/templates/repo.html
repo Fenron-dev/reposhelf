@@ -160,6 +160,7 @@
     <h2 class="h3">Aufbewahrung</h2>
     <dl class="kv small">
       <dt>Releases</dt><dd>neueste {{$d.Retention.ReleasesKeep}} <span class="muted">({{index $d.Retention.From "releases_keep"}})</span></dd>
+      <dt>Actions-Läufe</dt><dd>{{if $r.R.Include.Actions}}neueste {{$d.Retention.ActionsKeep}} <span class="muted">({{index $d.Retention.From "actions_keep"}})</span>{{else}}aus{{end}}</dd>
       <dt>Angeheftet</dt><dd class="mono">{{if $d.Retention.Pinned}}{{join $d.Retention.Pinned ", "}}{{else}}–{{end}}</dd>
       <dt>Force-Push-Sicherung</dt><dd>{{dur $d.Retention.ForcePushBackupsKeepFor}} <span class="muted">({{index $d.Retention.From "force_push_backups"}})</span></dd>
       <dt>Snapshots</dt><dd>{{if $d.Retention.SnapshotsEvery}}alle {{dur $d.Retention.SnapshotsEvery}}, {{dur $d.Retention.SnapshotsKeepFor}} behalten{{else}}aus{{end}}</dd>
@@ -243,6 +244,16 @@
   </details>
   {{else}}<p class="muted small">Keine Releases gesichert.{{if not $d.Repo.R.Include.Releases}} „Releases mitsichern“ ist aus.{{end}}</p>{{end}}
 </div>
+{{if or $d.ActionRuns $d.Repo.R.Include.Actions}}
+<div class="card">
+  <h2 class="h3">GitHub-Actions-Artefakte</h2>
+  {{range $d.ActionRuns}}{{$run := .}}
+  <details class="release"><summary><span class="mono">Lauf {{.RunID}}</span> · {{.Branch}} @ <span class="mono">{{short .Commit}}</span> <span class="small muted">· {{dt .Created}} · {{len .Artifacts}} Dateien</span></summary>
+    <ul class="assets">{{range .Artifacts}}<li><a href="/repo/{{$id}}/action?run={{$run.RunID}}&amp;name={{queryEsc .Name}}">{{.Name}}.zip</a> <span class="small muted mono">{{size .Size}} · sha256 {{short .SHA256}}</span></li>{{end}}</ul>
+  </details>
+  {{else}}<p class="small muted">Noch keine gesichert – beim nächsten Abgleich (braucht ein GitHub-Token).</p>{{end}}
+</div>
+{{end}}
 <div class="card">
   <h2 class="h3">Versionen (Git-Tags) · {{len $d.Versions}}</h2>
   <ul class="cols">{{range $d.Versions}}<li><a class="mono" href="/repo/{{$id}}/tree/?ref={{queryEsc .Name}}">{{.Name}}</a> <span class="small muted">{{date .Time}}</span></li>{{else}}<li class="muted small">Keine.</li>{{end}}</ul>
@@ -277,6 +288,7 @@
     <label class="check"><input type="checkbox" name="submodules" {{if $r.Include.Submodules}}checked{{end}}> Submodule (als eigene Spiegel)</label>
     <label class="check"><input type="checkbox" name="issues" {{if $r.Include.Issues}}checked{{end}}> Issues</label>
     <label class="check"><input type="checkbox" name="wiki" {{if $r.Include.Wiki}}checked{{end}}> Wiki</label>
+    <label class="check"><input type="checkbox" name="actions" {{if $r.Include.Actions}}checked{{end}}> GitHub-Actions-Artefakte</label>
     <label class="check"><input type="checkbox" name="buildable" {{if $r.Buildable.Enabled}}checked{{end}}> Baubar halten (Build-Kapseln)</label>
   </fieldset>
   <fieldset><legend>Status festlegen</legend>
@@ -291,6 +303,7 @@
   </fieldset>
   <fieldset><legend>Aufbewahrung (leer = erben von Sammlung/global)</legend>
     <label>Neueste Releases behalten <input name="releases_keep" class="short" value="{{deref $r.Retention.ReleasesKeep}}" inputmode="numeric"></label>
+    <label>Actions-Läufe mit Artefakten behalten <input name="actions_keep" class="short" value="{{deref $r.Retention.ActionsKeep}}" inputmode="numeric"></label>
     <label>Snapshot alle <input name="snapshots_every" class="short" value="{{deref $r.Retention.Snapshots.Every}}" placeholder="30d"></label>
     <label>Snapshots behalten <input name="snapshots_keep_for" class="short" value="{{deref $r.Retention.Snapshots.KeepFor}}" placeholder="180d"></label>
     <label>Force-Push-Sicherungen behalten <input name="backups_keep_for" class="short" value="{{deref $r.Retention.ForcePushBackups.KeepFor}}" placeholder="180d"></label>

@@ -217,6 +217,9 @@ func (v *validator) retention(r Retention) {
 	if r.ReleasesKeep != nil && *r.ReleasesKeep < 0 {
 		v.add("retention.releases_keep", "must not be negative")
 	}
+	if r.ActionsKeep != nil && *r.ActionsKeep < 0 {
+		v.add("retention.actions_keep", "must not be negative")
+	}
 	v.list("retention.pinned", r.Pinned, func(s string) string {
 		if strings.TrimSpace(s) == "" || hasControl(s) {
 			return "must be a version name"

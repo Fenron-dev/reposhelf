@@ -206,6 +206,43 @@ func (g *github) ListOwn(ctx context.Context, starred bool) ([]string, error) {
 	return out, nil
 }
 
+type ghArtifacts struct {
+	Artifacts []struct {
+		ID          int64     `json:"id"`
+		Name        string    `json:"name"`
+		Size        int64     `json:"size_in_bytes"`
+		Expired     bool      `json:"expired"`
+		Created     time.Time `json:"created_at"`
+		URL         string    `json:"archive_download_url"`
+		WorkflowRun struct {
+			ID         int64  `json:"id"`
+			HeadBranch string `json:"head_branch"`
+			HeadSHA    string `json:"head_sha"`
+		} `json:"workflow_run"`
+	} `json:"artifacts"`
+}
+
+// maxArtifactPages bounds the artifact listing (100 per page).
+const maxArtifactPages = 5
+
+func (g *github) Artifacts(ctx context.Context, src repometa.Source) ([]WorkflowArtifact, error) {
+	var out []WorkflowArtifact
+	next := "/repos/" + repoPath(src) + "/actions/artifacts?per_page=100"
+	for i := 0; next != "" && i < maxArtifactPages; i++ {
+		var page ghArtifacts
+		n, err := g.c.get(ctx, next, &page)
+		if err != nil {
+			return nil, err
+		}
+		for _, a := range page.Artifacts {
+			out = append(out, WorkflowArtifact{ID: a.ID, Name: a.Name, Size: a.Size, Created: a.Created, Expired: a.Expired,
+				URL: a.URL, RunID: a.WorkflowRun.ID, Branch: a.WorkflowRun.HeadBranch, Commit: a.WorkflowRun.HeadSHA})
+		}
+		next = n
+	}
+	return out, nil
+}
+
 // ---- Gitea / Forgejo / Codeberg (API v1, GitHub-like) ----
 
 type gitea struct {
@@ -282,6 +319,10 @@ func (g *gitea) Releases(ctx context.Context, src repometa.Source) ([]Release, e
 		out = append(out, rel)
 	}
 	return out, nil
+}
+
+func (g *gitea) Artifacts(context.Context, repometa.Source) ([]WorkflowArtifact, error) {
+	return nil, ErrUnsupported
 }
 
 func (g *gitea) Download(ctx context.Context, a Asset, w io.Writer) error {
@@ -444,6 +485,10 @@ func (g *gitlab) Releases(ctx context.Context, src repometa.Source) ([]Release, 
 		out = append(out, rel)
 	}
 	return out, nil
+}
+
+func (g *gitlab) Artifacts(context.Context, repometa.Source) ([]WorkflowArtifact, error) {
+	return nil, ErrUnsupported
 }
 
 func (g *gitlab) Download(ctx context.Context, a Asset, w io.Writer) error {

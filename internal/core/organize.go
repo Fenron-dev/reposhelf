@@ -139,6 +139,7 @@ type CollectionRetention struct {
 	SnapshotsKeepFor        *repometa.Duration `yaml:"snapshots_keep_for"`
 	ForcePushBackupsKeepFor *repometa.Duration `yaml:"force_push_backups_keep_for"`
 	CapsulesKeep            *int               `yaml:"capsules_keep"`
+	ActionsKeep             *int               `yaml:"actions_keep"`
 }
 
 func (l *Library) collectionPath(id string) (string, error) {
@@ -451,6 +452,7 @@ func (l *Library) UpdateSettings(ctx context.Context, ref string, s Settings, ac
 
 // Retention is the effective rule set of one repository.
 type Retention struct {
+	ActionsKeep             int
 	ReleasesKeep            int
 	Pinned                  []string
 	SnapshotsEvery          repometa.Duration
@@ -467,10 +469,10 @@ type Retention struct {
 func (l *Library) EffectiveRetention(r *Repo) Retention {
 	g := l.Config().Retention
 	out := Retention{
-		ReleasesKeep: g.ReleasesKeep, SnapshotsEvery: g.SnapshotsEvery, SnapshotsKeepFor: g.SnapshotsKeepFor,
+		ReleasesKeep: g.ReleasesKeep, ActionsKeep: g.ActionsKeep, SnapshotsEvery: g.SnapshotsEvery, SnapshotsKeepFor: g.SnapshotsKeepFor,
 		ForcePushBackupsKeepFor: g.ForcePushBackupsKeepFor, CapsulesKeep: g.CapsulesKeep,
 		Pinned: r.R().Retention.Pinned,
-		From:   map[string]string{"releases_keep": "global", "snapshots": "global", "force_push_backups": "global", "capsules_keep": "global"},
+		From:   map[string]string{"actions_keep": "global", "releases_keep": "global", "snapshots": "global", "force_push_backups": "global", "capsules_keep": "global"},
 	}
 	cols := slices.Clone(r.R().Collections)
 	sort.Strings(cols)
@@ -482,6 +484,9 @@ func (l *Library) EffectiveRetention(r *Repo) Retention {
 		cr := c.Retention
 		if cr.ReleasesKeep != nil {
 			out.ReleasesKeep, out.From["releases_keep"] = *cr.ReleasesKeep, "Sammlung "+c.Name
+		}
+		if cr.ActionsKeep != nil {
+			out.ActionsKeep, out.From["actions_keep"] = *cr.ActionsKeep, "Sammlung "+c.Name
 		}
 		if cr.SnapshotsEvery != nil {
 			out.SnapshotsEvery, out.From["snapshots"] = *cr.SnapshotsEvery, "Sammlung "+c.Name
@@ -499,6 +504,9 @@ func (l *Library) EffectiveRetention(r *Repo) Retention {
 	rr := r.R().Retention
 	if rr.ReleasesKeep != nil {
 		out.ReleasesKeep, out.From["releases_keep"] = *rr.ReleasesKeep, "Repo"
+	}
+	if rr.ActionsKeep != nil {
+		out.ActionsKeep, out.From["actions_keep"] = *rr.ActionsKeep, "Repo"
 	}
 	if rr.Snapshots.Every != nil {
 		out.SnapshotsEvery, out.From["snapshots"] = *rr.Snapshots.Every, "Repo"

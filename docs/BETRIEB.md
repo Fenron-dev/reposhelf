@@ -77,6 +77,13 @@ Branches bleiben erhalten.
 gleicher Name mit `_FILE`. Auf dem Mac auch im Schlüsselbund:
 `security add-generic-password -s RepoShelf -a github.com -w <token>`.
 
+**GitHub-Actions-Artefakte:** Viele Projekte veröffentlichen Builds nur als
+Actions-Artefakte (GitHub löscht sie nach einiger Zeit). Mit „GitHub-Actions-Artefakte“
+beim Hinzufügen bzw. in den Repo-Einstellungen (CLI: `add --actions`) sichert RepoShelf
+die Artefakte der neuesten Läufe – wie viele, stellst du global, je Sammlung oder je
+Repo ein (`retention.actions_keep`, Standard 3). Ältere Läufe schlägt die Lösch-Prüfung
+vor. Braucht ein GitHub-Token.
+
 **Achtung Speicher:** „Releases mitsichern“ lädt die Dateien der neuesten
 Releases (Standard: 5) – bei Projekten mit vielen Plattform-Builds können das
 schnell Hunderte MB sein. Einstellbar global, je Sammlung und je Repo.

@@ -26,6 +26,7 @@ const (
 	DirRepos       = "repos"
 	DirMeta        = "meta"
 	DirReleases    = "releases"
+	DirActions     = "actions"
 	DirCapsules    = "capsules"
 	DirBuilds      = "builds"
 	DirCollections = "collections"
@@ -58,7 +59,7 @@ type Layout struct {
 
 // skeleton is created by Init; order matters only for readability.
 var skeleton = []string{
-	DirRepos, DirMeta, DirReleases, DirCapsules, DirBuilds, DirCollections,
+	DirRepos, DirMeta, DirReleases, DirActions, DirCapsules, DirBuilds, DirCollections,
 	DirNotes, DirTrash, DirInternal,
 	filepath.Join(DirInternal, DirLocks), filepath.Join(DirInternal, DirLogs),
 }
@@ -118,6 +119,11 @@ func (l Layout) MirrorDir(src repometa.Source) (string, error) {
 	segs := src.Segments()
 	segs[len(segs)-1] += MirrorSuffix
 	return safepath.Join(l.Path(DirRepos), segs...)
+}
+
+// ActionsDir is actions/<host>/<owner…>/<name> (CI artifacts).
+func (l Layout) ActionsDir(src repometa.Source) (string, error) {
+	return safepath.Join(l.Path(DirActions), src.Segments()...)
 }
 
 // ReleasesDir is releases/<host>/<owner…>/<name>.
