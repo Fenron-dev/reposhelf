@@ -12,6 +12,7 @@ on:
 permissions:
   contents: read
   packages: read
+  actions: write
 
 env:
   TAG: ${{ inputs.tag }}
@@ -110,3 +111,122 @@ jobs:
           $page = Invoke-WebRequest -UseBasicParsing http://127.0.0.1:7373/
           if ($page.Content -notmatch "Bibliothek") { throw "Startseite fehlt" }
           Stop-Process -Id $p.Id -Force
+
+  builds:
+    # Real builds on a Linux runner with Docker (not allowed locally):
+    # reposhelf-build.yaml target, build capsule + offline test, act and
+    # GitHub Actions as external runner (T-6.x, T-7.x).
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ACT_VERSION: "0.2.97"
+      ACT_SHA256: "67b4976a56f33ea7870b798912e738ec44eef38e7578ae7b532f2def1c73a5ad"
+      RS: "http://127.0.0.1:7373"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build RepoShelf and install act
+        run: |
+          set -e
+          go build -o /tmp/rs ./cmd/reposhelf
+          curl -sSL -o /tmp/act.tgz "https://github.com/nektos/act/releases/download/v${ACT_VERSION}/act_Linux_x86_64.tar.gz"
+          echo "${ACT_SHA256}  /tmp/act.tgz" | sha256sum -c -
+          sudo tar -xzf /tmp/act.tgz -C /usr/local/bin act
+          git config --global user.name smoke && git config --global user.email smoke@example.com
+      - name: Start server with runner role
+        env:
+          REPOSHELF_GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          mkdir -p /tmp/data
+          cat > /tmp/data/reposhelf.yaml <<'YAML'
+          schema: 1
+          sync:
+            paused: true
+          runner:
+            enabled: true
+            confirm: false
+            min_free_gb: 1
+            capabilities: [linux/amd64, docker]
+          YAML
+          nohup /tmp/rs serve --data /tmp/data --listen 127.0.0.1:7373 > /tmp/serve.log 2>&1 &
+          for i in $(seq 1 30); do curl -fs $RS/healthz && break; sleep 1; done
+      - name: Create test project and push it
+        run: |
+          set -e
+          /tmp/rs create probe --data /tmp/data
+          mkdir /tmp/probe && cd /tmp/probe && git init -q -b main
+          cat > go.mod <<'GO'
+          module example.com/probe
+
+          go 1.24
+          GO
+          cat > main.go <<'GO'
+          package main
+
+          import (
+          	"fmt"
+
+          	"golang.org/x/text/language"
+          )
+
+          func main() { fmt.Println(language.German) }
+          GO
+          go get golang.org/x/text@v0.20.0 && go mod tidy
+          cat > reposhelf-build.yaml <<'YAML'
+          targets:
+            - name: linux
+              image: golang:1.24
+              commands: ["CGO_ENABLED=0 go build -o dist/probe .", "./dist/probe > dist/output.txt"]
+              artifacts: ["dist/*"]
+          YAML
+          mkdir -p .github/workflows
+          cat > .github/workflows/ci.yml <<'YAML'
+          on: push
+          jobs:
+            hello:
+              runs-on: ubuntu-latest
+              steps:
+                - run: echo "hello from act"
+          YAML
+          git add -A && git commit -qm probe && git tag v1.0
+          git push -q "$RS/git/local/projekte/probe.git" main --tags
+      - name: Real builds
+        run: |
+          set -e
+          build() { # repo target [ref] [version]
+            loc=$(curl -s -o /dev/null -w '%{redirect_url}' -H "Origin: $RS" \
+              --data-urlencode "repo=$1" --data-urlencode "target=$2" --data-urlencode "ref=${3:-}" --data-urlencode "version=${4:-}" $RS/builds)
+            id=${loc##*/builds/}; echo "== $2 → build $id"; [ -n "$id" ]
+            for i in $(seq 1 120); do
+              log=$(curl -fs $RS/builds/$id/log)
+              case "$log" in *"Fertig."*) echo "$log" | tail -5; return 0 ;; *"FEHLER"*) echo "$log"; return 1 ;; esac
+              sleep 5
+            done
+            echo "timeout"; curl -fs $RS/builds/$id/log; return 1
+          }
+          build local/projekte/probe linux
+          curl -fs "$RS/builds/$id/artifact?name=dist/output.txt" | grep -q de
+          build local/projekte/probe capsule v1.0 v1.0
+          build local/projekte/probe capsule-test v1.0 v1.0
+          build local/projekte/probe "act:ci/hello"
+      - name: GitHub Actions as external runner
+        env:
+          REPOSHELF_GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          /tmp/rs add https://github.com/${{ github.repository }} --mode manual --no-releases --data /tmp/data
+          loc=$(curl -s -o /dev/null -w '%{redirect_url}' -H "Origin: $RS" \
+            --data-urlencode "repo=github.com/${{ github.repository }}" --data-urlencode "target=github:dispatch-probe.yml" $RS/builds)
+          id=${loc##*/builds/}; echo "build $id"
+          for i in $(seq 1 60); do
+            log=$(curl -fs $RS/builds/$id/log)
+            case "$log" in *"Fertig."*) echo "$log"; exit 0 ;; *"FEHLER"*) echo "$log"; exit 1 ;; esac
+            sleep 10
+          done
+          echo "$log"; exit 1
+      - name: Server log
+        if: always()
+        run: tail -50 /tmp/serve.log
