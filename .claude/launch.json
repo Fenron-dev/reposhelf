@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "reposhelf",
+      "runtimeExecutable": "/Users/dennis/Documents/AI/claude-code/Portable RepoShelf /bin/reposhelf",
+      "runtimeArgs": [
+        "serve",
+        "--data",
+        "/private/tmp/claude-501/rs-test.JAKX/daten",
+        "--listen",
+        "127.0.0.1:7373"
+      ],
+      "port": 7373
+    }
+  ]
+}

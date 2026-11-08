@@ -15,7 +15,7 @@
 <div class="app">
 {{template "sidebar" .}}
 <main id="main" class="main">
-<button class="nav-toggle" type="button" aria-controls="sidebar" aria-expanded="false" data-nav-toggle>☰ Menü</button>
+<button class="nav-toggle btn btn-small" type="button" aria-controls="sidebar" aria-expanded="false" data-nav-toggle>☰ Menü</button>
 {{if .Flash}}<div class="alert alert-ok" role="status">{{.Flash}}</div>{{end}}
 {{if .Error}}<div class="alert alert-error" role="alert">{{.Error}}</div>{{end}}
 {{end}}

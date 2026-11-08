@@ -34,7 +34,7 @@
   <label class="check"><input type="checkbox" name="buildable"> <span><strong>Baubar halten</strong> – sichert pro festgehaltener Version alle Abhängigkeiten und die Toolchain-Version.</span></label>
 
   <label for="tags">Schlagwörter <span class="small muted">(durch Komma getrennt, Hierarchie mit /)</span></label>
-  <input id="tags" name="tags" placeholder="ttrpg/tool, rust" value="{{with $d.Preview}}{{join .SuggestedTags ", "}}{{end}}">
+  <input id="tags" name="tags" placeholder="ttrpg/tool, rust">
 
   {{if $d.Collections}}
   <fieldset><legend>Sammlung</legend>
