@@ -28,9 +28,9 @@
    könnte sich geändert haben). Ältere Nummern werden beim Lesen migriert.
 7. **Alle Fehler auf einmal:** Die Prüfung meldet jedes ungültige Feld mit
    Pfad (z. B. `relations[1].target`), nicht nur das erste.
-8. Die Datei wird **atomar** geschrieben (T-0.5). Pfade, die aus
-   `source.host/owner/name` entstehen, laufen zusätzlich durch die
-   Pfadprüfung aus T-0.5.
+8. Die Datei wird **atomar** geschrieben (`internal/atomicfile`). Pfade
+   entstehen nur über `internal/safepath`; die Prüfung von Segmenten hier ist
+   dieselbe, damit jede gültige Datei auch gespeichert werden kann.
 
 ## Beispiel
 
@@ -134,9 +134,18 @@ bleiben, auch wenn die Liste umsortiert wird.
 
 ## Wertarten
 
-- **Segment:** nicht leer, nicht `.` oder `..`, kein `/` oder `\`, keine
-  Steuerzeichen, keine Leerzeichen am Anfang/Ende, höchstens 255 Bytes.
-  Reservierte Namen (z. B. `CON` unter Windows) prüft T-0.5.
+- **Segment:** ein Datei- oder Ordnername, der auf macOS, Linux **und**
+  Windows funktioniert (der Datenordner ist portabel):
+  - nicht leer, nicht `.` oder `..`, höchstens 255 Bytes, gültiges UTF-8;
+  - keine Steuerzeichen, kein `/` oder `\`, keines von `<>:"|?*`;
+  - keine Leerzeichen am Anfang/Ende, kein Punkt am Ende;
+  - kein Windows-Gerätename (`CON`, `PRN`, `AUX`, `NUL`, `COM0`–`COM9`,
+    `LPT0`–`LPT9`, `CONIN$`, `CONOUT$`), auch nicht mit Endung (`nul.txt`)
+    und in keiner Schreibweise;
+  - beginnt nicht mit `.reposhelf-tmp-` (Zwischendateien beim Schreiben).
+
+  Ein Host mit Port (`gitea.local:3000`) ist deshalb vorerst nicht möglich
+  (F-013).
 - **Verweis:** die ULID eines Repos oder `host/owner/name` (mindestens drei
   Segmente).
 - **Dauer:** ganze Zahlen mit Einheiten in fester Reihenfolge `d`, `h`, `m`,

@@ -11,14 +11,14 @@ import (
 	"strings"
 	"time"
 	"unicode"
+
+	"github.com/Fenron-dev/reposhelf/internal/safepath"
 )
 
 const (
 	// minSyncInterval protects upstream hosts and API limits (60/h without
 	// token) from overly eager schedules.
 	minSyncInterval = 5 * time.Minute
-	// maxSegmentBytes matches the common file name limit of file systems.
-	maxSegmentBytes = 255
 	// minTargetSegments is host/owner/name.
 	minTargetSegments = 3
 )
@@ -241,22 +241,12 @@ func (v *validator) list(field string, items []string, check func(string) string
 }
 
 // validSegment returns a problem description, or "" if s may become a single
-// path segment. Reserved names (Windows CON, …) are left to the path
-// sanitizer of T-0.5, which every path built from repo.yaml must pass.
+// path segment. It applies the same rules as every path built from repo.yaml
+// (safepath), so a file that validates can always be stored.
 func validSegment(s string) string {
-	switch {
-	case s == "":
-		return "must not be empty"
-	case s == "." || s == "..":
-		return "must not be . or .."
-	case strings.ContainsAny(s, `/\`):
-		return "must not contain / or \\"
-	case hasControl(s):
-		return "must not contain control characters"
-	case len(s) > maxSegmentBytes:
-		return fmt.Sprintf("must not be longer than %d bytes", maxSegmentBytes)
-	case strings.TrimSpace(s) != s:
-		return "must not start or end with spaces"
+	var se *safepath.SegmentError
+	if errors.As(safepath.CheckSegment(s), &se) {
+		return se.Problem
 	}
 	return ""
 }
