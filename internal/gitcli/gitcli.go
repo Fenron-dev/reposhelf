@@ -129,6 +129,12 @@ func (g *Git) Command(ctx context.Context, dir string, args ...string) *exec.Cmd
 func (g *Git) command(ctx context.Context, dir string, auth *Auth, args ...string) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, g.Path, args...)
 	cmd.Dir = dir
+	if dir == "" {
+		// Commands without a repository (ls-remote, init, clone) must not
+		// pick up the configuration of whatever repository the process was
+		// started in (e.g. credentials of a CI checkout).
+		cmd.Dir = os.TempDir()
+	}
 	cmd.Env = append(os.Environ(),
 		"GIT_TERMINAL_PROMPT=0", // never wait for a password
 		"GIT_ASKPASS=",
