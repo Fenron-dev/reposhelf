@@ -117,7 +117,49 @@ Angeheftete Versionen und die Git-Geschichte selbst sind nie betroffen.
 - **REST:** `GET /api/repos`, `GET /api/repos/<id>`, `POST /api/repos`
   (`{"url": "…"}`), `POST /api/sync/<id>` – ebenfalls mit Bearer-Token.
 
-## 6. Datenablage
+## 6. Builds und Build-Kapseln
+
+Runner-Rolle in den Einstellungen einschalten (braucht Docker). Ziele kommen aus
+
+- `reposhelf-build.yaml` im Repo:
+
+  ```yaml
+  targets:
+    - name: linux
+      image: golang:1.24
+      commands: ["go build -o dist/app ./cmd/app"]
+      artifacts: ["dist/*"]
+      network: false        # ohne Netz bauen
+      secrets: [NPM_TOKEN]  # nur genannte Geheimnisse, aus REPOSHELF_SECRET_NPM_TOKEN
+  ```
+- Linux-Jobs aus `.github/workflows` (mit `act`, im Docker-Image enthalten),
+- GitHub Actions als externer Runner (Workflows mit `workflow_dispatch`, Artefakte
+  werden ins Archiv geholt; braucht `REPOSHELF_GITHUB_TOKEN`).
+
+**Build-Kapseln** („Baubar halten“) sichern pro Version alle Abhängigkeiten
+(Go, Rust, Dart/Flutter, Node mit `package-lock.json`, Python, Docker-Basis-Images)
+in einem gemeinsamen, deduplizierten Speicher. Der **Kapsel-Test** baut ohne Netz
+aus der Kapsel und beweist so, dass sie vollständig ist. Für die neueste Version
+baubarer Repos wird automatisch eine Kapsel angelegt (mit Bestätigung, falls
+eingestellt). Builds von Agenten (MCP) warten immer auf deine Bestätigung, wenn
+„Jeden Build bestätigen“ an ist.
+
+## 7. Abgleich zwischen Instanzen
+
+„Abgleich“ in der Seitenleiste. Auf Instanz A „Kopplungscode anzeigen“, auf
+Instanz B Adresse von A und Code eingeben – beide zeigen danach den Fingerprint
+der anderen Seite; vergleichen. Pro gekoppelter Instanz wählst du, was
+übernommen wird (alle Repos, eine Sammlung, einzelne Repos) und in welcher Stufe
+(nur Metadaten, + Code, + Releases, + Kapseln). Abgeglichen wird manuell oder in
+einem Intervall. Hat sich ein Feld auf beiden Seiten geändert, erscheint ein
+Konflikt zum Entscheiden. Gekoppelte Instanzen mit Runner-Rolle können – wenn
+freigegeben – Builds übernehmen.
+
+Jede Instanz hat einen eigenen Schlüssel in `.reposhelf/instance.key` (nur für
+den Besitzer lesbar). Gespeichert wird von der Gegenseite nur ihr öffentlicher
+Schlüssel; Anfragen sind signiert.
+
+## 8. Datenablage
 
 ```
 RepoShelf-Daten/
