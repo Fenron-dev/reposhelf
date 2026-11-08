@@ -38,6 +38,7 @@
     <li><a href="/" {{if eq .Nav "library"}}aria-current="page"{{end}}>Bibliothek <span class="count">{{.Sidebar.Repos}}</span></a></li>
     <li><a href="/tags" {{if eq .Nav "tags"}}aria-current="page"{{end}}>Schlagwörter <span class="count">{{.Sidebar.Tags}}</span></a></li>
     <li><a href="/graph" {{if eq .Nav "graph"}}aria-current="page"{{end}}>Beziehungen</a></li>
+    <li><a href="/notes" {{if eq .Nav "notes"}}aria-current="page"{{end}}>Notizen</a></li>
     {{if .Sidebar.Builds}}<li><a href="/builds" {{if eq .Nav "builds"}}aria-current="page"{{end}}>Builds &amp; Runner</a></li>{{end}}
     {{if .Identity.Has "admin"}}<li><a href="/access" {{if eq .Nav "mcp"}}aria-current="page"{{end}}>KI-Zugriff (MCP)</a></li>{{end}}
     <li><a href="/activity" {{if eq .Nav "activity"}}aria-current="page"{{end}}>Verlauf</a></li>

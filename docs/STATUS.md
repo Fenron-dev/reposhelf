@@ -141,7 +141,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-2.3 | Beziehungen (Edge-Modell) und Backlinks | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` |
 | T-2.4 | Smarte Sammlungen – SmartFilter-Schema aus MediaShelf/OracleVault übernehmen | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` – Format `{logic, rules}` aus OracleVault/MediaShelf |
 | T-2.5 | Beziehungs-Vorschläge: README-Links, Abhängigkeitsdateien, Fork-Herkunft | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` |
-| T-2.6 | Notizen mit Wiki-Links `[[…]]` | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` |
+| T-2.6 | Notizen mit Wiki-Links `[[…]]` | erledigt | Claude Code | 2026-11-08 | `6f0ca0a`; freie Notizen unter `notes/` mit Rückverweisen ergänzt |
 | T-2.7 | Volltextsuche (FTS5) und Befehlspalette ⌘K | erledigt | Claude Code | 2026-11-08 | `9dc73ff` |
 
 ### Phase 3 – Aufbewahrung

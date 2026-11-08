@@ -124,7 +124,7 @@ func TestPages(t *testing.T) {
 		"/repo/" + id + "/tree/", "/repo/" + id + "/tree/docs?ref=v1.0", "/repo/" + id + "/blob/main.go",
 		"/repo/" + id + "/blob/docs/guide.md", "/add", "/add?url=" + url.QueryEscape(e.f.URL("x", "y")),
 		"/add/preview?url=" + url.QueryEscape(e.f.URL("fenron", "fero")), "/tags", "/graph", "/graph.json",
-		"/activity", "/cleanup", "/trash", "/settings", "/access", "/collections/new", "/collections/new?smart=1",
+		"/activity", "/notes", "/notes/Neu", "/cleanup", "/trash", "/settings", "/access", "/collections/new", "/collections/new?smart=1",
 		"/search?q=fer", "/jobs", "/login", "/api/repos", "/api/repos/" + id, "/api/tags", "/api/health",
 	} {
 		e.get(p, 200)
@@ -171,6 +171,10 @@ func TestForms(t *testing.T) {
 	e.post("/repo/"+id+"/pin", url.Values{"version": {"v1.0"}}, 303)
 	e.post("/repo/"+id+"/fork", url.Values{"name": {"fero-weiter"}}, 303)
 	e.post("/create", url.Values{"name": {"neu"}, "description": {"Testprojekt"}}, 303)
+	e.post("/notes/_new", url.Values{"name": {"Medien"}, "text": {"Siehe [[fero]]"}}, 303)
+	if body := e.get("/repo/"+id, 200); !strings.Contains(body, "Notiz „Medien“") {
+		t.Error("note backlink missing on repo page")
+	}
 
 	// Cleanup: mark, review, trash, restore.
 	e.post("/repo/"+e.other.R().ID+"/mark", nil, 303)

@@ -464,3 +464,27 @@ func TestImportZIP(t *testing.T) {
 		t.Errorf("zip slip = %v", err)
 	}
 }
+
+func TestFreeNotes(t *testing.T) {
+	ctx := context.Background()
+	f := testutil.NewForge(t)
+	f.NewRepo("o", "fero")
+	l, _ := openLib(t, f)
+	r, _ := l.Add(ctx, AddRequest{URL: f.URL("o", "fero"), Wait: true})
+	if err := l.WriteFreeNote("Medien-Pipeline", "Fero liefert an Fundus: [[fero]] und [[unbekannt]].", "t"); err != nil {
+		t.Fatal(err)
+	}
+	if err := l.WriteFreeNote("../evil", "x", "t"); !errors.Is(err, ErrInvalid) {
+		t.Errorf("unsafe note name = %v", err)
+	}
+	notes, _ := l.FreeNotes(ctx)
+	if len(notes) != 1 || len(notes[0].Links) != 1 || notes[0].Links[0] != r.R().ID {
+		t.Fatalf("notes = %+v", notes)
+	}
+	if bl := l.NoteBacklinks(ctx, r.R().ID); len(bl) != 1 || bl[0] != "Medien-Pipeline" {
+		t.Errorf("backlinks = %v", bl)
+	}
+	if _, err := l.FreeNote(ctx, "fehlt"); !errors.Is(err, ErrNotFound) {
+		t.Errorf("missing note = %v", err)
+	}
+}
