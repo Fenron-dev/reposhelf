@@ -1,0 +1,112 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Smoke test of released packages: starts them the way a user would.
+name: Smoke test
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release-Tag, z. B. v0.1.2"
+        required: true
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  TAG: ${{ inputs.tag }}
+  TEST_REPO: https://github.com/octocat/Hello-World
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Start container
+        run: |
+          set -e
+          mkdir data && sudo chown 99:100 data
+          img=ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]'):${TAG#v}
+          docker run -d --name rs -p 7373:7373 -v "$PWD/data:/data" -e REPOSHELF_ADMIN_TOKEN=smoke-token "$img"
+          for i in $(seq 1 30); do curl -fs http://127.0.0.1:7373/healthz && break; sleep 2; done
+          docker logs rs
+      - name: Add, sync, clone
+        run: |
+          set -e
+          curl -fsS -H "Authorization: Bearer smoke-token" -H "Content-Type: application/json" \
+            -d "{\"url\":\"$TEST_REPO\"}" http://127.0.0.1:7373/api/repos
+          for i in $(seq 1 60); do
+            st=$(curl -fsS -H "Authorization: Bearer smoke-token" http://127.0.0.1:7373/api/repos | jq -r '.[0].Status')
+            echo "status: $st"; [ "$st" = ok ] && break; sleep 3
+          done
+          [ "$st" = ok ]
+          git clone http://x:smoke-token@127.0.0.1:7373/git/github.com/octocat/Hello-World.git clone
+          test -f clone/README
+          curl -fsS -o /dev/null -w "web without login: %{http_code}\n" http://127.0.0.1:7373/ || true
+          code=$(curl -s -o /dev/null -w "%{http_code}" -H "X-Forwarded-For: 1.2.3.4" http://127.0.0.1:7373/settings)
+          echo "settings without token: $code"; [ "$code" = 303 ] || [ "$code" = 403 ]
+          docker exec rs reposhelf doctor
+      - name: Logs
+        if: always()
+        run: docker logs rs || true
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Download packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$TAG" -R "${{ github.repository }}" -p "reposhelf-*-windows-amd64.zip" -p "RepoShelf-Windows-portable.zip"
+          7z x -bd -y reposhelf-*-windows-amd64.zip >/dev/null
+          7z x -bd -y RepoShelf-Windows-portable.zip >/dev/null
+          ls
+      - name: CLI with bundled Git
+        run: |
+          set -e
+          cd reposhelf-*-windows-amd64
+          test -f git/cmd/git.exe
+          # Prefer the bundled Git: hide the runner's Git from PATH.
+          export PATH=$(echo "$PATH" | tr ':' '\n' | grep -vi '/git/' | paste -sd:)
+          ./reposhelf.exe version
+          ./reposhelf.exe doctor
+          ./reposhelf.exe add "$TEST_REPO" --no-releases
+          ./reposhelf.exe list
+          ./reposhelf.exe grep "Hello"
+      - name: CLI server and clone
+        run: |
+          set -e
+          cd reposhelf-*-windows-amd64
+          ./reposhelf.exe serve > serve.log 2>&1 &
+          for i in $(seq 1 30); do curl -fs http://127.0.0.1:7373/healthz && break; sleep 2; done
+          curl -fsS http://127.0.0.1:7373/ | grep -q "Bibliothek"
+          git clone http://127.0.0.1:7373/git/github.com/octocat/Hello-World.git ../clone
+          test -f ../clone/README
+          cat serve.log
+          taskkill //F //IM reposhelf.exe || true
+      - name: Desktop app starts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "$env:RUNNER_TEMP\rsdata" | Out-Null
+          $env:REPOSHELF_DATA = "$env:RUNNER_TEMP\rsdata"
+          $p = Start-Process -FilePath ".\RepoShelf\RepoShelf.exe" -PassThru
+          $ok = $false
+          for ($i = 0; $i -lt 45; $i++) {
+            Start-Sleep -Seconds 2
+            try { $r = Invoke-WebRequest -UseBasicParsing http://127.0.0.1:7373/healthz; if ($r.StatusCode -eq 200) { $ok = $true; break } } catch {}
+            if ($p.HasExited) { break }
+          }
+          Get-ChildItem "$env:RUNNER_TEMP\rsdata\.reposhelf\logs" -ErrorAction SilentlyContinue | ForEach-Object { Get-Content $_.FullName -Tail 20 }
+          if (-not $ok) { throw "Desktop-App antwortet nicht (beendet: $($p.HasExited))" }
+          $page = Invoke-WebRequest -UseBasicParsing http://127.0.0.1:7373/
+          if ($page.Content -notmatch "Bibliothek") { throw "Startseite fehlt" }
+          Stop-Process -Id $p.Id -Force
