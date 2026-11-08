@@ -19,6 +19,8 @@ permissions:
   packages: write
 
 env:
+  # Manual runs publish into the prerelease "nightly"; tags into their release.
+  RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'nightly' }}
   # Git for Windows (MinGit) bundled with the Windows packages (D-020).
   MINGIT_VERSION: "2.56.0.windows.4"
   MINGIT_FILE: "MinGit-2.56.0.4-64-bit.zip"
@@ -67,15 +69,16 @@ jobs:
             esac
           done
           cd ../dist && sha256sum * > SHA256SUMS
-      - uses: actions/upload-artifact@v4
-        with:
-          name: binaries
-          path: dist/*
       - name: GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/* --title "RepoShelf $GITHUB_REF_NAME" --generate-notes || gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+        run: |
+          if [ "$RELEASE_TAG" = nightly ]; then
+            gh release view nightly >/dev/null 2>&1 || gh release create nightly --prerelease --title "RepoShelf Test-Build" --notes "Automatischer Test-Build von main" --target "$GITHUB_SHA"
+          else
+            gh release view "$RELEASE_TAG" >/dev/null 2>&1 || gh release create "$RELEASE_TAG" --title "RepoShelf $RELEASE_TAG" --generate-notes
+          fi
+          gh release upload "$RELEASE_TAG" dist/* --clobber
 
   docker:
     runs-on: ubuntu-latest
@@ -117,22 +120,21 @@ jobs:
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.17.1
       - name: Build app (universal)
         working-directory: cmd/reposhelf-desktop
-        run: wails build -platform darwin/universal -trimpath
+        # Bindings would be generated without the "desktop" tag (stub); the
+        # setup page calls the bound method at runtime, which works anyway.
+        run: wails build -platform darwin/universal -trimpath -skipbindings -tags desktop
       - name: DMG
         run: |
           set -e
           mkdir -p dmg && cp -R cmd/reposhelf-desktop/build/bin/RepoShelf.app dmg/
           cp LICENSE docs/BETRIEB.md dmg/
           hdiutil create -volname RepoShelf -srcfolder dmg -ov -format UDZO RepoShelf-macOS.dmg
-      - uses: actions/upload-artifact@v4
-        with:
-          name: desktop-macos
-          path: RepoShelf-macOS.dmg
       - name: Attach to release
-        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$GITHUB_REF_NAME" RepoShelf-macOS.dmg --clobber
+        run: |
+          for i in $(seq 1 30); do gh release view "$RELEASE_TAG" >/dev/null 2>&1 && break; sleep 20; done
+          gh release upload "$RELEASE_TAG" RepoShelf-macOS.dmg --clobber
 
   desktop-windows:
     if: startsWith(github.ref, 'refs/tags/v') || inputs.desktop
@@ -146,7 +148,7 @@ jobs:
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.17.1
       - name: Build
         working-directory: cmd/reposhelf-desktop
-        run: wails build -platform windows/amd64 -trimpath
+        run: wails build -platform windows/amd64 -trimpath -skipbindings -tags desktop
       - name: Portable package with MinGit
         shell: bash
         run: |
@@ -158,13 +160,10 @@ jobs:
           unzip -q mingit.zip -d pkg/RepoShelf/git
           cp LICENSE THIRD_PARTY.md docs/BETRIEB.md pkg/RepoShelf/
           cd pkg && 7z a -bd ../RepoShelf-Windows-portable.zip RepoShelf >/dev/null
-      - uses: actions/upload-artifact@v4
-        with:
-          name: desktop-windows
-          path: RepoShelf-Windows-portable.zip
       - name: Attach to release
-        if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$GITHUB_REF_NAME" RepoShelf-Windows-portable.zip --clobber
+        run: |
+          for i in $(seq 1 30); do gh release view "$RELEASE_TAG" >/dev/null 2>&1 && break; sleep 20; done
+          gh release upload "$RELEASE_TAG" RepoShelf-Windows-portable.zip --clobber
