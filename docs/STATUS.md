@@ -40,8 +40,9 @@ Docker (Ziel aus `reposhelf-build.yaml` mit Artefakten, Go-Kapsel + Offline-Test
 GitHub Actions per workflow_dispatch). macOS-Desktop-App lokal gestartet und geprüft;
 Einrichtungsdialog per Test (`internal/desktop`).
 **Grenzen:** macOS-App nur ad-hoc signiert (Notarisierung braucht ein
-Apple-Entwicklerkonto); Artefakt-Download von GitHub Actions ungeprüft, weil das
-Artefakt-Kontingent des Kontos voll ist.
+Apple-Entwicklerkonto). Artefakt-Download von GitHub Actions per Test gegen nachgebildete
+API geprüft (`internal/runner/github_test.go`); gegen die echte API steht er aus, weil das
+Artefakt-Kontingent des GitHub-Kontos voll ist (wird alle 6–12 h neu berechnet).
 
 **Offene Fragen:** keine (F-007 → D-021, F-014 → D-022).
 
