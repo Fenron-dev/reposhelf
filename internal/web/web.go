@@ -115,6 +115,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /graph", read(s.graphPage))
 	mux.Handle("GET /graph.json", read(s.graphJSON))
 	mux.Handle("GET /activity", read(s.activityPage))
+	mux.Handle("GET /code", read(s.codePage))
 	mux.Handle("GET /notes", read(s.notesPage))
 	mux.Handle("GET /notes/{name}", read(s.notePage))
 	mux.Handle("POST /notes/{name}", write(s.noteSave))

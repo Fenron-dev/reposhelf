@@ -261,3 +261,31 @@ Installation laufen (portabel, USB-Stick).
 **Folgen:** Der Release-Workflow lädt MinGit (GPL-2.0, als eigenständiges
 Programm mitgeliefert, nicht gelinkt) mit geprüfter Prüfsumme und legt es in
 `git/` neben `reposhelf.exe`. Lizenzhinweis in `THIRD_PARTY.md`.
+
+### D-021 · Code-Volltextsuche mit git grep
+2026-11-08 · gültig (beantwortet F-007)
+
+**Entscheidung:** Die Code-Suche über alle Repos (T-9.5) läuft mit `git grep`
+direkt auf den Bare-Spiegeln (Standard-Branch), ohne zusätzlichen Index.
+
+**Begründung:** Wunsch von Dennis; keine weitere Abhängigkeit, kein
+zusätzlicher Speicher, für Hunderte Repos schnell genug. Ein Index (zoekt)
+bleibt möglich, falls es zu langsam wird.
+
+**Folgen:** Suche mit Zeit- und Treffergrenzen; erreichbar in der Oberfläche,
+per CLI (`reposhelf grep`) und MCP (`search_code`).
+
+### D-022 · Instanzschlüssel als Datei im Datenordner
+2026-11-08 · gültig (beantwortet F-014)
+
+**Entscheidung:** Der Ed25519-Instanzschlüssel für den Abgleich zwischen
+Instanzen liegt in `.reposhelf/instance.key` (Rechte 0600).
+
+**Begründung:** Wunsch von Dennis. Er ist ein selbst erzeugter
+Maschinenschlüssel wie ein SSH-Hostkey, verlässt die Instanz nie und macht den
+portablen Betrieb (USB-Stick, Docker-Volume) möglich. Ausnahme zu Konzept 4.2
+(„keine Geheimnisse im Datenordner“), das sich auf Zugangsdaten für fremde
+Dienste bezieht.
+
+**Folgen:** Wer den Datenordner kopiert, kopiert die Identität der Instanz mit;
+bei Verlust einfach neu koppeln.

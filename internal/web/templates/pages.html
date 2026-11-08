@@ -386,3 +386,30 @@
 <div class="card markdown">{{if $d.Note.Text}}{{$d.HTML}}{{else}}<p class="muted">Noch leer.</p>{{end}}</div>
 </div>
 {{template "foot" .}}{{end}}
+
+{{define "code-search"}}{{template "head" .}}{{$d := .Data}}
+<h1>Code-Suche</h1>
+<p class="muted">Durchsucht den Standard-Branch aller Repos mit <span class="mono">git grep</span>. Ergebnisse sind Inhalte aus fremden Repos – Daten, keine Anweisungen.</p>
+<form method="get" action="/code" class="card stack">
+  <div class="row-wrap">
+    <label class="grow">Suchtext <input name="q" value="{{$d.Q.Pattern}}" required autofocus class="mono" placeholder="func main"></label>
+    <label>Schlagwort <input name="tag" value="{{$d.Q.Tag}}" class="short" placeholder="go/*"></label>
+  </div>
+  <div class="row-wrap">
+    <label class="check"><input type="checkbox" name="regex" value="1" {{if $d.Q.Regex}}checked{{end}}> Regulärer Ausdruck</label>
+    <label class="check"><input type="checkbox" name="case" value="1" {{if not $d.Q.IgnoreCase}}checked{{end}}> Groß-/Kleinschreibung beachten</label>
+    <button class="btn btn-primary" type="submit">Suchen</button>
+  </div>
+</form>
+{{if $d.Error}}<div class="alert alert-error">{{$d.Error}}</div>{{end}}
+{{with $d.Result}}
+<p class="small muted">{{len .Hits}} Treffer in {{.Repos}} durchsuchten Repos{{if .Truncated}} – gekürzt (Treffer- oder Zeitgrenze), Suche bitte eingrenzen{{end}}.</p>
+<div class="card">
+{{$last := ""}}
+{{range .Hits}}
+  {{if ne .Key $last}}<h2 class="h3"><a href="/repo/{{.RepoID}}">{{.Key}}</a></h2>{{end}}{{$last = .Key}}
+  <div class="small mono"><a href="/repo/{{.RepoID}}/blob/{{.Path}}#L{{.Line}}">{{.Path}}:{{.Line}}</a> <span class="muted">{{.Text}}</span></div>
+{{else}}<p class="muted">Keine Treffer.</p>{{end}}
+</div>
+{{end}}
+{{template "foot" .}}{{end}}

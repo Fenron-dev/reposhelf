@@ -97,6 +97,10 @@ func TestTools(t *testing.T) {
 	if len(out["entries"].([]any)) != 2 {
 		t.Errorf("list_tree = %v", out)
 	}
+	out, _ = call(t, ro, "search_code", map[string]any{"pattern": "package main"})
+	if hits, _ := out["hits"].([]any); len(hits) != 1 {
+		t.Errorf("search_code = %v", out)
+	}
 	out, _ = call(t, ro, "get_clone_url", map[string]any{"repo": "o/tool"})
 	if !strings.HasPrefix(out["url"].(string), "http://shelf:7373/git/") {
 		t.Errorf("clone url = %v", out)
