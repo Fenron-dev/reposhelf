@@ -13,25 +13,33 @@
 ## Aktueller Stand
 
 - **Phase:** 0 – Gerüst (begonnen)
-- **Letzte Änderung:** 2026-11-08 · T-0.1 nach `main` gemergt; privates GitHub-Repo angelegt (T-0.11)
-- **Nächster Schritt:** T-0.2 (Konfiguration + Datenordner-Kette); T-0.7 (CI) ist jetzt möglich
+- **Letzte Änderung:** 2026-11-08 · F-008 entschieden (Port 7373, D-016); T-0.2 umgesetzt, im Review (Branch `t0.2-config`)
+- **Nächster Schritt:** `t0.2-config` prüfen und nach `main` mergen; danach T-0.3 (`repo.yaml`-Schema) oder T-0.7 (CI)
 
 ## Übergabe-Notiz
 
 > Wird am Ende **jeder** Sitzung überschrieben (Agent oder Mensch). Kurz: was
 > wurde gemacht, was ist halb fertig, worauf muss der Nächste achten.
 
-**2026-11-08 · Claude Code:** T-0.1 auf Wunsch von Dennis ohne separates
-Review nach `main` gemergt (`337d001`). T-0.11: privates Repo
-https://github.com/Fenron-dev/reposhelf angelegt, Remote `origin`, `main`
-gepusht. Der Branch `t0.1-scaffold` ist gemergt und wurde nicht gepusht.
-Vorher in dieser Sitzung: F-002/F-003/F-012 entschieden (D-013–D-015),
-Gerüst mit `cmd/reposhelf`, `internal/cli`, `internal/buildinfo` und
-Paket-Stubs, Lizenz GPL-3.0-or-later.
-**Achtung:** `golangci-lint` ist lokal nicht installiert, es kommt mit T-0.7
-in die CI. Es gibt noch keinen Branch-Schutz auf `main`. Go 1.27.3 ist per
-Homebrew installiert. `reposhelf-start.zip` ist per `.gitignore`
-ausgeschlossen.
+**2026-11-08 · Claude Code:** F-008 entschieden: Standard-Port **7373**
+(7878 ist Radarr), Standardadresse `127.0.0.1:7373` → D-016. T-0.2 auf
+Branch `t0.2-config` (`304e735`), noch **nicht** gemergt/gepusht:
+- `internal/datadir`: Kette `--data` → `REPOSHELF_DATA` → Zeigerdatei
+  (`<Profil>/RepoShelf/datadir.txt`) → `RepoShelf-Daten/` neben der
+  Programmdatei (macOS-Bundle: neben dem `.app`; Symlinks aufgelöst). Ein
+  genannter, aber unerreichbarer Ordner ist ein Fehler, kein Ausweichen.
+- `internal/config`: Vorgaben → `reposhelf.yaml` → `REPOSHELF_LISTEN`.
+  Unbekannte Schlüssel = Warnung (Vorwärtskompatibilität für portable
+  Ordner), neueres `schema` = Fehler. Fixture `testdata/schema1.yaml` für
+  künftige Migrationstests.
+- CLI: `reposhelf config [--data <ordner>]` zeigt Ordner, Quelle, Adresse.
+- Konzept 4.4 beschreibt jetzt die genaue Kette.
+- Abhängigkeit: `go.yaml.in/yaml/v3` v3.0.6 (MIT/Apache-2.0, Nachfolger von
+  `gopkg.in/yaml.v3`); auch für T-0.3 gedacht (Node-API für unbekannte Felder).
+**Achtung:** Die Zeigerdatei wird nur gelesen; Schreiben/Einrichten ist
+T-0.12 (braucht atomares Schreiben aus T-0.5). Konfiguration hat bewusst nur
+`schema` und `server.listen` – weitere Felder bringen die Aufgaben mit, die sie
+brauchen. `golangci-lint` weiter nur über CI (T-0.7).
 
 ---
 
@@ -49,7 +57,7 @@ Entscheidung: Status `entschieden`, Eintrag in `docs/ENTSCHEIDUNGEN.md`, Verweis
 | F-005 | Oberfläche: Go-Templates + htmx oder kleines JS-Framework? | htmx (kein Node-Build) | offen | |
 | F-006 | Eigene, lokale Issues für eigene Projekte (nicht nur GitHub spiegeln)? | Später; erst spiegeln (T-9.1) | offen | |
 | F-007 | Code-Volltextsuche über alle Repos (z. B. zoekt)? | Phase 9 | offen | |
-| F-008 | Standard-Port der Weboberfläche | z. B. 7878 (unbelegt prüfen) | offen | |
+| F-008 | Standard-Port der Weboberfläche | z. B. 7878 (unbelegt prüfen) | entschieden | **7373** (7878 ist Radarr) → D-016 |
 | F-009 | Pushes auf eigene Projekte automatisch an GitHub weiterreichen? | Später, optional pro Repo | offen | |
 | F-010 | Windows: portables Git mitliefern oder Installation voraussetzen? | Voraussetzen + Prüfung mit Hinweis; mitliefern später | offen | |
 | F-011 | Projektordner heißt `Portable RepoShelf ` (Leerzeichen am Ende) – umbenennen? | Ja, auf `Portable RepoShelf` oder `reposhelf` | offen | |
@@ -84,7 +92,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | ID | Aufgabe | Status | Wer | Datum | Notiz / Commit |
 |---|---|---|---|---|---|
 | T-0.1 | Git-Repo + Go-Modul anlegen; Struktur `cmd/reposhelf`, `internal/…`; `.gitignore`, `LICENSE` (nach F-002/F-003) | erledigt | Claude Code | 2026-11-08 | `132ca84`, gemergt `337d001` (ohne Review, Wunsch Dennis) |
-| T-0.2 | Konfiguration (`reposhelf.yaml` + Umgebungsvariablen) und Datenordner-Kette (Konzept 4.4) | offen | | | |
+| T-0.2 | Konfiguration (`reposhelf.yaml` + Umgebungsvariablen) und Datenordner-Kette (Konzept 4.4) | Review | Claude Code | 2026-11-08 | Branch `t0.2-config`, `304e735` |
 | T-0.3 | `repo.yaml`-Schema in `docs/SCHEMA.md` festschreiben; Lesen/Schreiben mit Erhalt unbekannter Felder; Validierung; Tests inkl. Vorversion | offen | | | |
 | T-0.4 | SQLite-Treiber ohne CGO mit FTS5 wählen und begründen; Index-Schema; `reindex` aus Dateien | offen | | | |
 | T-0.5 | Atomares Schreiben und Pfad-Sanitizing, mit Tests (Fero-Invarianten) | offen | | | |
@@ -94,6 +102,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-0.9 | SQLite auf exFAT/FAT erkennen → `journal_mode=DELETE` | offen | | | |
 | T-0.10 | Prüfen: selbst gehosteter GitHub-Actions-Runner auf Unraid (Docker) für private Repos – kostet keine Actions-Minuten | offen | | | Vorstufe zu Phase 7 |
 | T-0.11 | Privates GitHub-Repo `Fenron-dev/reposhelf` anlegen (D-012, D-013), `main` und Branches pushen | erledigt | Claude Code | 2026-11-08 | https://github.com/Fenron-dev/reposhelf |
+| T-0.12 | Datenordner einrichten: Zeigerdatei atomar schreiben (nach T-0.5), Grundstruktur anlegen, CLI `reposhelf init <ordner>`; später Einrichtungsdialog | offen | | | aus T-0.2; `datadir.PointerPath` gibt den Ort vor |
 
 ### Phase 1 – Spiegel-Kern
 
@@ -148,7 +157,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 | ID | Aufgabe | Status | Wer | Datum | Notiz / Commit |
 |---|---|---|---|---|---|
-| T-5.1 | Dockerfile + Image (mit `git`, `git-lfs`) | offen | | | |
+| T-5.1 | Dockerfile + Image (mit `git`, `git-lfs`) | offen | | | Image setzt `REPOSHELF_DATA=/data` und `REPOSHELF_LISTEN=:7373` (T-0.2, D-016) |
 | T-5.2 | Unraid-Template | offen | | | |
 | T-5.3 | Desktop-Hülle (Wails; vorher F-004) | offen | | | |
 | T-5.4 | Portabler Modus, macOS-Bundle-Pfade, Linux `noexec` | offen | | | |
@@ -201,6 +210,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-08 · Claude Code · F-008 entschieden (7373, D-016); T-0.2 umgesetzt → Review; T-0.12 neu
 - 2026-11-08 · Claude Code · T-0.1 gemergt (erledigt); T-0.11 privates GitHub-Repo angelegt und gepusht (erledigt)
 - 2026-11-08 · Claude Code · F-002, F-003, F-012 entschieden (D-013–D-015); Git-Repo angelegt; T-0.1 umgesetzt → Review; T-0.11 neu
 - 2026-11-08 · Claude · F-001 entschieden (privat, D-012); T-0.7 angepasst, T-0.10 neu
