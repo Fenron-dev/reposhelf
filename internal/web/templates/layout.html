@@ -1,0 +1,109 @@
+{{define "head"}}<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}} · RepoShelf</title>
+<link rel="stylesheet" href="/static/app.css">
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<script src="/static/theme.js"></script>
+<script src="/static/htmx.min.js" defer></script>
+<script src="/static/app.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Zum Inhalt springen</a>
+<div class="app">
+{{template "sidebar" .}}
+<main id="main" class="main">
+<button class="nav-toggle" type="button" aria-controls="sidebar" aria-expanded="false" data-nav-toggle>☰ Menü</button>
+{{if .Flash}}<div class="alert alert-ok" role="status">{{.Flash}}</div>{{end}}
+{{if .Error}}<div class="alert alert-error" role="alert">{{.Error}}</div>{{end}}
+{{end}}
+
+{{define "foot"}}
+</main>
+</div>
+{{template "palette"}}
+</body>
+</html>
+{{end}}
+
+{{define "sidebar"}}
+<nav id="sidebar" class="sidebar" aria-label="Hauptnavigation">
+  <a class="brand" href="/">
+    <img src="/static/icon.svg" alt="" width="28" height="28">
+    <span><strong>RepoShelf</strong><small>{{.Sidebar.Instance}}</small></span>
+  </a>
+  <ul class="nav">
+    <li><a href="/" {{if eq .Nav "library"}}aria-current="page"{{end}}>Bibliothek <span class="count">{{.Sidebar.Repos}}</span></a></li>
+    <li><a href="/tags" {{if eq .Nav "tags"}}aria-current="page"{{end}}>Schlagwörter <span class="count">{{.Sidebar.Tags}}</span></a></li>
+    <li><a href="/graph" {{if eq .Nav "graph"}}aria-current="page"{{end}}>Beziehungen</a></li>
+    {{if .Sidebar.Builds}}<li><a href="/builds" {{if eq .Nav "builds"}}aria-current="page"{{end}}>Builds &amp; Runner</a></li>{{end}}
+    {{if .Identity.Has "admin"}}<li><a href="/access" {{if eq .Nav "mcp"}}aria-current="page"{{end}}>KI-Zugriff (MCP)</a></li>{{end}}
+    <li><a href="/activity" {{if eq .Nav "activity"}}aria-current="page"{{end}}>Verlauf</a></li>
+  </ul>
+  <div class="nav-section">
+    <h2>Sammlungen</h2>
+    <ul class="nav">
+      {{range .Sidebar.Collections}}
+      <li><a href="/collections/{{.ID}}" {{if eq $.Nav (print "col:" .ID)}}aria-current="page"{{end}}><span class="dot" style="background:{{if .Color}}{{.Color}}{{else}}var(--text-muted){{end}}"></span>{{.Name}}{{if .Smart}} <span class="badge-smart" title="Smarte Sammlung">✦</span>{{end}} <span class="count">{{.Size}}</span></a></li>
+      {{else}}<li class="muted small">Noch keine Sammlungen</li>{{end}}
+      {{if .Identity.Has "write"}}
+      <li><a class="muted" href="/collections/new">+ Sammlung</a></li>
+      <li><a class="muted" href="/collections/new?smart=1">+ Smarte Sammlung</a></li>
+      {{end}}
+    </ul>
+  </div>
+  <ul class="nav">
+    {{if .Identity.Has "admin"}}
+    <li><a href="/trash" {{if eq .Nav "trash"}}aria-current="page"{{end}}>Papierkorb <span class="count">{{.Sidebar.Trash}}</span></a></li>
+    {{if .Sidebar.Peers}}<li><a href="/peers" {{if eq .Nav "peers"}}aria-current="page"{{end}}>Abgleich</a></li>{{end}}
+    <li><a href="/settings" {{if eq .Nav "settings"}}aria-current="page"{{end}}>Einstellungen</a></li>
+    {{end}}
+  </ul>
+  <div class="sidebar-foot">
+    <div id="jobs" hx-get="/jobs" hx-trigger="load, sse-job from:body, every 20s" hx-swap="innerHTML">{{if .Sidebar.Jobs}}{{.Sidebar.Jobs}} Abgleich(e) laufen{{end}}</div>
+    {{if .Sidebar.Paused}}<div class="warn">Automatischer Abgleich pausiert</div>
+    {{else if .Sidebar.NextSync}}<div>Nächster Abgleich {{ago .Sidebar.NextSync}}</div>{{end}}
+    <div class="mono">{{size .Sidebar.Size}} · {{.Sidebar.Repos}} Repos</div>
+    <div class="small muted">
+      {{if .Authed}}{{.Identity.Name}}{{if ne .Identity.ID "local"}} · <form class="inline" method="post" action="/logout"><button class="linklike" type="submit">Abmelden</button></form>{{end}}{{else}}<a href="/login">Anmelden</a>{{end}}
+      · <button class="linklike" type="button" data-theme-toggle>Hell/Dunkel</button> · {{.Version}}
+    </div>
+  </div>
+</nav>
+{{end}}
+
+{{define "jobs"}}{{if .}}<span class="running">◐ {{len .}} Abgleich{{if gt (len .) 1}}e{{end}} {{if (index . 0).Running}}laufen{{else}}warten{{end}}</span><ul class="joblist">{{range .}}<li class="mono small">{{.Key}}{{if not .Running}} (wartet){{end}}</li>{{end}}</ul>{{end}}{{end}}
+
+{{define "palette"}}
+<div class="palette" id="palette" hidden role="dialog" aria-modal="true" aria-label="Befehlspalette">
+  <div class="palette-box">
+    <input id="palette-input" type="search" placeholder="Repo, Schlagwort, Sammlung oder Befehl …" autocomplete="off" aria-label="Suchen">
+    <ul id="palette-results" role="listbox"></ul>
+    <div class="palette-hint small muted">↑↓ wählen · Enter öffnen · Esc schließen</div>
+  </div>
+</div>
+{{end}}
+
+{{define "status"}}<span class="status status-{{.}}"><span aria-hidden="true">{{statusSym .}}</span> {{statusText .}}</span>{{end}}
+
+{{define "kind"}}<span class="kind kind-{{.}}">{{kindText .}}</span>{{end}}
+
+{{define "error"}}{{template "head" .}}
+<h1>Das hat nicht geklappt</h1>
+<div class="alert alert-error" role="alert">{{.Data}}</div>
+<p><a href="javascript:history.back()" data-back>Zurück</a> · <a href="/">Zur Bibliothek</a></p>
+{{template "foot" .}}{{end}}
+
+{{define "login"}}{{template "head" .}}
+<div class="card narrow">
+<h1>Anmelden</h1>
+<p class="muted">RepoShelf ist von außen erreichbar. Melde dich mit einem Token an (Recht „verwalten“ für alle Funktionen). Ein Token legst du am Server mit <code>reposhelf token create --name admin --rights admin</code> an oder setzt in Docker <code>REPOSHELF_ADMIN_TOKEN</code>.</p>
+<form method="post" action="/login" class="stack">
+  <input type="hidden" name="next" value="{{.Data.Next}}">
+  <label>Token <input type="password" name="token" autocomplete="current-password" required autofocus></label>
+  <button class="btn btn-primary" type="submit">Anmelden</button>
+</form>
+</div>
+{{template "foot" .}}{{end}}

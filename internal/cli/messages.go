@@ -153,3 +153,9 @@ func kindLabel(k string) string {
 	}
 	return k
 }
+
+// Texts of serve, mcp and token.
+const (
+	msgServing      = "RepoShelf läuft: http://%s  (Daten: %s)\nBeenden mit Strg+C.\n"
+	msgTokenCreated = "Token „%s“ (%s) angelegt. Es wird nur jetzt angezeigt:\n\n  %s\n\nGit: als Passwort verwenden · API/MCP: Authorization: Bearer <Token>\n"
+)

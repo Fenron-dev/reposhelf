@@ -273,6 +273,7 @@ func (l *Library) measure(ctx context.Context, r *Repo) {
 
 // refreshStats measures and saves (local repositories, after pushes).
 func (l *Library) refreshStats(ctx context.Context, r *Repo) {
+	l.Git.FixHead(ctx, r.Paths.Mirror)
 	l.measure(ctx, r)
 	if r.R().Source.Host == repometa.LocalHost {
 		r.Upstream.Status = StatusLocal

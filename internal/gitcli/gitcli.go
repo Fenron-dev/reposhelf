@@ -264,7 +264,7 @@ func (g *Git) LocalRefs(ctx context.Context, dir string) (Refs, error) {
 // url and fetching branches, tags and notes. GitHub's refs/pull/* are left
 // out on purpose: they are rewritten constantly and would flood backups.
 func (g *Git) InitBare(ctx context.Context, dir, url string) error {
-	if _, err := g.Run(ctx, "", nil, "init", "--bare", "--quiet", "--", dir); err != nil {
+	if _, err := g.Run(ctx, "", nil, "init", "--bare", "--quiet", "--initial-branch=main", "--", dir); err != nil {
 		return err
 	}
 	cmds := [][]string{
@@ -308,4 +308,24 @@ func (g *Git) Head(ctx context.Context, dir string) string {
 		return ""
 	}
 	return strings.TrimSpace(string(out))
+}
+
+// FixHead points HEAD to an existing branch when it dangles (e.g. after the
+// first push of "master" into a repository initialised with "main").
+func (g *Git) FixHead(ctx context.Context, dir string) {
+	if g.HasCommits(ctx, dir) {
+		return
+	}
+	branches, err := g.Branches(ctx, dir)
+	if err != nil || len(branches) == 0 {
+		return
+	}
+	pick := branches[0].Name
+	for _, b := range branches {
+		if b.Name == "main" || b.Name == "master" {
+			pick = b.Name
+			break
+		}
+	}
+	g.SetHead(ctx, dir, pick)
 }
