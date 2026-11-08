@@ -31,6 +31,7 @@ import (
 	"github.com/Fenron-dev/reposhelf/internal/datadir"
 	"github.com/Fenron-dev/reposhelf/internal/layout"
 	"github.com/Fenron-dev/reposhelf/internal/logx"
+	"github.com/Fenron-dev/reposhelf/internal/peer"
 	"github.com/Fenron-dev/reposhelf/internal/runner"
 	"github.com/Fenron-dev/reposhelf/internal/server"
 	"github.com/Fenron-dev/reposhelf/internal/web"
@@ -109,7 +110,17 @@ func (a *App) open(dir string) error {
 	}
 	builds := runner.New(lib, log)
 	builds.Start(a.ctx)
-	srv, err := server.New(lib, server.Options{Log: log, Ext: web.Extensions{Builds: builds}, MCPBuilds: runner.MCP{M: builds}})
+	peers, err := peer.New(lib, log)
+	if err != nil {
+		lib.Close()
+		return err
+	}
+	peers.PublicURL = func() string { return "http://" + lib.Config().Server.Listen }
+	peers.SetBuilds(builds)
+	peers.RegisterRemotes(builds)
+	go peers.Schedule(a.ctx)
+	srv, err := server.New(lib, server.Options{Log: log, Ext: web.Extensions{Builds: builds, Peers: peers}, MCPBuilds: runner.MCP{M: builds},
+		ExtraAuth: peers.CheckTemp, Extra: map[string]http.Handler{"/peer/": peers.Handler()}})
 	if err != nil {
 		lib.Close()
 		return err

@@ -1,0 +1,71 @@
+{{define "peers"}}{{template "head" .}}{{$d := .Data}}
+<h1>Abgleich zwischen Instanzen</h1>
+<p class="muted">Koppelt diese Instanz mit einer anderen (z. B. Unraid ↔ MacBook). Abgeglichen wird nur, was du auswählst – Metadaten feldweise, Code über Git mit Force-Push-Schutz. Konflikte werden angezeigt, nie still überschrieben.</p>
+
+<div class="layout-2">
+<div class="card stack">
+  <h2 class="h3">Diese Instanz</h2>
+  <dl class="kv small"><dt>Name</dt><dd>{{$d.Name}}</dd><dt>Adresse</dt><dd class="mono">{{$d.URL}}</dd><dt>Fingerprint</dt><dd class="mono">{{$d.Own}}</dd></dl>
+  <form method="post" action="/peers/code" class="inline"><button class="btn" type="submit">Kopplungscode anzeigen</button></form>
+  {{if $d.Code}}<div class="alert alert-ok"><p>Gib auf der anderen Instanz unter „Koppeln“ diese Adresse und diesen Code ein (gültig bis {{dt $d.CodeExpires}}):</p><p class="mono" style="font-size:28px;letter-spacing:.1em">{{$d.Code}}</p></div>{{end}}
+</div>
+<form method="post" action="/peers/pair" class="card stack">
+  <h2 class="h3">Mit einer Instanz koppeln</h2>
+  <label>Adresse der anderen Instanz <input name="url" type="url" required placeholder="http://tower.local:7373"></label>
+  <label>Kopplungscode (dort angezeigt) <input name="code" required autocomplete="off" placeholder="ABCD-EFGH" class="mono"></label>
+  <button class="btn btn-primary" type="submit">Koppeln</button>
+  <p class="small muted">Die andere Instanz muss diese hier unter der Adresse aus „Einstellungen → Öffentliche Adresse“ erreichen können.</p>
+</form>
+</div>
+
+{{if $d.Conflicts}}
+<div class="card">
+  <h2 class="h3">Konflikte · {{len $d.Conflicts}}</h2>
+  <p class="small muted">Beide Instanzen haben dasselbe Feld unterschiedlich geändert. Wähle, welcher Stand gilt.</p>
+  <table class="list small"><thead><tr><th>Repo</th><th>Feld</th><th>Hier</th><th>Dort</th><th></th></tr></thead><tbody>
+  {{range $d.Conflicts}}<tr><td><a href="/repo/{{.RepoID}}">{{.Key}}</a></td><td>{{.Label}}</td><td><pre class="code mono">{{.Local}}</pre></td><td><pre class="code mono">{{.Remote}}</pre></td>
+    <td><form method="post" action="/peers/resolve" class="stack"><input type="hidden" name="id" value="{{.ID}}"><button class="btn btn-small" name="choice" value="local">Hier behalten</button><button class="btn btn-small" name="choice" value="remote">Von dort übernehmen</button></form></td></tr>{{end}}
+  </tbody></table>
+</div>
+{{end}}
+
+{{range $d.Peers}}{{$p := .}}
+<div class="card stack">
+  <div class="title-row">
+    <div><h2 class="h3">{{.Name}}</h2><p class="small muted mono">{{.URL}} · {{.ID}}</p>
+      <p class="small">Gekoppelt {{date .Paired}} · Letzter Abgleich {{ago .LastSync}}{{if .LastResult}} – {{.LastResult}}{{end}}</p></div>
+    <div class="row-wrap">
+      <form method="post" action="/peers/{{.ID}}/sync" class="inline"><button class="btn btn-primary" type="submit">Jetzt abgleichen</button></form>
+      <form method="post" action="/peers/{{.ID}}/remove" class="inline"><button class="btn btn-ghost" type="submit">Entkoppeln</button></form>
+    </div>
+  </div>
+  <form method="post" action="/peers/{{.ID}}/settings" class="stack">
+    <fieldset><legend>Was von dort übernommen wird</legend>
+      {{range .Selections}}{{template "peer-sel" (dict "S" . "D" $d)}}{{end}}
+      {{template "peer-sel" (dict "S" (dict) "D" $d)}}
+      <p class="small muted">Stufen: nur Metadaten · + Code · + Releases · + Kapseln. Zeile leeren zum Entfernen.</p>
+    </fieldset>
+    <div class="row-wrap">
+      <label>Automatisch alle <input name="interval" class="short" value="{{.Interval}}" placeholder="leer = manuell"></label>
+      <label class="check"><input type="checkbox" name="allow_builds" {{if .AllowBuilds}}checked{{end}}> Diese Instanz darf hier Builds starten</label>
+    </div>
+    <div><button class="btn" type="submit">Speichern</button></div>
+  </form>
+</div>
+{{else}}<div class="card empty"><p>Noch keine gekoppelte Instanz.</p></div>{{end}}
+{{template "foot" .}}{{end}}
+
+{{define "peer-sel"}}{{$s := .S}}
+<div class="row-wrap rule">
+  <select name="type" aria-label="Auswahl">
+    <option value="">–</option>
+    <option value="all" {{if eq (print $s.Type) "all"}}selected{{end}}>Alle Repos</option>
+    <option value="collection" {{if eq (print $s.Type) "collection"}}selected{{end}}>Sammlung</option>
+    <option value="repo" {{if eq (print $s.Type) "repo"}}selected{{end}}>Einzelnes Repo</option>
+  </select>
+  <input name="ref" value="{{with $s.Ref}}{{.}}{{end}}" placeholder="Sammlung oder host/owner/name" aria-label="Sammlung oder Repo">
+  <select name="level" aria-label="Stufe">
+    {{range .D.Levels}}<option value="{{.}}" {{if eq (print $s.Level) .}}selected{{end}}>{{if eq . "meta"}}nur Metadaten{{else if eq . "code"}}+ Code{{else if eq . "releases"}}+ Releases{{else}}+ Kapseln{{end}}</option>{{end}}
+  </select>
+</div>
+{{end}}

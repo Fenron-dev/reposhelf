@@ -233,7 +233,16 @@ func (g *Git) LsRemote(ctx context.Context, url string, auth *Auth) (Refs, error
 	if err != nil {
 		return nil, err
 	}
-	return parseRefs(out, "\t"), nil
+	// ls-remote matches patterns from the end of the name, so refs like
+	// refs/reposhelf/backup/…/refs/heads/main of another RepoShelf would
+	// slip through: keep only real branches, tags and notes.
+	refs := parseRefs(out, "\t")
+	for name := range refs {
+		if !strings.HasPrefix(name, "refs/heads/") && !strings.HasPrefix(name, "refs/tags/") && !strings.HasPrefix(name, "refs/notes/") {
+			delete(refs, name)
+		}
+	}
+	return refs, nil
 }
 
 // RemoteHead returns the remote's default branch ("main"), or "".

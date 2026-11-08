@@ -6,6 +6,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -22,6 +24,7 @@ import (
 	"github.com/Fenron-dev/reposhelf/internal/layout"
 	"github.com/Fenron-dev/reposhelf/internal/logx"
 	"github.com/Fenron-dev/reposhelf/internal/mcp"
+	"github.com/Fenron-dev/reposhelf/internal/peer"
 	"github.com/Fenron-dev/reposhelf/internal/runner"
 	"github.com/Fenron-dev/reposhelf/internal/server"
 )
@@ -79,6 +82,18 @@ func runServe(args []string, sys system) int {
 	builds.Start(ctx)
 	go everyHour(ctx, func() { builds.AutoCapsules(ctx) })
 	opts.Ext.Builds, opts.MCPBuilds = builds, runner.MCP{M: builds}
+	peers, err := peer.New(lib, log)
+	if err != nil {
+		fmt.Fprintln(sys.stderr, errText(err))
+		return ExitError
+	}
+	peers.PublicURL = func() string { return publicURL(lib) }
+	peers.SetBuilds(builds)
+	peers.RegisterRemotes(builds)
+	go peers.Schedule(ctx)
+	opts.Ext.Peers = peers
+	opts.ExtraAuth = peers.CheckTemp
+	opts.Extra = map[string]http.Handler{"/peer/": peers.Handler()}
 	if Hooks.Server != nil {
 		Hooks.Server(lib, &opts)
 	}
@@ -221,4 +236,22 @@ func everyHour(ctx context.Context, f func()) {
 			f()
 		}
 	}
+}
+
+// publicURL is how other instances reach this one.
+func publicURL(lib *core.Library) string {
+	cfg := lib.Config().Server
+	if cfg.PublicURL != "" {
+		return strings.TrimSuffix(cfg.PublicURL, "/")
+	}
+	host, port, err := net.SplitHostPort(cfg.Listen)
+	if err != nil {
+		return "http://" + cfg.Listen
+	}
+	if host == "" || host == "0.0.0.0" || host == "::" {
+		if h, err := os.Hostname(); err == nil {
+			host = h
+		}
+	}
+	return "http://" + net.JoinHostPort(host, port)
 }

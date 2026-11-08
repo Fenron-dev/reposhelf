@@ -46,6 +46,8 @@ type Options struct {
 	MCPBuilds mcp.Builds
 	// Extra mounts additional handlers (e.g. peer sync endpoints).
 	Extra map[string]http.Handler
+	// ExtraAuth accepts additional secrets (temporary peer tokens).
+	ExtraAuth func(secret string) (auth.Token, bool)
 }
 
 // Server is the HTTP front of a library.
@@ -142,6 +144,11 @@ func (s *Server) resolve(r *http.Request) ident {
 	if secret := bearer(r); secret != "" {
 		if tok, err := s.Tokens.Check(secret); err == nil {
 			return ident{tok: tok, authed: true}
+		}
+		if s.opts.ExtraAuth != nil {
+			if tok, ok := s.opts.ExtraAuth(secret); ok {
+				return ident{tok: tok, authed: true}
+			}
 		}
 		return ident{} // wrong token: no fallback to local trust
 	}
