@@ -96,7 +96,10 @@ type Sync struct {
 // Retention holds the global retention rules (KONZEPT 6.10). Collections and
 // repositories override them.
 type Retention struct {
-	ReleasesKeep            int               `yaml:"releases_keep"`
+	ReleasesKeep int `yaml:"releases_keep"`
+	// MaxAssetMB skips release files larger than this (0 = no limit), so a
+	// project with many platform builds cannot fill a small disk (T-1.13).
+	MaxAssetMB              int               `yaml:"max_asset_mb"`
 	SnapshotsEvery          repometa.Duration `yaml:"snapshots_every"`
 	SnapshotsKeepFor        repometa.Duration `yaml:"snapshots_keep_for"`
 	ForcePushBackupsKeepFor repometa.Duration `yaml:"force_push_backups_keep_for"`
@@ -277,7 +280,7 @@ func validate(cfg Config) error {
 	if cfg.Sync.Concurrency < 1 {
 		return fmt.Errorf("%w: sync.concurrency must be at least 1", ErrInvalid)
 	}
-	if cfg.Retention.ReleasesKeep < 0 || cfg.Retention.TrashDays < 1 || cfg.Retention.CapsulesKeep < 0 {
+	if cfg.Retention.ReleasesKeep < 0 || cfg.Retention.TrashDays < 1 || cfg.Retention.CapsulesKeep < 0 || cfg.Retention.MaxAssetMB < 0 {
 		return fmt.Errorf("%w: retention values out of range", ErrInvalid)
 	}
 	if cfg.Sync.DefaultInterval < repometa.Duration(5*time.Minute) {

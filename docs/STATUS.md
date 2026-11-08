@@ -12,32 +12,41 @@
 
 ## Aktueller Stand
 
-- **Phase:** 0–4 umgesetzt; 5–8 in Arbeit (Ziel von Dennis: Projekt nach Konzept fertigstellen)
-- **Letzte Änderung:** 2026-11-08 · Kern, CLI, Weboberfläche, Git-HTTP, MCP, Aufbewahrung und Papierkorb fertig und getestet
-- **Nächster Schritt:** Phase 5 (Docker, Unraid, Desktop, Release-Workflow), CI (T-0.7), Phase 6/7 (Kapseln, Builds), Phase 8 (Abgleich zwischen Instanzen)
+- **Phase:** 0–9 umgesetzt (außer T-9.5, wartet auf F-007)
+- **Letzte Änderung:** 2026-11-08 · Builds/Kapseln (6/7), Abgleich zwischen Instanzen (8), ZIP-Import, Größenbegrenzung
+- **Nächster Schritt:** Dennis testet (siehe Übergabe-Notiz); F-007 und F-014 entscheiden; erstes Release mit Tag `v0.1.0` (baut Docker-Image und Desktop-Apps in CI)
 
 ## Übergabe-Notiz
 
 > Wird am Ende **jeder** Sitzung überschrieben (Agent oder Mensch). Kurz: was
 > wurde gemacht, was ist halb fertig, worauf muss der Nächste achten.
 
-**2026-11-08 · Claude Code:** Großer Umsetzungsschritt im Auftrag „Projekt fertigstellen“.
-Gemergt nach `main` (siehe Verlauf). Was es jetzt gibt:
-- **Kern** `internal/core`: hinzufügen, abgleichen (Force-Push-Sicherung), Status mit
-  Host-Gesundheit, Zeitplaner, Metadaten mit Historie (`upstream.json`), Lizenz,
-  Releases (SHA-256, Dedup per Hardlink), Issues, Wiki, LFS, Submodule, Snapshots,
-  Schlagwörter, Sammlungen, smarte Sammlungen, Beziehungen mit Vorschlägen,
-  Notizen mit Wiki-Links, Aufbewahrung auf drei Ebenen, Papierkorb, Verlauf.
-- **Oberflächen**: CLI (`reposhelf help`), Weboberfläche (htmx), REST-API
-  (`/api/…`), Git-HTTP (`/git/<host>/<owner>/<name>.git`), MCP (stdio und `/mcp`).
-- **Zugang**: Tokens (nur Hash gespeichert), lokal vertrauenswürdig, sonst Anmeldung;
-  `REPOSHELF_ADMIN_TOKEN` für Docker.
-- **Tests**: Fake-Host (`internal/testutil`: git http-backend + JSON-API), keine
-  Netzzugriffe in Unit-Tests.
-**Achtung:** Lokal keine großen Repos testen – Release-Dateien können sehr groß
-werden (T-1.13). Die Vorschau der Desktop-App startet Programme aus `~/Documents`
-nicht (macOS-Freigabe); Server zum Ansehen per Terminal starten.
-Entscheidungen D-017–D-020 (htmx, Host ohne Port, Wails v2, MinGit) eingetragen.
+**2026-11-08 · Claude Code:** Projekt nach Konzept umgesetzt (Auftrag „fertigstellen“).
+Alles auf `main`, CI (Linux: gofmt, vet, Tests mit Race-Detector, golangci-lint,
+Cross-Builds) grün.
+
+**Zum Testen (lokal, ohne Docker):**
+```
+go build -o bin/reposhelf ./cmd/reposhelf
+./bin/reposhelf init ~/RepoShelf-Test
+./bin/reposhelf add https://github.com/octocat/Hello-World
+./bin/reposhelf serve      # http://127.0.0.1:7373
+```
+Anleitung für alles Weitere: `docs/BETRIEB.md`.
+
+**Nur in CI/auf Zielsystemen prüfbar (lokal nicht erlaubt):** Docker-Image,
+Desktop-Apps (Wails v2: bisher nur Typprüfung, nie gestartet), echte Builds in
+Containern und mit `act`, GitHub-Actions-Dispatch. Erstes Release: Tag `v0.1.0`
+pushen oder `Release`-Workflow manuell mit „Desktop-Apps bauen“ starten.
+
+**Offen für Dennis:** F-007 (Code-Volltextsuche, T-9.5 blockiert), F-014
+(Instanzschlüssel im Datenordner).
+
+**Achtung:**
+- Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
+  (T-1.13), der Hinzufügen-Dialog zeigt die erwartete Größe.
+- Die Vorschau der Claude-Desktop-App startet Programme aus `~/Documents` nicht
+  (macOS-Freigabe); Server zum Ansehen im Terminal starten.
 
 ---
 
@@ -61,6 +70,7 @@ Entscheidung: Status `entschieden`, Eintrag in `docs/ENTSCHEIDUNGEN.md`, Verweis
 | F-011 | Projektordner heißt `Portable RepoShelf ` (Leerzeichen am Ende) – umbenennen? | Ja, auf `Portable RepoShelf` oder `reposhelf` | offen | |
 | F-012 | Forgejo-Code übernehmen erlauben (Folge von F-003, bisher durch D-002 verboten)? | Erlauben, da RepoShelf selbst GPL ist | entschieden | **Ja** → D-015 (ersetzt D-002) |
 | F-013 | Wie wird ein Host mit Port (`gitea.local:3000`, z. B. Gitea auf Unraid) im Ordnerpfad abgebildet? `:` ist unter Windows im Dateinamen verboten; bis zur Entscheidung lehnt die Prüfung solche Hosts ab | `source.host` bleibt `gitea.local:3000`, Ordner heißt `gitea.local+3000` (`+` kommt in Hostnamen nie vor); IPv6-Adressen ebenso ohne `[]` und `:` abbilden | entschieden | **Ordner ohne Port** (`gitea.local`), Doppelte werden gemeldet → D-018 |
+| F-014 | Der Instanzschlüssel für den Abgleich (Ed25519, `.reposhelf/instance.key`, Rechte 0600) liegt im Datenordner. Konzept 4.2 sagt „Geheimnisse nie im Datenordner im Klartext“. So lassen? | So lassen: Er ist ein selbst erzeugter Maschinenschlüssel wie ein SSH-Hostkey, verlässt die Instanz nie und macht den portablen Betrieb (USB, Docker-Volume) erst möglich. Alternative: auf dem Desktop im Schlüsselbund, in Docker als Secret-Datei | offen | |
 
 ---
 
@@ -95,11 +105,11 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-0.3 | `repo.yaml`-Schema in `docs/SCHEMA.md` festschreiben; Lesen/Schreiben mit Erhalt unbekannter Felder; Validierung; Tests inkl. Vorversion | erledigt | Claude Code | 2026-11-08 | `6cb6be0`, gemergt `7df78c3` (ohne Review, Wunsch Dennis; Festlegungen bestätigt) |
 | T-0.4 | SQLite-Treiber ohne CGO mit FTS5 wählen und begründen; Index-Schema; `reindex` aus Dateien | erledigt | Claude Code | 2026-11-08 | `64cb17a` – modernc.org/sqlite (rein Go, FTS5); Index wird bei Schemawechsel neu aufgebaut |
 | T-0.5 | Atomares Schreiben und Pfad-Sanitizing, mit Tests (Fero-Invarianten) | erledigt | Claude Code | 2026-11-08 | `f5619cb`, gemergt `fc8b09f` (ohne Review, Wunsch Dennis) |
-| T-0.6 | Gitea-Quellcode sichten: Übernahme-Kandidaten mit Pfad + Commit in `docs/GITEA-UEBERNAHMEN.md`; `THIRD_PARTY.md` anlegen | offen | | | Seit D-015 auch Forgejo-Code übernehmbar |
-| T-0.7 | CI (GitHub Actions): `go vet`, `go test`, `golangci-lint`, Cross-Build linux/darwin/windows – **alles auf Linux-Runnern** (Go baut darwin/windows ohne CGO per Cross-Compile); macOS-/Windows-Runner nur manuell oder bei `v*`-Tag (D-012) | offen | | | |
+| T-0.6 | Gitea-Quellcode sichten: Übernahme-Kandidaten mit Pfad + Commit in `docs/GITEA-UEBERNAHMEN.md`; `THIRD_PARTY.md` anlegen | erledigt | Claude Code | 2026-11-08 | `docs/GITEA-UEBERNAHMEN.md` – Stand go-gitea/gitea `8cb6fb2`; bisher kein Code übernommen (Gründe dort); Seit D-015 auch Forgejo-Code übernehmbar |
+| T-0.7 | CI (GitHub Actions): `go vet`, `go test`, `golangci-lint`, Cross-Build linux/darwin/windows – **alles auf Linux-Runnern** (Go baut darwin/windows ohne CGO per Cross-Compile); macOS-/Windows-Runner nur manuell oder bei `v*`-Tag (D-012) | erledigt | Claude Code | 2026-11-08 | `.github/workflows/ci.yml`, `.golangci.yml`; erster Lauf grün nach Lint-Fixes |
 | T-0.8 | Logging- und Fehlerkonzept (strukturiertes Log, Fehlerarten) | erledigt | Claude Code | 2026-11-08 | `64cb17a` – `internal/logx` (slog, Rotation, Token-Schwärzung); Fehlerarten als Sentinel-Fehler |
 | T-0.9 | SQLite auf exFAT/FAT erkennen → `journal_mode=DELETE` | erledigt | Claude Code | 2026-11-08 | `64cb17a` – `internal/fsinfo` |
-| T-0.10 | Prüfen: selbst gehosteter GitHub-Actions-Runner auf Unraid (Docker) für private Repos – kostet keine Actions-Minuten | offen | | | Vorstufe zu Phase 7 |
+| T-0.10 | Prüfen: selbst gehosteter GitHub-Actions-Runner auf Unraid (Docker) für private Repos – kostet keine Actions-Minuten | erledigt | Claude Code | 2026-11-08 | `docs/RUNNER-UNRAID.md` – machbar, nur für eigene private Repos; Vorstufe zu Phase 7 |
 | T-0.11 | Privates GitHub-Repo `Fenron-dev/reposhelf` anlegen (D-012, D-013), `main` und Branches pushen | erledigt | Claude Code | 2026-11-08 | https://github.com/Fenron-dev/reposhelf |
 | T-0.12 | Datenordner einrichten: Zeigerdatei atomar schreiben (nach T-0.5), Grundstruktur anlegen, CLI `reposhelf init <ordner>`; später Einrichtungsdialog | erledigt | Claude Code | 2026-11-08 | `fad38bc` – `reposhelf init [ordner]`, Zeigerdatei atomar; aus T-0.2; `datadir.PointerPath` gibt den Ort vor |
 | T-0.13 | Liegengebliebene Zwischendateien (`.reposhelf-tmp-*`, nach Absturz) beim Start bzw. in `doctor` erkennen und aufräumen – nur reguläre Dateien mit diesem Präfix | erledigt | Claude Code | 2026-11-08 | `64cb17a`, `fad38bc` – beim Start von `serve` und in `doctor`; aus T-0.5; `atomicfile.IsTemp` |
@@ -120,7 +130,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-1.10 | Weboberfläche: Repo-Detail mit README (goldmark/GFM) | erledigt | Claude Code | 2026-11-08 | `9dc73ff` |
 | T-1.11 | Weboberfläche: Repo hinzufügen | erledigt | Claude Code | 2026-11-08 | `9dc73ff` |
 | T-1.12 | Namenskollisionen erkennen: Repos, deren Pfad sich nur in Groß-/Kleinschreibung oder Unicode-Normalisierung (NFC/NFD) unterscheidet, landen auf macOS/Windows im selben Ordner – beim Hinzufügen ablehnen mit Meldung | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` – Index-Schlüssel ohne Groß-/Kleinschreibung, NFC; aus T-0.5 |
-| T-1.13 | Release-Dateien begrenzen: Höchstgröße je Datei/Release einstellbar, erwartete Downloadgröße im Hinzufügen-Dialog anzeigen | offen | | | aus Praxistest: zwei Repos luden mit „neueste 5 Releases“ 1,4 GB |
+| T-1.13 | Release-Dateien begrenzen: Höchstgröße je Datei/Release einstellbar, erwartete Downloadgröße im Hinzufügen-Dialog anzeigen | erledigt | Claude Code | 2026-11-08 | `retention.max_asset_mb`; Größenschätzung im Hinzufügen-Dialog; aus Praxistest: zwei Repos luden mit „neueste 5 Releases“ 1,4 GB |
 
 ### Phase 2 – Organisation
 
@@ -159,48 +169,48 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 | ID | Aufgabe | Status | Wer | Datum | Notiz / Commit |
 |---|---|---|---|---|---|
-| T-5.1 | Dockerfile + Image (mit `git`, `git-lfs`) | offen | | | Image setzt `REPOSHELF_DATA=/data` und `REPOSHELF_LISTEN=:7373` (T-0.2, D-016) |
-| T-5.2 | Unraid-Template | offen | | | |
-| T-5.3 | Desktop-Hülle (Wails; vorher F-004) | offen | | | |
-| T-5.4 | Portabler Modus, macOS-Bundle-Pfade, Linux `noexec` | offen | | | |
-| T-5.5 | Release-Workflow (macOS DMG, Windows, Linux, Docker) | offen | | | |
+| T-5.1 | Dockerfile + Image (mit `git`, `git-lfs`) | erledigt | Claude Code | 2026-11-08 | `Dockerfile` (git, git-lfs, docker-cli, act mit Prüfsumme); Bau nur in CI; Image setzt `REPOSHELF_DATA=/data` und `REPOSHELF_LISTEN=:7373` (T-0.2, D-016) |
+| T-5.2 | Unraid-Template | erledigt | Claude Code | 2026-11-08 | `deploy/unraid/reposhelf.xml` |
+| T-5.3 | Desktop-Hülle (Wails; vorher F-004) | erledigt | Claude Code | 2026-11-08 | `cmd/reposhelf-desktop` (Wails v2, D-019) mit Einrichtungsdialog; nur in CI gebaut – **noch nicht auf einem Mac gestartet** |
+| T-5.4 | Portabler Modus, macOS-Bundle-Pfade, Linux `noexec` | erledigt | Claude Code | 2026-11-08 | portabler Ordner neben Programm bzw. `.app` (T-0.2), MinGit für Windows (D-020); Linux `noexec` unkritisch, weil im Datenordner nichts ausgeführt wird |
+| T-5.5 | Release-Workflow (macOS DMG, Windows, Linux, Docker) | erledigt | Claude Code | 2026-11-08 | `.github/workflows/release.yml` (CLI-Archive, ghcr.io-Image, DMG, Windows-ZIP mit MinGit) |
 
 ### Phase 6 – Baubar halten
 
 | ID | Aufgabe | Status | Wer | Datum | Notiz / Commit |
 |---|---|---|---|---|---|
-| T-6.1 | Kapsel-Manifest und Ablage | offen | | | |
-| T-6.2 | Ökosysteme Go und Rust | offen | | | |
-| T-6.3 | Ökosystem Dart/Flutter | offen | | | |
-| T-6.4 | Ökosysteme Node und Python; Docker-Basis-Images | offen | | | |
-| T-6.5 | Inhaltsadressierter Dedup-Cache | offen | | | |
-| T-6.6 | Kapsel-Test (Offline-Build) | offen | | | |
+| T-6.1 | Kapsel-Manifest und Ablage | erledigt | Claude Code | 2026-11-08 | `internal/artifact`, `internal/runner/capsule.go` |
+| T-6.2 | Ökosysteme Go und Rust | erledigt | Claude Code | 2026-11-08 | Go (`go mod vendor`), Rust (`cargo vendor`) |
+| T-6.3 | Ökosystem Dart/Flutter | erledigt | Claude Code | 2026-11-08 | Dart/Flutter (PUB_CACHE in der Kapsel) |
+| T-6.4 | Ökosysteme Node und Python; Docker-Basis-Images | erledigt | Claude Code | 2026-11-08 | Node (npm-Cache), Python (`pip download`), Docker (`docker save`) |
+| T-6.5 | Inhaltsadressierter Dedup-Cache | erledigt | Claude Code | 2026-11-08 | `capsules/blobs/sha256/…`; ungenutzte Dateien in der Lösch-Prüfung |
+| T-6.6 | Kapsel-Test (Offline-Build) | erledigt | Claude Code | 2026-11-08 | Offline-Build mit `--network none`; Ergebnis im Manifest |
 
 ### Phase 7 – Builds & Runner
 
 | ID | Aufgabe | Status | Wer | Datum | Notiz / Commit |
 |---|---|---|---|---|---|
-| T-7.1 | Runner-Rolle und Fähigkeiten-Meldung | offen | | | |
-| T-7.2 | Ausführung von GitHub-Workflows mit `act` | offen | | | |
-| T-7.3 | Eigene Build-Definition `reposhelf-build.yaml` | offen | | | |
-| T-7.4 | GitHub Actions als externer Runner, Artefakte ins Archiv | offen | | | |
-| T-7.5 | Speicherprüfung und Bestätigungspflicht für schwache Runner | offen | | | |
-| T-7.6 | MCP-Werkzeuge `start_build` / `get_build` | offen | | | |
+| T-7.1 | Runner-Rolle und Fähigkeiten-Meldung | erledigt | Claude Code | 2026-11-08 | Runner-Liste mit Fähigkeiten, Docker- und Speicherprüfung |
+| T-7.2 | Ausführung von GitHub-Workflows mit `act` | erledigt | Claude Code | 2026-11-08 | `act` für Linux-Jobs |
+| T-7.3 | Eigene Build-Definition `reposhelf-build.yaml` | erledigt | Claude Code | 2026-11-08 | `reposhelf-build.yaml` (siehe BETRIEB.md) |
+| T-7.4 | GitHub Actions als externer Runner, Artefakte ins Archiv | erledigt | Claude Code | 2026-11-08 | workflow_dispatch, Lauf verfolgen, Artefakte ins Archiv |
+| T-7.5 | Speicherprüfung und Bestätigungspflicht für schwache Runner | erledigt | Claude Code | 2026-11-08 | Bestätigungspflicht, Mindestspeicher, Ressourcengrenzen |
+| T-7.6 | MCP-Werkzeuge `start_build` / `get_build` | erledigt | Claude Code | 2026-11-08 | MCP `start_build`/`get_build` |
 
 ### Phase 8 – Abgleich zwischen Instanzen
 
 | ID | Aufgabe | Status | Wer | Datum | Notiz / Commit |
 |---|---|---|---|---|---|
-| T-8.1 | Kopplung (Code, Token, Fingerprint) | offen | | | |
-| T-8.2 | Selektiver Abgleich (Stufen) | offen | | | |
-| T-8.3 | Feldweise Konflikterkennung und -anzeige | offen | | | |
+| T-8.1 | Kopplung (Code, Token, Fingerprint) | erledigt | Claude Code | 2026-11-08 | Ed25519-Schlüssel, Kopplungscode, Fingerprint, signierte Anfragen; siehe F-014 |
+| T-8.2 | Selektiver Abgleich (Stufen) | erledigt | Claude Code | 2026-11-08 | Auswahl alle/Sammlung/Repo × Stufe meta/code/releases/capsules; manuell oder Intervall |
+| T-8.3 | Feldweise Konflikterkennung und -anzeige | erledigt | Claude Code | 2026-11-08 | Drei-Wege-Vergleich je Feld, Konflikte in der Oberfläche |
 
 ### Phase 9 – Ausbau
 
 | ID | Aufgabe | Status | Wer | Datum | Notiz / Commit |
 |---|---|---|---|---|---|
 | T-9.1 | GitHub-Issues spiegeln | erledigt | Claude Code | 2026-11-08 | `6f0ca0a` – Markdown mit YAML-Frontmatter unter `meta/…/issues/` |
-| T-9.2 | Weitere Quellen: GitLab, Codeberg/Gitea/Forgejo, Git-URL, ZIP | in Arbeit | Claude Code | 2026-11-08 | GitLab, Gitea/Forgejo/Codeberg, beliebige Git-URL fertig (`1ac3cd1`); ZIP-Import fehlt |
+| T-9.2 | Weitere Quellen: GitLab, Codeberg/Gitea/Forgejo, Git-URL, ZIP | erledigt | Claude Code | 2026-11-08 | GitLab, Gitea/Forgejo/Codeberg, beliebige Git-URL, ZIP-Import (mit .git: ganze Geschichte); GitLab, Gitea/Forgejo/Codeberg, beliebige Git-URL fertig (`1ac3cd1`); ZIP-Import fehlt |
 | T-9.3 | Themes (hell, Akzentfarbe) | erledigt | Claude Code | 2026-11-08 | `9dc73ff` – hell/dunkel |
 | T-9.4 | Graph-Ansicht Beziehungen | erledigt | Claude Code | 2026-11-08 | `9dc73ff` |
 | T-9.5 | Code-Volltextsuche (nach F-007) | blockiert | Claude Code | 2026-11-08 | wartet auf F-007 |
@@ -212,6 +222,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-08 · Claude Code · Phasen 5–8 und Rest von 9 umgesetzt (Docker, Unraid, Desktop, Release, Kapseln, Builds, Abgleich, ZIP); T-0.6/0.7/0.10/1.13 erledigt; F-014 neu
 - 2026-11-08 · Claude Code · F-004/F-005/F-010/F-013 entschieden (D-017–D-020); Phasen 0–4 und große Teile von 9 umgesetzt (Kern, CLI, Web, API, Git-HTTP, MCP); T-1.13 neu
 - 2026-11-08 · Claude Code · T-0.5 gemergt und gepusht (erledigt)
 - 2026-11-08 · Claude Code · T-0.5 atomares Schreiben + Pfadprüfung (internal/atomicfile, internal/safepath) → Review; F-013, T-0.13, T-1.12 neu

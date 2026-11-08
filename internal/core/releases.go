@@ -51,6 +51,8 @@ type ReleaseReport struct {
 	Downloaded int
 	Bytes      int64
 	Deduped    int
+	// Skipped lists assets above the size limit.
+	Skipped []string
 }
 
 // encodeName turns a version or asset name from the network into a safe
@@ -77,6 +79,29 @@ func encodeName(name string) string {
 		s = s[:200] + "~" + hex.EncodeToString(sum[:8])
 	}
 	return s
+}
+
+// EstimateReleaseSize sums the asset sizes RepoShelf would download for
+// the newest keep releases (shown in the add dialog, T-1.13).
+func EstimateReleaseSize(rels []sources.Release, keep int, maxAssetMB int) (int64, int) {
+	sort.SliceStable(rels, func(i, j int) bool { return timeOf(rels[i].Published).After(timeOf(rels[j].Published)) })
+	var total int64
+	files, n := 0, 0
+	limit := int64(maxAssetMB) << 20
+	for _, r := range rels {
+		if r.Draft || n >= keep {
+			continue
+		}
+		n++
+		for _, a := range r.Assets {
+			if limit > 0 && a.Size > limit {
+				continue
+			}
+			total += a.Size
+			files++
+		}
+	}
+	return total, files
 }
 
 // releasesKeep returns how many releases keep their assets.
@@ -122,6 +147,10 @@ func (l *Library) syncReleases(ctx context.Context, r *Repo) (ReleaseReport, err
 		if wantAssets {
 			for _, a := range rel.Assets {
 				if slices.ContainsFunc(sr.Stored, func(s StoredAsset) bool { return s.Name == a.Name }) {
+					continue
+				}
+				if limit := int64(l.Config().Retention.MaxAssetMB) << 20; limit > 0 && a.Size > limit {
+					rep.Skipped = append(rep.Skipped, rel.Tag+"/"+a.Name)
 					continue
 				}
 				sa, n, deduped, err := l.storeAsset(ctx, api, dir, a, known)

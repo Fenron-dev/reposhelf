@@ -3,6 +3,8 @@
 package core
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"errors"
 	"os"
@@ -432,3 +434,33 @@ func TestLocalForkAndScheduler(t *testing.T) {
 }
 
 func fileExists(p string) bool { _, err := os.Stat(p); return err == nil }
+
+func TestImportZIP(t *testing.T) {
+	ctx := context.Background()
+	f := testutil.NewForge(t)
+	l, _ := openLib(t, f)
+	mk := func(files map[string]string) *zip.Reader {
+		var buf bytes.Buffer
+		zw := zip.NewWriter(&buf)
+		for n, c := range files {
+			w, _ := zw.Create(n)
+			w.Write([]byte(c))
+		}
+		zw.Close()
+		zr, _ := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+		return zr
+	}
+	r, err := l.ImportZIP(ctx, mk(map[string]string{"tool-main/README.md": "# Tool\n", "tool-main/src/a.go": "package a\n"}), "", "", "aus ZIP", nil, "t")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Entry.Name != "tool-main" || !l.Git.HasCommits(ctx, r.Paths.Mirror) {
+		t.Fatalf("import = %+v", r.Entry)
+	}
+	if b, err := l.Git.ReadFile(ctx, r.Paths.Mirror, "HEAD", "src/a.go", 0); err != nil || string(b) != "package a\n" {
+		t.Errorf("content = %q %v", b, err)
+	}
+	if _, err := l.ImportZIP(ctx, mk(map[string]string{"../evil.txt": "x"}), "", "evil", "", nil, "t"); !errors.Is(err, ErrInvalid) {
+		t.Errorf("zip slip = %v", err)
+	}
+}

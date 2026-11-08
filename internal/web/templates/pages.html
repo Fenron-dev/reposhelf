@@ -24,6 +24,7 @@
   <fieldset><legend>Mitsichern</legend>
     <label class="check"><input type="checkbox" checked disabled> Code &amp; alle Branches (immer)</label>
     <label class="check"><input type="checkbox" name="releases" checked> Releases &amp; Dateien</label>
+    <div id="release-size" class="small muted">{{with $d.Preview}}{{if ge .ReleaseBytes 0}}Neueste {{$d.Defaults.Retention.ReleasesKeep}} Releases: {{.ReleaseFiles}} Dateien, etwa <strong>{{size .ReleaseBytes}}</strong>{{if $d.Defaults.Retention.MaxAssetMB}} (Dateien über {{$d.Defaults.Retention.MaxAssetMB}} MB werden übersprungen){{end}}{{end}}{{end}}</div>
     <label class="check"><input type="checkbox" name="lfs" checked> Git LFS</label>
     <label class="check"><input type="checkbox" name="submodules" checked> Submodule (werden eigene Spiegel)</label>
     <label class="check"><input type="checkbox" name="issues"> Issues</label>
@@ -48,6 +49,18 @@
     <button class="btn btn-primary" type="submit">Hinzufügen &amp; klonen</button>
   </div>
 </form>
+
+<details class="card dialog">
+  <summary><strong>Aus ZIP-Archiv anlegen</strong></summary>
+  <form method="post" action="/import-zip" enctype="multipart/form-data" class="stack">
+    <label>ZIP-Datei <input type="file" name="zip" accept=".zip,application/zip" required></label>
+    <label>Name <input name="name" placeholder="leer = Ordnername im Archiv"></label>
+    <label>Bereich <input name="owner" placeholder="projekte"></label>
+    <label>Schlagwörter <input name="tags"></label>
+    <button class="btn" type="submit">Hochladen und anlegen</button>
+    <p class="small muted">Enthält das Archiv einen <span class="mono">.git</span>-Ordner, wird die ganze Geschichte übernommen.</p>
+  </form>
+</details>
 
 <details class="card dialog">
   <summary><strong>Neues eigenes Projekt nur in RepoShelf anlegen</strong></summary>
@@ -76,6 +89,7 @@
   {{else}}
   <div class="small muted">{{if .MetaError}}Keine Metadaten: {{.MetaError}}{{else}}Ohne API – nur Git.{{end}}</div>
   {{end}}
+  {{if ge .ReleaseBytes 0}}<div class="small {{if gt .ReleaseBytes 524288000}}warn{{else}}muted{{end}}">Release-Dateien der neuesten Versionen: {{.ReleaseFiles}} Dateien, etwa {{size .ReleaseBytes}}{{if gt .ReleaseBytes 524288000}} – viel Platz; „Releases &amp; Dateien“ ggf. abwählen oder in den Einstellungen eine Höchstgröße setzen{{end}}</div>{{end}}
   <div class="small muted">Wird gespeichert unter <span class="mono">meta/{{.Parsed.Source.Key}}/repo.yaml</span></div>
 </div>
 {{end}}{{end}}
@@ -261,6 +275,7 @@
   </fieldset>
   <fieldset class="card" id="aufbewahrung"><legend>Aufbewahrung (global)</legend>
     <label>Neueste Releases behalten <input name="releases_keep" class="short" value="{{$c.Retention.ReleasesKeep}}" inputmode="numeric"></label>
+    <label>Höchstgröße je Release-Datei (MB) <input name="max_asset_mb" class="short" value="{{$c.Retention.MaxAssetMB}}" inputmode="numeric"><span class="small muted">0 = keine Grenze</span></label>
     <label>Snapshot alle <input name="snapshots_every" class="short" value="{{$c.Retention.SnapshotsEvery}}"><span class="small muted">0 = aus</span></label>
     <label>Snapshots behalten <input name="snapshots_keep_for" class="short" value="{{$c.Retention.SnapshotsKeepFor}}"></label>
     <label>Force-Push-Sicherungen behalten <input name="backups_keep_for" class="short" value="{{$c.Retention.ForcePushBackupsKeepFor}}"></label>

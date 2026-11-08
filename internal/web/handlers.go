@@ -3,6 +3,7 @@
 package web
 
 import (
+	"archive/zip"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -679,6 +680,35 @@ func (s *Server) createLocal(w http.ResponseWriter, r *http.Request) {
 	redirect(w, r, withMsg("/repo/"+repo.R().ID, "ok", "Projekt angelegt. Mit „git push“ an die Klon-Adresse füllst du es."))
 }
 
+// maxUpload bounds ZIP uploads.
+const maxUpload = 4 << 30
+
+func (s *Server) importZip(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxUpload)
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		s.fail(w, r, http.StatusBadRequest, "Upload: "+err.Error())
+		return
+	}
+	defer func() { _ = r.MultipartForm.RemoveAll() }()
+	file, hdr, err := r.FormFile("zip")
+	if err != nil {
+		s.fail(w, r, http.StatusBadRequest, "Bitte eine ZIP-Datei wählen.")
+		return
+	}
+	defer file.Close()
+	zr, err := zip.NewReader(file, hdr.Size)
+	if err != nil {
+		s.fail(w, r, http.StatusBadRequest, "Keine gültige ZIP-Datei: "+err.Error())
+		return
+	}
+	repo, err := s.Lib.ImportZIP(r.Context(), zr, r.FormValue("owner"), r.FormValue("name"), r.FormValue("description"), splitList(r.FormValue("tags")), s.actor(r))
+	if err != nil {
+		s.failErr(w, r, err)
+		return
+	}
+	redirect(w, r, withMsg("/repo/"+repo.R().ID, "ok", "Aus ZIP angelegt."))
+}
+
 // ---- Tags, collections, graph ----
 
 func (s *Server) tagsPage(w http.ResponseWriter, r *http.Request) {
@@ -994,7 +1024,7 @@ func (s *Server) settingsSave(w http.ResponseWriter, r *http.Request) {
 			*dst = d
 		}
 	}
-	for key, dst := range map[string]*int{"capsules_keep": &cfg.Retention.CapsulesKeep, "builds_keep": &cfg.Retention.BuildsKeep, "trash_days": &cfg.Retention.TrashDays, "max_parallel": &cfg.Runner.MaxParallel, "min_free_gb": &cfg.Runner.MinFreeGB} {
+	for key, dst := range map[string]*int{"max_asset_mb": &cfg.Retention.MaxAssetMB, "capsules_keep": &cfg.Retention.CapsulesKeep, "builds_keep": &cfg.Retention.BuildsKeep, "trash_days": &cfg.Retention.TrashDays, "max_parallel": &cfg.Runner.MaxParallel, "min_free_gb": &cfg.Runner.MinFreeGB} {
 		if n, err := strconv.Atoi(f.Get(key)); err == nil {
 			*dst = n
 		}

@@ -32,6 +32,7 @@ Repos:
   tags [<repo> a,b]        Schlagwörter anzeigen bzw. setzen
   rename-tag <alt> <neu>   Schlagwort überall umbenennen/zusammenführen
   import                   Alle eigenen (--starred: gesternten) Repos übernehmen (--host, --dry-run)
+  import-zip <datei.zip>   Eigenes Projekt aus einem ZIP anlegen (mit .git: ganze Geschichte)
   reindex                  Index aus den Dateien neu aufbauen
 
 Aufbewahrung:
