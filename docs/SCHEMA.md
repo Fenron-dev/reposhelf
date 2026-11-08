@@ -82,8 +82,8 @@ created: 2026-11-08T10:00:00Z
 |---|---|---|---|---|
 | `schema` | Zahl | ja | – | `1` |
 | `id` | ULID | ja | – | 26 Zeichen, Crockford-Base32, Großbuchstaben, erstes Zeichen ≤ `7`. Bleibt bei Umbenennung gleich. |
-| `source.url` | URL | ja | – | Schema `https`, `http`, `ssh` oder `git`; mit Host. Keine Zugangsdaten; nur bei `ssh` ist ein Benutzername ohne Passwort erlaubt (`ssh://git@…`). Lokale Pfade/`file:` sind nicht erlaubt. |
-| `source.host` | Host | ja | – | `hostname` oder `hostname:port` (Port 1–65535). Der Ordnername ist nur der Hostname (D-018); IPv6-Adressen werden nicht unterstützt. |
+| `source.url` | URL | ja (außer bei `host: local`) | – | Schema `https`, `http`, `ssh` oder `git`; mit Host. Keine Zugangsdaten; nur bei `ssh` ist ein Benutzername ohne Passwort erlaubt (`ssh://git@…`). Lokale Pfade/`file:` sind nicht erlaubt. |
+| `source.host` | Host | ja | – | `hostname` oder `hostname:port` (Port 1–65535). `local` = Repo existiert nur in RepoShelf (eigenes Projekt ohne Upstream oder Fork eines Spiegels); dann darf `source.url` leer sein. Der Ordnername ist nur der Hostname (D-018); IPv6-Adressen werden nicht unterstützt. |
 | `source.owner` | Segment(e) | ja | – | ein oder mehrere Segmente mit `/` (verschachtelte GitLab-Gruppen) |
 | `source.name` | Segment | ja | – | siehe „Segment“ |
 | `kind` | Auswahl | ja | – | `own` · `mirror` · `fork` |

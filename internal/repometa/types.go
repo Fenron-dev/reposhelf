@@ -43,6 +43,10 @@ type Source struct {
 	Name  string `yaml:"name"`
 }
 
+// LocalHost is the host of repositories that exist only in RepoShelf: own
+// projects created here and forks of mirrors. Their source.url may be empty.
+const LocalHost = "local"
+
 // HostName is the host without port. It names the host folder (D-018).
 func (s Source) HostName() string {
 	name, _, _ := strings.Cut(s.Host, ":")

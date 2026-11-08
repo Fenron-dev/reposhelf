@@ -229,7 +229,7 @@ func TestErrorClassification(t *testing.T) {
 		t.Errorf("missing repo = %v, want ErrGone", err)
 	}
 	cases := map[string]error{
-		"fatal: Authentication failed for 'https://x'":               ErrAuth,
+		"fatal: Authentication failed for 'https://x'":              ErrAuth,
 		"fatal: could not read Username: terminal prompts disabled": ErrAuth,
 		"fatal: unable to access: Could not resolve host: x":        ErrUnreachable,
 		"remote: Repository not found.":                             ErrGone,
