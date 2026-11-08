@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/Fenron-dev/reposhelf/internal/safepath"
 )
 
 func validRepo() Repo {
@@ -68,7 +70,15 @@ func TestValidateRejects(t *testing.T) {
 		{"name slash", "source.name", func(r *Repo) { r.Source.Name = "a/b" }},
 		{"name control char", "source.name", func(r *Repo) { r.Source.Name = "a\x00b" }},
 		{"name spaces", "source.name", func(r *Repo) { r.Source.Name = " Fero" }},
-		{"name too long", "source.name", func(r *Repo) { r.Source.Name = strings.Repeat("x", maxSegmentBytes+1) }},
+		{"name too long", "source.name", func(r *Repo) { r.Source.Name = strings.Repeat("x", safepath.MaxSegmentBytes+1) }},
+		{"name windows device", "source.name", func(r *Repo) { r.Source.Name = "con" }},
+		{"name trailing dot", "source.name", func(r *Repo) { r.Source.Name = "Fero." }},
+		{"owner windows char", "source.owner", func(r *Repo) { r.Source.Owner = "group/a?b" }},
+		{"host with port", "source.host", func(r *Repo) { r.Source.Host = "gitea.local:3000" }},
+		{"collection device", "collections[0]", func(r *Repo) { r.Collections = []string{"NUL"} }},
+		{"target device", "relations[0].target", func(r *Repo) {
+			r.Relations = []Relation{{Type: "related", Target: "github.com/a/aux.git", State: RelationConfirmed}}
+		}},
 		{"kind", "kind", func(r *Repo) { r.Kind = "copy" }},
 		{"fork without origin", "fork_of", func(r *Repo) { r.Kind = KindFork }},
 		{"origin without fork", "fork_of", func(r *Repo) { r.ForkOf = ptrTo("github.com/a/b") }},
