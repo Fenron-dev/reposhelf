@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>RepoShelf – Builds &amp; Runner</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0E1014}
+a{color:#F2B544}a:hover{color:#FFD27A}
+</style>
+</helmet>
+<div style="box-sizing: border-box; min-height: 100vh; display: flex; flex-wrap: wrap; background: #0E1014; color: #E7E9EE; font-family: Inter, system-ui, sans-serif">
+  <div style="flex: 1 1 240px; display: flex">
+    <dc-import name="Sidebar" active="builds" hint-size="100%,980px"></dc-import>
+  </div>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 28px 36px 48px; display: flex; flex-direction: column; gap: 26px">
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <h1 style="margin: 0; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 32px; font-weight: 600; letter-spacing: -0.02em">Builds &amp; Runner</h1>
+        <p style="margin: 0; color: #9BA3AF; font-size: 14px">Jede RepoShelf-Instanz kann als Runner bauen. Fertige Dateien landen automatisch im Archiv.</p>
+      </div>
+      <button type="button" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 10px; border: 0; background: #F2B544; color: #1A1206; font: inherit; font-size: 14px; font-weight: 600">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>Neuer Build
+      </button>
+    </div>
+
+    <section aria-labelledby="runner-h" style="display: flex; flex-direction: column; gap: 12px">
+      <h2 id="runner-h" style="margin: 0; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #9BA3AF">Runner</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px">
+        <article style="padding: 18px; border-radius: 14px; background: #12151B; border: 1px solid #2A303C; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px"><span style="font-weight: 600; font-size: 15px">Unraid</span><span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #86EFAC"><span aria-hidden="true">●</span>Online</span></div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #C9CED8"><span style="padding: 2px 7px; border-radius: 6px; background: #1B1F28">linux/amd64</span><span style="padding: 2px 7px; border-radius: 6px; background: #1B1F28">android</span><span style="padding: 2px 7px; border-radius: 6px; background: #1B1F28">docker</span></div>
+          <div style="font-size: 13px; color: #9BA3AF">1 von 4 Plätzen belegt · Standard für Linux &amp; Android</div>
+          <div aria-hidden="true" style="height: 6px; border-radius: 3px; background: #232833"><div style="width: 25%; height: 6px; border-radius: 3px; background: #F2B544"></div></div>
+        </article>
+        <article style="padding: 18px; border-radius: 14px; background: #12151B; border: 1px solid #2A303C; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px"><span style="font-weight: 600; font-size: 15px">MacBook Air</span><span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #C9CED8"><span aria-hidden="true">○</span>Nur auf Anfrage</span></div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #C9CED8"><span style="padding: 2px 7px; border-radius: 6px; background: #1B1F28">macos/arm64</span><span style="padding: 2px 7px; border-radius: 6px; background: #1B1F28">xcode</span></div>
+          <div style="font-size: 13px; color: #FDBA74">Wenig freier Speicher · jeder Build braucht deine Bestätigung</div>
+        </article>
+        <article style="padding: 18px; border-radius: 14px; background: #12151B; border: 1px solid #2A303C; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px"><span style="font-weight: 600; font-size: 15px">Workstation</span><span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #9BA3AF"><span aria-hidden="true">■</span>Offline</span></div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #C9CED8"><span style="padding: 2px 7px; border-radius: 6px; background: #1B1F28">linux/amd64</span><span style="padding: 2px 7px; border-radius: 6px; background: #1B1F28">windows</span><span style="padding: 2px 7px; border-radius: 6px; background: #1B1F28">gpu</span></div>
+          <div style="font-size: 13px; color: #9BA3AF">Zuletzt gesehen vor 3 Tagen · Desktop-Version</div>
+        </article>
+        <article style="padding: 18px; border-radius: 14px; background: #12151B; border: 1px dashed #3B4252; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px"><span style="font-weight: 600; font-size: 15px">GitHub Actions</span><span style="font-size: 12px; color: #C9CED8">Extern</span></div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #C9CED8"><span style="padding: 2px 7px; border-radius: 6px; background: #1B1F28">macos-universal</span><span style="padding: 2px 7px; border-radius: 6px; background: #1B1F28">windows</span></div>
+          <div style="font-size: 13px; color: #9BA3AF">Für Repos auf GitHub · Artefakte werden ins Archiv übernommen</div>
+        </article>
+      </div>
+    </section>
+
+    <section aria-labelledby="queue-h" style="display: flex; flex-direction: column; gap: 12px">
+      <h2 id="queue-h" style="margin: 0; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #9BA3AF">Letzte Builds</h2>
+      <div style="overflow-x: auto; border: 1px solid #232833; border-radius: 14px; background: #12151B">
+        <table style="width: 100%; min-width: 960px; border-collapse: collapse; font-size: 14px">
+          <thead>
+            <tr style="text-align: left; color: #9BA3AF; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em">
+              <th scope="col" style="padding: 12px 18px; font-weight: 600; border-bottom: 1px solid #232833">Status</th>
+              <th scope="col" style="padding: 12px; font-weight: 600; border-bottom: 1px solid #232833">Repo · Stand</th>
+              <th scope="col" style="padding: 12px; font-weight: 600; border-bottom: 1px solid #232833">Ziel</th>
+              <th scope="col" style="padding: 12px; font-weight: 600; border-bottom: 1px solid #232833">Runner</th>
+              <th scope="col" style="padding: 12px; font-weight: 600; border-bottom: 1px solid #232833">Angestoßen von</th>
+              <th scope="col" style="padding: 12px 18px; font-weight: 600; border-bottom: 1px solid #232833">Ergebnis</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid #1D222B">
+              <td style="padding: 14px 18px"><span style="display: inline-flex; align-items: center; gap: 6px; color: #FCD34D"><span aria-hidden="true">◐</span>Läuft · 04:12</span></td>
+              <td style="padding: 14px 12px"><span style="font-weight: 600">Fundus2</span> <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #9BA3AF">main@3f2a1c9</span></td>
+              <td style="padding: 14px 12px; color: #C9CED8">Android Preview (APK)</td>
+              <td style="padding: 14px 12px; color: #C9CED8">Unraid</td>
+              <td style="padding: 14px 12px"><span style="font-size: 12px; padding: 3px 8px; border-radius: 6px; background: #1A2430; color: #7DD3FC">Claude Code · MCP</span></td>
+              <td style="padding: 14px 18px"><a href="#" style="font-size: 13px">Live-Log</a></td>
+            </tr>
+            <tr style="border-bottom: 1px solid #1D222B">
+              <td style="padding: 14px 18px"><span style="display: inline-flex; align-items: center; gap: 6px; color: #86EFAC"><span aria-hidden="true">✓</span>Fertig · 11:48</span></td>
+              <td style="padding: 14px 12px"><span style="font-weight: 600">Fero</span> <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #9BA3AF">v0.4.0</span></td>
+              <td style="padding: 14px 12px; color: #C9CED8">macOS DMG (universal)</td>
+              <td style="padding: 14px 12px; color: #C9CED8">GitHub Actions</td>
+              <td style="padding: 14px 12px"><span style="font-size: 12px; padding: 3px 8px; border-radius: 6px; background: #1B2A22; color: #86EFAC">Codex · MCP</span></td>
+              <td style="padding: 14px 18px"><a href="#" style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-family: 'JetBrains Mono', monospace"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"></path><path d="M7 11l5 5 5-5"></path><path d="M5 20h14"></path></svg>Fero_0.4.0_universal.dmg</a></td>
+            </tr>
+            <tr style="border-bottom: 1px solid #1D222B">
+              <td style="padding: 14px 18px"><span style="display: inline-flex; align-items: center; gap: 6px; color: #86EFAC"><span aria-hidden="true">✓</span>Fertig · 09:30</span></td>
+              <td style="padding: 14px 12px"><span style="font-weight: 600">Fero</span> <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #9BA3AF">v0.4.0</span></td>
+              <td style="padding: 14px 12px; color: #C9CED8">Windows NSIS (x64)</td>
+              <td style="padding: 14px 12px; color: #C9CED8">GitHub Actions</td>
+              <td style="padding: 14px 12px"><span style="font-size: 12px; padding: 3px 8px; border-radius: 6px; background: #1B2A22; color: #86EFAC">Codex · MCP</span></td>
+              <td style="padding: 14px 18px"><a href="#" style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-family: 'JetBrains Mono', monospace"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12"></path><path d="M7 11l5 5 5-5"></path><path d="M5 20h14"></path></svg>Fero_0.4.0_x64-setup.exe</a></td>
+            </tr>
+            <tr style="border-bottom: 1px solid #1D222B">
+              <td style="padding: 14px 18px"><span style="display: inline-flex; align-items: center; gap: 6px; color: #FCA5A5"><span aria-hidden="true">✕</span>Fehlgeschlagen · 02:03</span></td>
+              <td style="padding: 14px 12px"><span style="font-weight: 600">OracleVault</span> <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #9BA3AF">feature/roll-engine</span></td>
+              <td style="padding: 14px 12px; color: #C9CED8">Linux (Flutter)</td>
+              <td style="padding: 14px 12px; color: #C9CED8">Unraid</td>
+              <td style="padding: 14px 12px"><span style="font-size: 12px; padding: 3px 8px; border-radius: 6px; background: #262115; color: #F2B544">Dennis</span></td>
+              <td style="padding: 14px 18px"><a href="#" style="font-size: 13px">Log ansehen</a></td>
+            </tr>
+            <tr>
+              <td style="padding: 14px 18px"><span style="display: inline-flex; align-items: center; gap: 6px; color: #C9CED8"><span aria-hidden="true">…</span>Wartet</span></td>
+              <td style="padding: 14px 12px"><span style="font-weight: 600">nektos/act</span> <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #9BA3AF">Kapsel-Test v0.2.62</span></td>
+              <td style="padding: 14px 12px; color: #C9CED8">Offline-Build aus Kapsel</td>
+              <td style="padding: 14px 12px; color: #C9CED8">Workstation</td>
+              <td style="padding: 14px 12px"><span style="font-size: 12px; padding: 3px 8px; border-radius: 6px; background: #1B1F28; color: #C9CED8">Zeitplan · monatlich</span></td>
+              <td style="padding: 14px 18px; color: #9BA3AF; font-size: 13px">Runner offline</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="mcp-h" style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; padding: 20px 22px; border-radius: 14px; background: #12151B; border: 1px solid #232833">
+      <div style="flex: 1 1 280px; display: flex; flex-direction: column; gap: 6px">
+        <h2 id="mcp-h" style="margin: 0; font-size: 16px; font-weight: 600">KI-Zugriff über MCP</h2>
+        <p style="margin: 0; font-size: 13px; color: #9BA3AF; line-height: 1.5">Agenten dürfen Repos lesen, suchen und Builds anstoßen. Löschen und Aufbewahrungsregeln bleiben dir vorbehalten.</p>
+      </div>
+      <div style="flex: 2 1 420px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; font-size: 13px">
+        <div style="padding: 12px 14px; border-radius: 10px; background: #0E1014; border: 1px solid #232833; display: flex; flex-direction: column; gap: 4px"><span style="font-weight: 600">Claude Code</span><span style="color: #9BA3AF">Dev-Box auf Unraid · lesen, bauen</span></div>
+        <div style="padding: 12px 14px; border-radius: 10px; background: #0E1014; border: 1px solid #232833; display: flex; flex-direction: column; gap: 4px"><span style="font-weight: 600">Codex CLI</span><span style="color: #9BA3AF">MacBook · lesen, bauen</span></div>
+        <div style="padding: 12px 14px; border-radius: 10px; background: #0E1014; border: 1px solid #232833; display: flex; flex-direction: column; gap: 4px"><span style="font-weight: 600">LM Studio</span><span style="color: #9BA3AF">Lokal · nur lesen</span></div>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1060}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

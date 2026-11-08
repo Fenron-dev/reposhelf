@@ -1,0 +1,20 @@
+# Build output
+/bin/
+/dist/
+/build/
+*.exe
+*.test
+*.out
+
+# Local data folders (never commit archive data)
+RepoShelf-Daten/
+.reposhelf/
+/testdata/tmp/
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Starter bundle the docs were unpacked from (not part of the repo)
+/reposhelf-start.zip

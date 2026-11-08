@@ -1,0 +1,20 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-11-08T11:00:00Z"},
+  "title": "RepoShelf – UI-Entwurf",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 1440, "h": 980, "title": "Bibliothek", "expand": "fill"},
+    "RepoDetail.dc.html": {"x": 1520, "y": 0, "w": 1440, "h": 1180, "title": "Repo-Detail (Fero)", "expand": "fill"},
+    "AddRepo.dc.html": {"x": 0, "y": 1300, "w": 1440, "h": 1040, "title": "Repo hinzufügen", "expand": "fill"},
+    "Cleanup.dc.html": {"x": 1520, "y": 1300, "w": 1440, "h": 1040, "title": "Beim Start: Lösch-Prüfung", "expand": "fill"},
+    "Builds.dc.html": {"x": 0, "y": 2460, "w": 1440, "h": 1060, "title": "Builds & Runner", "expand": "fill"},
+    "Sidebar.dc.html": {"x": 1520, "y": 2460, "w": 248, "h": 980, "title": "Baustein: Seitenleiste"}
+  },
+  "order": ["Main.dc.html", "RepoDetail.dc.html", "AddRepo.dc.html", "Cleanup.dc.html", "Builds.dc.html", "Sidebar.dc.html"],
+  "notes": {
+    "title": {"x": 0, "y": -300, "text": "RepoShelf – UI-Entwurf", "kind": "title1", "maxW": 2960}
+  },
+  "designSystems": []
+}

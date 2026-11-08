@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>RepoShelf – Repo hinzufügen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#07080B}
+a{color:#F2B544}a:hover{color:#FFD27A}
+</style>
+</helmet>
+<div style="box-sizing: border-box; min-height: 100vh; padding: 48px 20px; display: flex; justify-content: center; align-items: flex-start; background: #07080B; color: #E7E9EE; font-family: Inter, system-ui, sans-serif">
+  <section role="dialog" aria-labelledby="add-title" style="box-sizing: border-box; width: 100%; max-width: 760px; border-radius: 18px; background: #12151B; border: 1px solid #2A303C; box-shadow: 0 30px 80px rgba(0,0,0,0.55); display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 22px 28px; border-bottom: 1px solid #232833">
+      <h1 id="add-title" style="margin: 0; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 22px; font-weight: 600">Repo hinzufügen</h1>
+      <a href="Main.dc.html" aria-label="Schließen" style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 10px; color: #9BA3AF">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+      </a>
+    </header>
+
+    <div style="padding: 24px 28px; display: flex; flex-direction: column; gap: 24px">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <label for="url" style="font-size: 13px; font-weight: 600; color: #C9CED8">Link zum Repository</label>
+        <input id="url" type="url" value="https://github.com/nektos/act" style="box-sizing: border-box; width: 100%; min-height: 48px; padding: 0 14px; border-radius: 10px; border: 1px solid #F2B544; background: #0E1014; color: #E7E9EE; font-family: 'JetBrains Mono', monospace; font-size: 14px">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 12px 14px; border-radius: 10px; background: #0E1014; border: 1px solid #232833; font-size: 13px; color: #C9CED8">
+          <span style="display: inline-flex; align-items: center; gap: 6px; color: #86EFAC"><span aria-hidden="true">●</span>Erkannt</span>
+          <span>GitHub · nektos/act</span><span>Sprache: Go</span><span>Lizenz: MIT</span><span>Releases vorhanden</span><span>Wiki: nein</span>
+        </div>
+      </div>
+
+      <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 10px">
+        <legend style="font-size: 13px; font-weight: 600; color: #C9CED8; margin-bottom: 10px">Art</legend>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px">
+          <label style="display: flex; gap: 10px; padding: 14px; border-radius: 12px; border: 1px solid #F2B544; background: #1C1810; cursor: pointer">
+            <input type="radio" name="kind" checked style="accent-color: #F2B544; margin-top: 3px">
+            <span style="display: flex; flex-direction: column; gap: 3px"><span style="font-weight: 600; font-size: 14px">Spiegel</span><span style="font-size: 12px; color: #9BA3AF">Schreibgeschützte, vollständige Kopie</span></span>
+          </label>
+          <label style="display: flex; gap: 10px; padding: 14px; border-radius: 12px; border: 1px solid #2A303C; background: #151821; cursor: pointer">
+            <input type="radio" name="kind" style="accent-color: #F2B544; margin-top: 3px">
+            <span style="display: flex; flex-direction: column; gap: 3px"><span style="font-weight: 600; font-size: 14px">Fork</span><span style="font-size: 12px; color: #9BA3AF">Eigene Änderungen, mit Original verknüpft</span></span>
+          </label>
+          <label style="display: flex; gap: 10px; padding: 14px; border-radius: 12px; border: 1px solid #2A303C; background: #151821; cursor: pointer">
+            <input type="radio" name="kind" style="accent-color: #F2B544; margin-top: 3px">
+            <span style="display: flex; flex-direction: column; gap: 3px"><span style="font-weight: 600; font-size: 14px">Eigenes Projekt</span><span style="font-size: 12px; color: #9BA3AF">Issues und Builds standardmäßig an</span></span>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 10px">
+        <legend style="font-size: 13px; font-weight: 600; color: #C9CED8; margin-bottom: 10px">Aktualisierung</legend>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+          <label style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid #2A303C; background: #151821; font-size: 14px"><input type="radio" name="sync" style="accent-color: #F2B544">Einmalig herunterladen</label>
+          <label style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid #F2B544; background: #1C1810; font-size: 14px"><input type="radio" name="sync" checked style="accent-color: #F2B544">Aktuell halten</label>
+          <label for="interval" style="font-size: 14px; color: #9BA3AF; margin-left: 4px">alle</label>
+          <select id="interval" style="min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid #2A303C; background: #151821; color: #E7E9EE; font: inherit; font-size: 14px">
+            <option>6 Stunden</option>
+            <option selected>24 Stunden</option>
+            <option>7 Tage</option>
+          </select>
+        </div>
+        <p style="margin: 0; font-size: 12px; color: #9BA3AF">Vor jedem Abgleich wird der bisherige Stand gesichert. Ein Force-Push oder gelöschte Branches beim Original überschreiben nichts.</p>
+      </fieldset>
+
+      <fieldset style="margin: 0; padding: 0; border: 0">
+        <legend style="font-size: 13px; font-weight: 600; color: #C9CED8; margin-bottom: 10px">Mitsichern</legend>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 16px; font-size: 14px">
+          <label style="display: flex; align-items: center; gap: 10px; min-height: 40px; color: #9BA3AF"><input type="checkbox" checked disabled style="accent-color: #F2B544; width: 18px; height: 18px">Code &amp; alle Branches (immer)</label>
+          <label style="display: flex; align-items: center; gap: 10px; min-height: 40px"><input type="checkbox" checked style="accent-color: #F2B544; width: 18px; height: 18px">Releases &amp; Assets</label>
+          <label style="display: flex; align-items: center; gap: 10px; min-height: 40px"><input type="checkbox" checked style="accent-color: #F2B544; width: 18px; height: 18px">Git LFS &amp; Submodule</label>
+          <label style="display: flex; align-items: center; gap: 10px; min-height: 40px"><input type="checkbox" style="accent-color: #F2B544; width: 18px; height: 18px">Issues (nur bei Bedarf)</label>
+          <label style="display: flex; align-items: center; gap: 10px; min-height: 40px"><input type="checkbox" style="accent-color: #F2B544; width: 18px; height: 18px">Wiki</label>
+          <label style="display: flex; align-items: center; gap: 10px; min-height: 40px"><input type="checkbox" checked style="accent-color: #F2B544; width: 18px; height: 18px">Metadaten (Beschreibung, Topics)</label>
+        </div>
+      </fieldset>
+
+      <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; padding: 16px 18px; border-radius: 12px; background: #151821; border: 1px solid #2A303C">
+        <span style="display: flex; flex-direction: column; gap: 4px; flex: 1 1 300px">
+          <span style="font-size: 14px; font-weight: 600">Baubar halten</span>
+          <span style="font-size: 12px; color: #9BA3AF">Sichert pro festgehaltener Version alle Abhängigkeiten (go mod vendor) und die Toolchain-Version.</span>
+        </span>
+        <label style="display: inline-flex; align-items: center; gap: 10px; font-size: 14px"><input type="checkbox" role="switch" checked style="accent-color: #F2B544; width: 20px; height: 20px">An</label>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px">
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <label for="tags" style="font-size: 13px; font-weight: 600; color: #C9CED8">Schlagwörter</label>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 48px; padding: 6px 10px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2A303C; background: #0E1014">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 4px 9px; border-radius: 6px; background: #1B1F28">build</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 4px 9px; border-radius: 6px; background: #1B1F28">go</span>
+            <input id="tags" type="text" placeholder="hinzufügen …" style="flex: 1; min-width: 80px; background: transparent; border: 0; outline: none; color: #E7E9EE; font: inherit; font-size: 13px">
+          </div>
+          <span style="font-size: 12px; color: #9BA3AF">Vorschläge aus GitHub-Topics: <button type="button" style="border: 0; background: transparent; color: #F2B544; font: inherit; font-size: 12px; padding: 0">github-actions</button> · <button type="button" style="border: 0; background: transparent; color: #F2B544; font: inherit; font-size: 12px; padding: 0">ci</button></span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <label for="coll" style="font-size: 13px; font-weight: 600; color: #C9CED8">Sammlung</label>
+          <select id="coll" style="min-height: 48px; padding: 0 12px; border-radius: 10px; border: 1px solid #2A303C; background: #0E1014; color: #E7E9EE; font: inherit; font-size: 14px">
+            <option>Keine</option>
+            <option selected>Inspiration</option>
+            <option>Fundus-Ökosystem</option>
+            <option>TTRPG</option>
+          </select>
+          <span style="font-size: 12px; color: #9BA3AF">Aufbewahrung: neueste 5 Releases (Standard der Sammlung)</span>
+        </div>
+      </div>
+    </div>
+
+    <footer style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 18px 28px; border-top: 1px solid #232833">
+      <span style="font-size: 12px; color: #9BA3AF">Wird gespeichert als <span style="font-family: 'JetBrains Mono', monospace">meta/github.com/nektos/act.yaml</span></span>
+      <div style="display: flex; gap: 10px">
+        <a href="Main.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #2A303C; color: #E7E9EE; font-size: 14px; text-decoration: none">Abbrechen</a>
+        <a href="Main.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 10px; background: #F2B544; color: #1A1206; font-size: 14px; font-weight: 600; text-decoration: none">Hinzufügen &amp; klonen</a>
+      </div>
+    </footer>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>RepoShelf – Bibliothek</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0E1014}
+a{color:#F2B544}a:hover{color:#FFD27A}
+</style>
+</helmet>
+<div style="box-sizing: border-box; min-height: 100vh; display: flex; flex-wrap: wrap; background: #0E1014; color: #E7E9EE; font-family: Inter, system-ui, sans-serif">
+  <div style="flex: 1 1 240px; display: flex">
+    <dc-import name="Sidebar" active="library" hint-size="100%,980px"></dc-import>
+  </div>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 24px 36px 48px; display: flex; flex-direction: column; gap: 24px">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+      <label for="search" style="flex: 1 1 320px; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 14px; border-radius: 10px; background: #151821; border: 1px solid #2A303C">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9BA3AF" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Suche</span>
+        <input id="search" type="search" placeholder="Repos, Code, README und Notizen durchsuchen …" style="flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: #E7E9EE; font: inherit; font-size: 14px">
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #9BA3AF; border: 1px solid #2A303C; border-radius: 6px; padding: 2px 6px">⌘K</span>
+      </label>
+      <a href="AddRepo.dc.html" style="display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 10px; background: {{accent}}; color: #1A1206; font-size: 14px; font-weight: 600; text-decoration: none">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+        Repo hinzufügen
+      </a>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <h1 style="margin: 0; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 32px; font-weight: 600; letter-spacing: -0.02em">Bibliothek</h1>
+        <p style="margin: 0; color: #9BA3AF; font-size: 14px">128 Repos · 14 eigene · 108 Spiegel · 6 Forks · 46,2 GB</p>
+      </div>
+      <div role="group" aria-label="Ansicht" style="display: flex; gap: 4px; padding: 4px; border-radius: 10px; background: #151821; border: 1px solid #2A303C">
+        <button type="button" aria-pressed="true" style="min-height: 36px; padding: 0 14px; border-radius: 7px; border: 0; background: #262B36; color: #E7E9EE; font: inherit; font-size: 13px; font-weight: 500">Liste</button>
+        <button type="button" aria-pressed="false" style="min-height: 36px; padding: 0 14px; border-radius: 7px; border: 0; background: transparent; color: #9BA3AF; font: inherit; font-size: 13px">Kacheln</button>
+        <button type="button" aria-pressed="false" style="min-height: 36px; padding: 0 14px; border-radius: 7px; border: 0; background: transparent; color: #9BA3AF; font: inherit; font-size: 13px">Ordner</button>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+      <button type="button" style="min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid #F2B544; background: #262115; color: #F2B544; font: inherit; font-size: 13px; font-weight: 500">Alle</button>
+      <button type="button" style="min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid #2A303C; background: #151821; color: #C9CED8; font: inherit; font-size: 13px">Eigen · 14</button>
+      <button type="button" style="min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid #2A303C; background: #151821; color: #C9CED8; font: inherit; font-size: 13px">Spiegel · 108</button>
+      <button type="button" style="min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid #2A303C; background: #151821; color: #C9CED8; font: inherit; font-size: 13px">Fork · 6</button>
+      <span aria-hidden="true" style="width: 1px; height: 24px; background: #2A303C; margin: 0 4px"></span>
+      <button type="button" style="min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid #2A303C; background: #151821; color: #FDBA74; font: inherit; font-size: 13px">⚠ Upstream weg · 3</button>
+      <button type="button" style="min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid #2A303C; background: #151821; color: #C9CED8; font: inherit; font-size: 13px">Baubar halten · 9</button>
+      <button type="button" style="display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 10px 0 14px; border-radius: 999px; border: 1px solid #3B4252; background: #1B1F28; color: #E7E9EE; font: inherit; font-size: 13px">Schlagwort: <span style="font-family: 'JetBrains Mono', monospace">ttrpg/*</span><span aria-hidden="true" style="color: #9BA3AF">✕</span></button>
+      <span style="flex: 1"></span>
+      <span style="font-size: 13px; color: #9BA3AF">Sortiert nach: <strong style="color: #E7E9EE; font-weight: 500">Zuletzt synchronisiert</strong></span>
+    </div>
+
+    <div style="overflow-x: auto; border: 1px solid #232833; border-radius: 14px; background: #12151B">
+      <table style="width: 100%; min-width: 980px; border-collapse: collapse; font-size: 14px">
+        <thead>
+          <tr style="text-align: left; color: #9BA3AF; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em">
+            <th scope="col" style="padding: 14px 20px; font-weight: 600; border-bottom: 1px solid #232833">Repo</th>
+            <th scope="col" style="padding: 14px 12px; font-weight: 600; border-bottom: 1px solid #232833">Art</th>
+            <th scope="col" style="padding: 14px 12px; font-weight: 600; border-bottom: 1px solid #232833">Schlagwörter</th>
+            <th scope="col" style="padding: 14px 12px; font-weight: 600; border-bottom: 1px solid #232833">Aktualisierung</th>
+            <th scope="col" style="padding: 14px 12px; font-weight: 600; border-bottom: 1px solid #232833">Status</th>
+            <th scope="col" style="padding: 14px 20px; font-weight: 600; border-bottom: 1px solid #232833; text-align: right">Größe</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom: 1px solid #1D222B">
+            <td style="padding: 14px 20px">
+              <a href="RepoDetail.dc.html" style="display: flex; flex-direction: column; gap: 3px; text-decoration: none">
+                <span style="color: #E7E9EE; font-weight: 600"><span style="color: #9BA3AF; font-weight: 400">Fenron-dev /</span> Fero</span>
+                <span style="color: #9BA3AF; font-size: 13px">Abonniert Webnovel- und Manga-Quellen, liefert EPUB/CBZ</span>
+              </a>
+            </td>
+            <td style="padding: 14px 12px"><span style="font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 6px; background: #262115; color: #F2B544">Eigen</span></td>
+            <td style="padding: 14px 12px"><span style="display: flex; flex-wrap: wrap; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C9CED8"><span style="padding: 2px 8px; border-radius: 6px; background: #1B1F28">medien/beschaffung</span><span style="padding: 2px 8px; border-radius: 6px; background: #1B1F28">rust</span><span style="padding: 2px 8px; border-radius: 6px; background: #1B1F28">tauri</span></span></td>
+            <td style="padding: 14px 12px; color: #C9CED8">Folgen · alle 6 h</td>
+            <td style="padding: 14px 12px"><span style="display: inline-flex; align-items: center; gap: 6px; color: #86EFAC; font-size: 13px"><span aria-hidden="true">●</span>Aktuell · vor 12 min</span><span style="margin-left: 8px; font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid #3B4252; color: #C9CED8">Kapsel</span></td>
+            <td style="padding: 14px 20px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #C9CED8">184 MB</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #1D222B">
+            <td style="padding: 14px 20px">
+              <a href="#" style="display: flex; flex-direction: column; gap: 3px; text-decoration: none">
+                <span style="color: #E7E9EE; font-weight: 600"><span style="color: #9BA3AF; font-weight: 400">Fenron-dev /</span> Fundus2</span>
+                <span style="color: #9BA3AF; font-size: 13px">Portable Medienbibliothek für Desktop und Android</span>
+              </a>
+            </td>
+            <td style="padding: 14px 12px"><span style="display: inline-flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 6px; background: #262115; color: #F2B544; align-self: flex-start">Eigen</span><span style="font-size: 11px; color: #9BA3AF">Kopie von Fundus</span></span></td>
+            <td style="padding: 14px 12px"><span style="display: flex; flex-wrap: wrap; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C9CED8"><span style="padding: 2px 8px; border-radius: 6px; background: #1B1F28">medien</span><span style="padding: 2px 8px; border-radius: 6px; background: #1B1F28">flutter</span><span style="padding: 2px 8px; border-radius: 6px; background: #1B1F28">android</span></span></td>
+            <td style="padding: 14px 12px; color: #C9CED8">Folgen · alle 6 h</td>
+            <td style="padding: 14px 12px"><span style="display: inline-flex; align-items: center; gap: 6px; color: #FCD34D; font-size: 13px"><span aria-hidden="true">◐</span>Build läuft</span><span style="margin-left: 8px; font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid #3B4252; color: #C9CED8">Kapsel</span></td>
+            <td style="padding: 14px 20px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #C9CED8">312 MB</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #1D222B">
+            <td style="padding: 14px 20px">
+              <a href="#" style="display: flex; flex-direction: column; gap: 3px; text-decoration: none">
+                <span style="color: #E7E9EE; font-weight: 600"><span style="color: #9BA3AF; font-weight: 400">Fenron-dev /</span> OracleVault</span>
+                <span style="color: #9BA3AF; font-size: 13px">Zufallstabellen, Orakel und Decks für Pen-&amp;-Paper</span>
+              </a>
+            </td>
+            <td style="padding: 14px 12px"><span style="font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 6px; background: #262115; color: #F2B544">Eigen</span></td>
+            <td style="padding: 14px 12px"><span style="display: flex; flex-wrap: wrap; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C9CED8"><span style="padding: 2px 8px; border-radius: 6px; background: #1B1F28">ttrpg/tool</span><span style="padding: 2px 8px; border-radius: 6px; background: #1B1F28">flutter</span></span></td>
+            <td style="padding: 14px 12px; color: #C9CED8">Folgen · alle 6 h</td>
+            <td style="padding: 14px 12px"><span style="display: inline-flex; align-items: center; gap: 6px; color: #86EFAC; font-size: 13px"><span aria-hidden="true">●</span>Aktuell · vor 1 h</span></td>
+            <td style="padding: 14px 20px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #C9CED8">96 MB</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #1D222B">
+            <td style="padding: 14px 20px">
+              <a href="#" style="display: flex; flex-direction: column; gap: 3px; text-decoration: none">
+                <span style="color: #E7E9EE; font-weight: 600"><span style="color: #9BA3AF; font-weight: 400">go-gitea /</span> gitea</span>
+                <span style="color: #9BA3AF; font-size: 13px">Notiz: Vorlage für Spiegel-Logik und Markdown-Darstellung</span>
+              </a>
+            </td>
+            <td style="padding: 14px 12px"><span style="font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 6px; background: #1A2430; color: #7DD3FC">Spiegel</span></td>
+            <td style="padding: 14px 12px"><span style="display: flex; flex-wrap: wrap; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C9CED8"><span style="padding: 2px 8px; border-radius: 6px; background: #1B1F28">inspiration</span><span style="padding: 2px 8px; border-radius: 6px; background: #1B1F28">go</span><span style="padding: 2px 8px; border-radius: 6px; background: #1B1F28">forge</span></span></td>
+            <td style="padding: 14px 12px; color: #C9CED8">Folgen · täglich</td>
+            <td style="padding: 14px 12px"><span style="display: inline-flex; align-items: center; gap: 6px; color: #86EFAC; font-size: 13px"><span aria-hidden="true">●</span>Aktuell · vor 3 h</span></td>
+            <td style="padding: 14px 20px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #C9CED8">1,4 GB</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #1D222B">
+            <td style="padding: 14px 20px">
+              <a href="#" style="display: flex; flex-direction: column; gap: 3px; text-decoration: none">
+                <span style="color: #E7E9EE; font-weight: 600"><span style="color: #9BA3AF; font-weight: 400">nektos /</span> act</span>
+                <span style="color: #9BA3AF; font-size: 13px">GitHub-Actions-Workflows lokal ausführen</span>
+              </a>
+            </td>
+            <td style="padding: 14px 12px"><span style="font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 6px; background: #1A2430; color: #7DD3FC">Spiegel</span></td>
+            <td style="padding: 14px 12px"><span style="display: flex; flex-wrap: wrap; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C9CED8"><span style="padding: 2px 8px; border-radius: 6px; background: #1B1F28">build</span><span style="padding: 2px 8px; border-radius: 6px; background: #1B1F28">go</span></span></td>
+            <td style="padding: 14px 12px; color: #C9CED8">Folgen · täglich</td>
+            <td style="padding: 14px 12px"><span style="display: inline-flex; align-items: center; gap: 6px; color: #86EFAC; font-size: 13px"><span aria-hidden="true">●</span>Aktuell · vor 3 h</span><span style="margin-left: 8px; font-size: 11px; padding: 2px 7px; border-radius: 6px; border: 1px solid #3B4252; color: #C9CED8">Kapsel</span></td>
+            <td style="padding: 14px 20px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #C9CED8">640 MB</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #1D222B">
+            <td style="padding: 14px 20px">
+              <a href="#" style="display: flex; flex-direction: column; gap: 3px; text-decoration: none">
+                <span style="color: #E7E9EE; font-weight: 600"><span style="color: #9BA3AF; font-weight: 400">beispiel /</span> initiative-tracker</span>
+                <span style="color: #9BA3AF; font-size: 13px">Plugin für OracleVault: Initiative-Reihenfolge</span>
+              </a>
+            </td>
+            <td style="padding: 14px 12px"><span style="font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 6px; background: #1A2430; color: #7DD3FC">Spiegel</span></td>
+            <td style="padding: 14px 12px"><span style="display: flex; flex-wrap: wrap; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C9CED8"><span style="padding: 2px 8px; border-radius: 6px; background: #1B1F28">ttrpg/plugin</span><span style="padding: 2px 8px; border-radius: 6px; background: #1B1F28">dart</span></span></td>
+            <td style="padding: 14px 12px; color: #C9CED8">Folgen · täglich</td>
+            <td style="padding: 14px 12px"><span style="display: inline-flex; flex-direction: column; gap: 3px; font-size: 13px"><span style="display: inline-flex; align-items: center; gap: 6px; color: #FDBA74"><span aria-hidden="true">▲</span>Upstream weg seit 12 Tagen</span><span style="color: #9BA3AF; font-size: 12px">Archiv vollständig gesichert</span></span></td>
+            <td style="padding: 14px 20px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #C9CED8">22 MB</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #1D222B">
+            <td style="padding: 14px 20px">
+              <a href="#" style="display: flex; flex-direction: column; gap: 3px; text-decoration: none">
+                <span style="color: #E7E9EE; font-weight: 600"><span style="color: #9BA3AF; font-weight: 400">wailsapp /</span> wails</span>
+                <span style="color: #9BA3AF; font-size: 13px">Desktop-Hülle für Go-Apps</span>
+              </a>
+            </td>
+            <td style="padding: 14px 12px"><span style="font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 6px; background: #1A2430; color: #7DD3FC">Spiegel</span></td>
+            <td style="padding: 14px 12px"><span style="display: flex; flex-wrap: wrap; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C9CED8"><span style="padding: 2px 8px; border-radius: 6px; background: #1B1F28">desktop</span><span style="padding: 2px 8px; border-radius: 6px; background: #1B1F28">go</span></span></td>
+            <td style="padding: 14px 12px; color: #C9CED8">Einmalig · 02.11.2026</td>
+            <td style="padding: 14px 12px"><span style="display: inline-flex; align-items: center; gap: 6px; color: #C9CED8; font-size: 13px"><span aria-hidden="true">■</span>Archiv-Stand</span></td>
+            <td style="padding: 14px 20px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #C9CED8">410 MB</td>
+          </tr>
+          <tr>
+            <td style="padding: 14px 20px">
+              <a href="#" style="display: flex; flex-direction: column; gap: 3px; text-decoration: none">
+                <span style="color: #E7E9EE; font-weight: 600"><span style="color: #9BA3AF; font-weight: 400">Fenron-dev /</span> initiative-tracker</span>
+                <span style="color: #9BA3AF; font-size: 13px">Weitergeführt, nachdem das Original verschwand</span>
+              </a>
+            </td>
+            <td style="padding: 14px 12px"><span style="display: inline-flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 6px; background: #241C30; color: #C4B5FD; align-self: flex-start">Fork</span><span style="font-size: 11px; color: #9BA3AF">von beispiel/initiative-tracker</span></span></td>
+            <td style="padding: 14px 12px"><span style="display: flex; flex-wrap: wrap; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #C9CED8"><span style="padding: 2px 8px; border-radius: 6px; background: #1B1F28">ttrpg/plugin</span></span></td>
+            <td style="padding: 14px 12px; color: #C9CED8">Eigene Commits</td>
+            <td style="padding: 14px 12px"><span style="display: inline-flex; align-items: center; gap: 6px; color: #86EFAC; font-size: 13px"><span aria-hidden="true">●</span>2 Commits voraus</span></td>
+            <td style="padding: 14px 20px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #C9CED8">23 MB</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","options":["#F2B544","#5EEAD4","#A78BFA","#FB923C"],"default":"#F2B544"},"$preview":{"width":1440,"height":980}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#F2B544' };
+  }
+}
+</script>
+</body>
+</html>

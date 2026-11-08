@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>RepoShelf – Lösch-Prüfung beim Start</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#07080B}
+a{color:#F2B544}a:hover{color:#FFD27A}
+</style>
+</helmet>
+<div style="box-sizing: border-box; min-height: 100vh; padding: 48px 20px; display: flex; justify-content: center; align-items: flex-start; background: #07080B; color: #E7E9EE; font-family: Inter, system-ui, sans-serif">
+  <section role="dialog" aria-labelledby="clean-title" style="box-sizing: border-box; width: 100%; max-width: 1000px; border-radius: 18px; background: #12151B; border: 1px solid #2A303C; box-shadow: 0 30px 80px rgba(0,0,0,0.55); display: flex; flex-direction: column">
+    <header style="display: flex; flex-direction: column; gap: 8px; padding: 26px 30px 20px; border-bottom: 1px solid #232833">
+      <span style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #F2B544">Beim Start · Aufbewahrungsregeln</span>
+      <h1 id="clean-title" style="margin: 0; font-family: 'Space Grotesk', Inter, sans-serif; font-size: 26px; font-weight: 600">6 Einträge sind zur Löschung vorgemerkt</h1>
+      <p style="margin: 0; color: #C9CED8; font-size: 15px; line-height: 1.5; max-width: 760px">Sie werden in den Papierkorb verschoben, nicht sofort gelöscht. Endgültig entfernt wird erst nach 30 Tagen. Angeheftete Versionen tauchen hier nie auf.</p>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 12px; padding: 18px 30px; border-bottom: 1px solid #232833">
+      <div style="flex: 1 1 180px; padding: 12px 16px; border-radius: 12px; background: #0E1014; border: 1px solid #232833; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; color: #9BA3AF">Vorgemerkt gesamt</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 500">3,8 GB</span></div>
+      <div style="flex: 1 1 180px; padding: 12px 16px; border-radius: 12px; background: #0E1014; border: 1px solid #232833; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; color: #9BA3AF">Betroffene Repos</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 500">5</span></div>
+      <div style="flex: 1 1 180px; padding: 12px 16px; border-radius: 12px; background: #0E1014; border: 1px solid #232833; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; color: #9BA3AF">Papierkorb danach</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 500">8 Einträge</span></div>
+    </div>
+
+    <div style="overflow-x: auto; padding: 8px 18px">
+      <table style="width: 100%; min-width: 820px; border-collapse: collapse; font-size: 14px">
+        <thead>
+          <tr style="text-align: left; color: #9BA3AF; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em">
+            <th scope="col" style="padding: 12px; font-weight: 600; width: 44px"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Auswahl</span></th>
+            <th scope="col" style="padding: 12px; font-weight: 600">Eintrag</th>
+            <th scope="col" style="padding: 12px; font-weight: 600">Grund</th>
+            <th scope="col" style="padding: 12px; font-weight: 600; text-align: right">Größe</th>
+            <th scope="col" style="padding: 12px; font-weight: 600; text-align: right">Aktion</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-top: 1px solid #1D222B">
+            <td style="padding: 12px"><input type="checkbox" checked aria-label="nektos/act Release auswählen" style="accent-color: #F2B544; width: 18px; height: 18px"></td>
+            <td style="padding: 12px"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-weight: 600">Release-Assets <span style="font-family: 'JetBrains Mono', monospace; font-weight: 500">v0.2.61</span></span><span style="font-size: 12px; color: #9BA3AF">nektos/act · Spiegel</span></span></td>
+            <td style="padding: 12px; color: #C9CED8">Mehr als 5 Releases</td>
+            <td style="padding: 12px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #C9CED8">210 MB</td>
+            <td style="padding: 12px; text-align: right"><button type="button" style="min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid #2A303C; background: #151821; color: #E7E9EE; font: inherit; font-size: 13px">Anheften</button></td>
+          </tr>
+          <tr style="border-top: 1px solid #1D222B">
+            <td style="padding: 12px"><input type="checkbox" checked aria-label="go-gitea Snapshot auswählen" style="accent-color: #F2B544; width: 18px; height: 18px"></td>
+            <td style="padding: 12px"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-weight: 600">Snapshot <span style="font-family: 'JetBrains Mono', monospace; font-weight: 500">2026-04-01</span></span><span style="font-size: 12px; color: #9BA3AF">go-gitea/gitea · Spiegel</span></span></td>
+            <td style="padding: 12px; color: #C9CED8">Snapshot älter als 6 Monate</td>
+            <td style="padding: 12px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #C9CED8">1,1 GB</td>
+            <td style="padding: 12px; text-align: right"><button type="button" style="min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid #2A303C; background: #151821; color: #E7E9EE; font: inherit; font-size: 13px">Anheften</button></td>
+          </tr>
+          <tr style="border-top: 1px solid #1D222B">
+            <td style="padding: 12px"><input type="checkbox" checked aria-label="Fero Build-Kapsel auswählen" style="accent-color: #F2B544; width: 18px; height: 18px"></td>
+            <td style="padding: 12px"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-weight: 600">Build-Kapsel <span style="font-family: 'JetBrains Mono', monospace; font-weight: 500">v0.2.0</span></span><span style="font-size: 12px; color: #9BA3AF">Fenron-dev/Fero · Eigen</span></span></td>
+            <td style="padding: 12px; color: #C9CED8">Mehr als 3 Kapseln</td>
+            <td style="padding: 12px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #C9CED8">281 MB</td>
+            <td style="padding: 12px; text-align: right"><button type="button" style="min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid #2A303C; background: #151821; color: #E7E9EE; font: inherit; font-size: 13px">Anheften</button></td>
+          </tr>
+          <tr style="border-top: 1px solid #1D222B">
+            <td style="padding: 12px"><input type="checkbox" checked aria-label="wails Sicherung auswählen" style="accent-color: #F2B544; width: 18px; height: 18px"></td>
+            <td style="padding: 12px"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-weight: 600">Force-Push-Sicherung <span style="font-family: 'JetBrains Mono', monospace; font-weight: 500">2026-03-12</span></span><span style="font-size: 12px; color: #9BA3AF">wailsapp/wails · Spiegel</span></span></td>
+            <td style="padding: 12px; color: #C9CED8">Älter als 180 Tage</td>
+            <td style="padding: 12px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #C9CED8">38 MB</td>
+            <td style="padding: 12px; text-align: right"><button type="button" style="min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid #2A303C; background: #151821; color: #E7E9EE; font: inherit; font-size: 13px">Anheften</button></td>
+          </tr>
+          <tr style="border-top: 1px solid #1D222B">
+            <td style="padding: 12px"><input type="checkbox" aria-label="Abhängigkeits-Cache auswählen" style="accent-color: #F2B544; width: 18px; height: 18px"></td>
+            <td style="padding: 12px"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-weight: 600">Unbenutzte Abhängigkeiten</span><span style="font-size: 12px; color: #9BA3AF">Gemeinsamer Cache · 214 Pakete</span></span></td>
+            <td style="padding: 12px; color: #C9CED8">Von keiner Kapsel mehr verwendet</td>
+            <td style="padding: 12px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #C9CED8">1,9 GB</td>
+            <td style="padding: 12px; text-align: right"><button type="button" style="min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid #2A303C; background: #151821; color: #E7E9EE; font: inherit; font-size: 13px">Details</button></td>
+          </tr>
+          <tr style="border-top: 1px solid #1D222B">
+            <td style="padding: 12px"><input type="checkbox" checked aria-label="old-demo auswählen" style="accent-color: #F2B544; width: 18px; height: 18px"></td>
+            <td style="padding: 12px"><span style="display: flex; flex-direction: column; gap: 3px"><span style="font-weight: 600">Ganzes Repo</span><span style="font-size: 12px; color: #9BA3AF">beispiel/old-demo · Spiegel</span></span></td>
+            <td style="padding: 12px; color: #C9CED8">Von dir vorgemerkt am 03.11.</td>
+            <td style="padding: 12px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #C9CED8">260 MB</td>
+            <td style="padding: 12px; text-align: right"><button type="button" style="min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid #2A303C; background: #151821; color: #E7E9EE; font: inherit; font-size: 13px">Behalten</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 18px 30px; border-top: 1px solid #232833">
+      <a href="#" style="font-size: 14px">Regeln bearbeiten</a>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px">
+        <a href="Main.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #2A303C; color: #E7E9EE; font-size: 14px; text-decoration: none">Beim nächsten Start erneut fragen</a>
+        <a href="Main.dc.html" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: 10px; background: #F2B544; color: #1A1206; font-size: 14px; font-weight: 600; text-decoration: none">5 ausgewählte in den Papierkorb</a>
+      </div>
+    </footer>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
