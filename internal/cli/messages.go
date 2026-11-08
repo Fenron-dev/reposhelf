@@ -33,6 +33,7 @@ Repos:
   rename-tag <alt> <neu>   Schlagwort überall umbenennen/zusammenführen
   import                   Alle eigenen (--starred: gesternten) Repos übernehmen (--host, --dry-run)
   import-zip <datei.zip>   Eigenes Projekt aus einem ZIP anlegen (mit .git: ganze Geschichte)
+  grep <text>              Code aller Repos durchsuchen (--regex -i --tag --repo)
   reindex                  Index aus den Dateien neu aufbauen
 
 Aufbewahrung:

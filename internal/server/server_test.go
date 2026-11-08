@@ -124,7 +124,7 @@ func TestPages(t *testing.T) {
 		"/repo/" + id + "/tree/", "/repo/" + id + "/tree/docs?ref=v1.0", "/repo/" + id + "/blob/main.go",
 		"/repo/" + id + "/blob/docs/guide.md", "/add", "/add?url=" + url.QueryEscape(e.f.URL("x", "y")),
 		"/add/preview?url=" + url.QueryEscape(e.f.URL("fenron", "fero")), "/tags", "/graph", "/graph.json",
-		"/activity", "/notes", "/notes/Neu", "/cleanup", "/trash", "/settings", "/access", "/collections/new", "/collections/new?smart=1",
+		"/activity", "/notes", "/notes/Neu", "/code", "/code?q=func+main", "/code?q=a(&regex=1", "/cleanup", "/trash", "/settings", "/access", "/collections/new", "/collections/new?smart=1",
 		"/search?q=fer", "/jobs", "/login", "/api/repos", "/api/repos/" + id, "/api/tags", "/api/health",
 	} {
 		e.get(p, 200)

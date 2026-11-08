@@ -11,6 +11,7 @@ import (
 	"io/fs"
 	"path"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -222,4 +223,66 @@ func DirSize(dir string) int64 {
 		return nil
 	})
 	return total
+}
+
+// GrepHit is one matching line.
+type GrepHit struct {
+	Path string
+	Line int
+	Text string
+}
+
+// ErrBadPattern is returned for an empty or invalid search pattern.
+var ErrBadPattern = errors.New("invalid search pattern")
+
+// Grep searches the tree of rev (text files only). fixed searches the
+// literal string; otherwise pattern is an extended regular expression.
+// maxPerFile bounds matches per file.
+func (g *Git) Grep(ctx context.Context, repo, rev, pattern string, fixed, ignoreCase bool, maxPerFile int) ([]GrepHit, error) {
+	if err := checkRev(rev); err != nil {
+		return nil, err
+	}
+	if strings.TrimSpace(pattern) == "" || strings.ContainsAny(pattern, "\x00\n") {
+		return nil, ErrBadPattern
+	}
+	args := []string{"grep", "-I", "-n", "-z", "--no-color", "--full-name", "--max-count", strconv.Itoa(max(1, maxPerFile))}
+	if fixed {
+		args = append(args, "-F")
+	} else {
+		// Check the expression first: git's messages are hard to classify.
+		if _, err := regexp.Compile(pattern); err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrBadPattern, err)
+		}
+		args = append(args, "-E")
+	}
+	if ignoreCase {
+		args = append(args, "-i")
+	}
+	args = append(args, "-e", pattern, "--end-of-options", rev, "--")
+	out, err := g.Run(ctx, repo, nil, args...)
+	if err != nil {
+		var ge *Error
+		if errors.As(err, &ge) && strings.TrimSpace(ge.Stderr) == "" {
+			return nil, nil // exit status 1: no match
+		}
+		if errors.As(err, &ge) && (strings.Contains(ge.Stderr, "regex") || strings.Contains(ge.Stderr, "command line")) {
+			return nil, fmt.Errorf("%w: %s", ErrBadPattern, strings.TrimSpace(ge.Stderr))
+		}
+		return nil, err
+	}
+	var hits []GrepHit
+	for _, line := range strings.Split(strings.TrimSuffix(string(out), "\n"), "\n") {
+		f := strings.SplitN(line, "\x00", 3)
+		if len(f) != 3 {
+			continue
+		}
+		n, _ := strconv.Atoi(f[1])
+		text := f[2]
+		const maxLine = 400
+		if len(text) > maxLine {
+			text = text[:maxLine] + "…"
+		}
+		hits = append(hits, GrepHit{Path: strings.TrimPrefix(f[0], rev+":"), Line: n, Text: text})
+	}
+	return hits, nil
 }

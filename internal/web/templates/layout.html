@@ -37,6 +37,7 @@
   <ul class="nav">
     <li><a href="/" {{if eq .Nav "library"}}aria-current="page"{{end}}>Bibliothek <span class="count">{{.Sidebar.Repos}}</span></a></li>
     <li><a href="/tags" {{if eq .Nav "tags"}}aria-current="page"{{end}}>Schlagwörter <span class="count">{{.Sidebar.Tags}}</span></a></li>
+    <li><a href="/code" {{if eq .Nav "code"}}aria-current="page"{{end}}>Code-Suche</a></li>
     <li><a href="/graph" {{if eq .Nav "graph"}}aria-current="page"{{end}}>Beziehungen</a></li>
     <li><a href="/notes" {{if eq .Nav "notes"}}aria-current="page"{{end}}>Notizen</a></li>
     {{if .Sidebar.Builds}}<li><a href="/builds" {{if eq .Nav "builds"}}aria-current="page"{{end}}>Builds &amp; Runner</a></li>{{end}}

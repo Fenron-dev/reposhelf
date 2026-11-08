@@ -488,3 +488,46 @@ func TestFreeNotes(t *testing.T) {
 		t.Errorf("missing note = %v", err)
 	}
 }
+
+func TestSearchCode(t *testing.T) {
+	ctx := context.Background()
+	f := testutil.NewForge(t)
+	a := f.NewRepo("o", "alpha")
+	a.Commit("src/main.go", "package main\n\nfunc HelloWorld() {}\n", "code")
+	a.Push()
+	b := f.NewRepo("o", "beta")
+	b.Commit("lib/x.rs", "fn hello_world() {}\n", "code")
+	b.Push()
+	l, _ := openLib(t, f)
+	l.Add(ctx, AddRequest{URL: f.URL("o", "alpha"), Tags: []string{"go"}, Wait: true})
+	l.Add(ctx, AddRequest{URL: f.URL("o", "beta"), Wait: true})
+
+	res, err := l.SearchCode(ctx, CodeQuery{Pattern: "hello", IgnoreCase: true})
+	if err != nil || res.Repos != 2 || len(res.Hits) != 2 {
+		t.Fatalf("search = %+v, %v", res, err)
+	}
+	if h := res.Hits[0]; h.Path != "src/main.go" || h.Line != 3 || !strings.Contains(h.Text, "HelloWorld") {
+		t.Errorf("hit = %+v", h)
+	}
+	res, _ = l.SearchCode(ctx, CodeQuery{Pattern: "hello_[a-z]+", Regex: true})
+	if len(res.Hits) != 1 || res.Hits[0].Path != "lib/x.rs" {
+		t.Errorf("regex = %+v", res.Hits)
+	}
+	res, _ = l.SearchCode(ctx, CodeQuery{Pattern: "hello", IgnoreCase: true, Tag: "go"})
+	if len(res.Hits) != 1 {
+		t.Errorf("tag filter = %+v", res.Hits)
+	}
+	if res, _ := l.SearchCode(ctx, CodeQuery{Pattern: "nirgends-zu-finden"}); len(res.Hits) != 0 {
+		t.Errorf("no-match = %+v", res.Hits)
+	}
+	if _, err := l.SearchCode(ctx, CodeQuery{Pattern: "  "}); err == nil {
+		t.Error("empty pattern accepted")
+	}
+	if _, err := l.SearchCode(ctx, CodeQuery{Pattern: "a(", Regex: true}); !errors.Is(err, ErrInvalid) {
+		t.Errorf("bad regex = %v", err)
+	}
+	res, _ = l.SearchCode(ctx, CodeQuery{Pattern: "e", Limit: 1})
+	if len(res.Hits) != 1 || !res.Truncated {
+		t.Errorf("limit = %+v", res)
+	}
+}

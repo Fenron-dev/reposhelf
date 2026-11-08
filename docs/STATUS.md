@@ -39,8 +39,7 @@ Desktop-Apps (Wails v2: bisher nur Typprüfung, nie gestartet), echte Builds in
 Containern und mit `act`, GitHub-Actions-Dispatch. Erstes Release: Tag `v0.1.0`
 pushen oder `Release`-Workflow manuell mit „Desktop-Apps bauen“ starten.
 
-**Offen für Dennis:** F-007 (Code-Volltextsuche, T-9.5 blockiert), F-014
-(Instanzschlüssel im Datenordner).
+**Offene Fragen:** keine (F-007 → D-021, F-014 → D-022).
 
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
@@ -63,14 +62,14 @@ Entscheidung: Status `entschieden`, Eintrag in `docs/ENTSCHEIDUNGEN.md`, Verweis
 | F-004 | Wails v2 (stabil) oder v3 (seit 08/2026 Beta)? | In Phase 5 entscheiden; bis dahin keine Wails-Abhängigkeit im Kern | entschieden | **Wails v2** → D-019 |
 | F-005 | Oberfläche: Go-Templates + htmx oder kleines JS-Framework? | htmx (kein Node-Build) | entschieden | **Go-Templates + htmx** → D-017 |
 | F-006 | Eigene, lokale Issues für eigene Projekte (nicht nur GitHub spiegeln)? | Später; erst spiegeln (T-9.1) | offen | |
-| F-007 | Code-Volltextsuche über alle Repos (z. B. zoekt)? | Phase 9 | offen | |
+| F-007 | Code-Volltextsuche über alle Repos (z. B. zoekt)? | Phase 9 | entschieden | **git grep, ohne Index** → D-021 |
 | F-008 | Standard-Port der Weboberfläche | z. B. 7878 (unbelegt prüfen) | entschieden | **7373** (7878 ist Radarr) → D-016 |
 | F-009 | Pushes auf eigene Projekte automatisch an GitHub weiterreichen? | Später, optional pro Repo | offen | |
 | F-010 | Windows: portables Git mitliefern oder Installation voraussetzen? | Voraussetzen + Prüfung mit Hinweis; mitliefern später | entschieden | **Portables Git mitliefern** → D-020 |
 | F-011 | Projektordner heißt `Portable RepoShelf ` (Leerzeichen am Ende) – umbenennen? | Ja, auf `Portable RepoShelf` oder `reposhelf` | offen | |
 | F-012 | Forgejo-Code übernehmen erlauben (Folge von F-003, bisher durch D-002 verboten)? | Erlauben, da RepoShelf selbst GPL ist | entschieden | **Ja** → D-015 (ersetzt D-002) |
 | F-013 | Wie wird ein Host mit Port (`gitea.local:3000`, z. B. Gitea auf Unraid) im Ordnerpfad abgebildet? `:` ist unter Windows im Dateinamen verboten; bis zur Entscheidung lehnt die Prüfung solche Hosts ab | `source.host` bleibt `gitea.local:3000`, Ordner heißt `gitea.local+3000` (`+` kommt in Hostnamen nie vor); IPv6-Adressen ebenso ohne `[]` und `:` abbilden | entschieden | **Ordner ohne Port** (`gitea.local`), Doppelte werden gemeldet → D-018 |
-| F-014 | Der Instanzschlüssel für den Abgleich (Ed25519, `.reposhelf/instance.key`, Rechte 0600) liegt im Datenordner. Konzept 4.2 sagt „Geheimnisse nie im Datenordner im Klartext“. So lassen? | So lassen: Er ist ein selbst erzeugter Maschinenschlüssel wie ein SSH-Hostkey, verlässt die Instanz nie und macht den portablen Betrieb (USB, Docker-Volume) erst möglich. Alternative: auf dem Desktop im Schlüsselbund, in Docker als Secret-Datei | offen | |
+| F-014 | Der Instanzschlüssel für den Abgleich (Ed25519, `.reposhelf/instance.key`, Rechte 0600) liegt im Datenordner. Konzept 4.2 sagt „Geheimnisse nie im Datenordner im Klartext“. So lassen? | So lassen: Er ist ein selbst erzeugter Maschinenschlüssel wie ein SSH-Hostkey, verlässt die Instanz nie und macht den portablen Betrieb (USB, Docker-Volume) erst möglich. Alternative: auf dem Desktop im Schlüsselbund, in Docker als Secret-Datei | entschieden | **So lassen** (Datei, 0600) → D-022 |
 
 ---
 
@@ -213,7 +212,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.2 | Weitere Quellen: GitLab, Codeberg/Gitea/Forgejo, Git-URL, ZIP | erledigt | Claude Code | 2026-11-08 | GitLab, Gitea/Forgejo/Codeberg, beliebige Git-URL, ZIP-Import (mit .git: ganze Geschichte); GitLab, Gitea/Forgejo/Codeberg, beliebige Git-URL fertig (`1ac3cd1`); ZIP-Import fehlt |
 | T-9.3 | Themes (hell, Akzentfarbe) | erledigt | Claude Code | 2026-11-08 | `9dc73ff` – hell/dunkel |
 | T-9.4 | Graph-Ansicht Beziehungen | erledigt | Claude Code | 2026-11-08 | `9dc73ff` |
-| T-9.5 | Code-Volltextsuche (nach F-007) | blockiert | Claude Code | 2026-11-08 | wartet auf F-007 |
+| T-9.5 | Code-Volltextsuche (nach F-007) | erledigt | Claude Code | 2026-11-08 | D-021 – `git grep` in Oberfläche (`/code`), CLI (`reposhelf grep`) und MCP (`search_code`) |
 | T-9.6 | Massenimport (eigene / gesternte GitHub-Repos) | erledigt | Claude Code | 2026-11-08 | `fad38bc` – `reposhelf import [--starred]` |
 
 ---

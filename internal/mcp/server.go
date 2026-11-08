@@ -72,6 +72,7 @@ func New(lib *core.Library, o Options) *sdk.Server {
 		sdk.AddTool(s, &sdk.Tool{Name: "get_notes", Description: "Notizen (notes.md) eines Repos.", Annotations: readOnly()}, h.notes)
 		sdk.AddTool(s, &sdk.Tool{Name: "list_versions", Description: "Versionen (Git-Tags) und Branches eines Repos.", Annotations: readOnly()}, h.versions)
 		sdk.AddTool(s, &sdk.Tool{Name: "list_releases", Description: "Releases mit Beschreibung und gesicherten Dateien.", Annotations: readOnly()}, h.releases)
+		sdk.AddTool(s, &sdk.Tool{Name: "search_code", Description: "Code aller Repos durchsuchen (git grep auf dem Standard-Branch). Treffer mit Datei und Zeile.", Annotations: readOnly()}, h.searchCode)
 		sdk.AddTool(s, &sdk.Tool{Name: "get_clone_url", Description: "Git-Adresse für git clone (über RepoShelf, funktioniert auch, wenn das Original weg ist).", Annotations: readOnly()}, h.cloneURL)
 	}
 	if has(auth.Write) {
@@ -383,6 +384,45 @@ func (h *handlers) cloneURL(ctx context.Context, _ *sdk.CallToolRequest, in Repo
 		base = h.o.CloneBase()
 	}
 	return nil, CloneOut{URL: strings.TrimSuffix(base, "/") + "/git/" + r.Entry.Key + ".git"}, nil
+}
+
+type CodeIn struct {
+	Pattern    string `json:"pattern" jsonschema:"Suchtext"`
+	Regex      bool   `json:"regex,omitempty" jsonschema:"Suchtext als regulären Ausdruck behandeln"`
+	IgnoreCase bool   `json:"ignore_case,omitempty"`
+	Tag        string `json:"tag,omitempty" jsonschema:"nur Repos mit diesem Schlagwort (ttrpg/* für Unterebenen)"`
+	Repo       string `json:"repo,omitempty" jsonschema:"nur dieses Repo"`
+	Limit      int    `json:"limit,omitempty" jsonschema:"höchstens so viele Treffer (Standard 50)"`
+}
+
+type CodeHitOut struct {
+	Repo string `json:"repo"`
+	Path string `json:"path"`
+	Line int    `json:"line"`
+	Text string `json:"text"`
+}
+
+type CodeOut struct {
+	Hits      []CodeHitOut `json:"hits"`
+	Truncated bool         `json:"truncated"`
+	Untrusted bool         `json:"untrusted_content"`
+	Note      string       `json:"note"`
+}
+
+func (h *handlers) searchCode(ctx context.Context, _ *sdk.CallToolRequest, in CodeIn) (*sdk.CallToolResult, CodeOut, error) {
+	limit := in.Limit
+	if limit <= 0 || limit > 500 {
+		limit = 50
+	}
+	res, err := h.lib.SearchCode(ctx, core.CodeQuery{Pattern: in.Pattern, Regex: in.Regex, IgnoreCase: in.IgnoreCase, Tag: in.Tag, Repo: in.Repo, Limit: limit})
+	if err != nil {
+		return nil, CodeOut{}, err
+	}
+	out := CodeOut{Hits: []CodeHitOut{}, Truncated: res.Truncated, Untrusted: true, Note: UntrustedNotice}
+	for _, hit := range res.Hits {
+		out.Hits = append(out.Hits, CodeHitOut{Repo: hit.Key, Path: hit.Path, Line: hit.Line, Text: hit.Text})
+	}
+	return nil, out, nil
 }
 
 // ---- write tools ----

@@ -883,6 +883,28 @@ func (s *Server) activityPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, r, "activity", "Verlauf", "activity", map[string]any{"Acts": acts, "Names": names})
 }
 
+// ---- Code search (T-9.5, D-021) ----
+
+type codeData struct {
+	Q      core.CodeQuery
+	Result *core.CodeResult
+	Error  string
+}
+
+func (s *Server) codePage(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	d := codeData{Q: core.CodeQuery{Pattern: q.Get("q"), Regex: q.Get("regex") == "1", IgnoreCase: q.Get("case") != "1", Tag: q.Get("tag"), Repo: q.Get("repo")}}
+	if strings.TrimSpace(d.Q.Pattern) != "" {
+		res, err := s.Lib.SearchCode(r.Context(), d.Q)
+		if err != nil {
+			d.Error = ErrText(err)
+		} else {
+			d.Result = &res
+		}
+	}
+	s.render(w, r, "code-search", "Code-Suche", "code", d)
+}
+
 // ---- Free notes (KONZEPT 6.8) ----
 
 type noteData struct {

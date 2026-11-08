@@ -59,6 +59,7 @@
     { Title: "Bibliothek", Sub: "Alle Repos", URL: "/" },
     { Title: "Schlagwörter", Sub: "Hierarchie und Umbenennen", URL: "/tags" },
     { Title: "Beziehungen", Sub: "Graph", URL: "/graph" },
+    { Title: "Code-Suche", Sub: "git grep über alle Repos", URL: "/code" },
     { Title: "Upstream weg", Sub: "Repos, deren Original verschwunden ist", URL: "/?status=gone" },
     { Title: "Lösch-Prüfung", Sub: "Was würde die Bereinigung entfernen?", URL: "/cleanup" },
     { Title: "Papierkorb", Sub: "", URL: "/trash" },

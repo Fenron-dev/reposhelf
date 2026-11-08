@@ -91,7 +91,8 @@ schnell Hunderte MB sein. Einstellbar global, je Sammlung und je Repo.
   entstehen aus README-Links, Abhängigkeitsdateien, Fork-Herkunft und Wiki-Links
   `[[Name]]` in Notizen; abgelehnte Vorschläge kommen nicht wieder.
 - **Suche** über Name, Beschreibung, README und Notizen; ⌘K öffnet die
-  Befehlspalette.
+  Befehlspalette. **Code-Suche** über alle Repos: „Code-Suche“ in der
+  Seitenleiste oder `reposhelf grep <text>` (mit `git grep`).
 
 ## 4. Aufbewahrung und Papierkorb
 
