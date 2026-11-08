@@ -63,7 +63,11 @@ func (l *Library) List(ctx context.Context, q store.Query) ([]store.Entry, error
 // Get loads a repository by ID or host/owner/name. It reads the files, not
 // the index, so hand edits are visible immediately.
 func (l *Library) Get(ctx context.Context, ref string) (*Repo, error) {
-	e, err := l.Store.Get(ctx, strings.TrimSuffix(ref, ".git"))
+	ref = strings.TrimSuffix(strings.Trim(ref, "/ "), ".git")
+	e, err := l.Store.Get(ctx, ref)
+	if errors.Is(err, store.ErrNotFound) {
+		e, err = l.byShortRef(ctx, ref)
+	}
 	if errors.Is(err, store.ErrNotFound) {
 		return nil, fmt.Errorf("%s: %w", ref, ErrNotFound)
 	}
@@ -275,4 +279,23 @@ func (l *Library) loadForIndex(ctx context.Context, metaDir string) (*Repo, erro
 	r := &Repo{Doc: doc, Upstream: up, Paths: p}
 	r.Entry = l.entry(ctx, r, true)
 	return r, nil
+}
+
+// byShortRef accepts "owner/name" (or just "name") when it is unique.
+func (l *Library) byShortRef(ctx context.Context, ref string) (store.Entry, error) {
+	all, err := l.Store.List(ctx, store.Query{})
+	if err != nil {
+		return store.Entry{}, err
+	}
+	var hits []store.Entry
+	want := store.FoldKey(ref)
+	for _, e := range all {
+		if store.FoldKey(e.Owner+"/"+e.Name) == want || store.FoldKey(e.Name) == want {
+			hits = append(hits, e)
+		}
+	}
+	if len(hits) != 1 {
+		return store.Entry{}, store.ErrNotFound
+	}
+	return hits[0], nil
 }
