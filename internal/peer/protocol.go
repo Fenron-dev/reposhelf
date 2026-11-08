@@ -232,4 +232,3 @@ func levelIndex(l string) int {
 	}
 	return -1
 }
-

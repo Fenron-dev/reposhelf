@@ -104,6 +104,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /add/preview", write(s.addPreview))
 	mux.Handle("POST /add", write(s.addSubmit))
 	mux.Handle("POST /create", write(s.createLocal))
+	mux.Handle("POST /import-zip", write(s.importZip))
 
 	mux.Handle("GET /tags", read(s.tagsPage))
 	mux.Handle("POST /tags/rename", write(s.tagsRename))

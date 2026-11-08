@@ -28,6 +28,10 @@ type Preview struct {
 	Existing *store.Entry
 	// SuggestedTags come from the topics.
 	SuggestedTags []string
+	// ReleaseBytes and ReleaseFiles estimate the release download with the
+	// default retention (T-1.13); -1 if unknown.
+	ReleaseBytes int64
+	ReleaseFiles int
 }
 
 // Preview recognises a link and fetches metadata without writing anything.
@@ -39,7 +43,7 @@ func (l *Library) Preview(ctx context.Context, link string) (Preview, error) {
 	if p.Source.Host == repometa.LocalHost {
 		return Preview{}, fmt.Errorf("%w: host %q is reserved", ErrInvalid, repometa.LocalHost)
 	}
-	pv := Preview{Parsed: p}
+	pv := Preview{Parsed: p, ReleaseBytes: -1}
 	if e, err := l.Store.ByFolder(ctx, p.Source.Key()); err == nil {
 		pv.Existing = &e
 	}
@@ -49,6 +53,10 @@ func (l *Library) Preview(ctx context.Context, link string) (Preview, error) {
 			pv.MetaError = err
 		} else {
 			pv.Metadata = &m
+			if rels, err := api.Releases(ctx, p.Source); err == nil {
+				cfg := l.Config().Retention
+				pv.ReleaseBytes, pv.ReleaseFiles = EstimateReleaseSize(rels, cfg.ReleasesKeep, cfg.MaxAssetMB)
+			}
 			for _, t := range m.Topics {
 				if safepath.CheckSegment(t) == nil {
 					pv.SuggestedTags = append(pv.SuggestedTags, t)
