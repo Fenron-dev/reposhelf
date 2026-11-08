@@ -482,6 +482,9 @@ func (m *Manager) finish(b artifact.Build, err error) {
 	if rerr == nil && cur.Status == artifact.StatusCancelled {
 		return
 	}
+	// Remove our own checkout before the build is reported as finished,
+	// so nobody sees a "done" build that still occupies space.
+	_ = os.RemoveAll(filepath.Join(b.Dir, "work"))
 	now := time.Now().UTC().Truncate(time.Second)
 	b.Finished = &now
 	b.Status = artifact.StatusSuccess
@@ -492,7 +495,6 @@ func (m *Manager) finish(b artifact.Build, err error) {
 		m.Log.Warn("write build", "err", werr)
 	}
 	m.Lib.Record(core.Activity{Actor: "runner", Action: "build_" + b.Status, RepoID: b.RepoID, Detail: b.Target})
-	os.RemoveAll(filepath.Join(b.Dir, "work")) // our own checkout
 }
 
 // checkout extracts the source at b.Commit into dir (git archive).
