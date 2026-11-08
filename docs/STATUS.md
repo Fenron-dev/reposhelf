@@ -14,7 +14,7 @@
 
 - **Phase:** 0–9 umgesetzt (außer T-9.5, wartet auf F-007)
 - **Letzte Änderung:** 2026-11-08 · Builds/Kapseln (6/7), Abgleich zwischen Instanzen (8), ZIP-Import, Größenbegrenzung
-- **Nächster Schritt:** Dennis testet Release `v0.1.1` (CLI-Pakete, DMG, Windows-ZIP, Docker-Image `ghcr.io/fenron-dev/reposhelf:0.1.1`); F-007 und F-014 entscheiden
+- **Nächster Schritt:** Dennis testet Release `v0.1.3`; alle Pakete sind gestartet und geprüft (Prüflauf `smoke.yml`: Docker, Windows-CLI, Windows-Desktop; macOS-Desktop lokal)
 
 ## Übergabe-Notiz
 
@@ -34,10 +34,10 @@ go build -o bin/reposhelf ./cmd/reposhelf
 ```
 Anleitung für alles Weitere: `docs/BETRIEB.md`.
 
-**Nur in CI/auf Zielsystemen prüfbar (lokal nicht erlaubt):** Docker-Image,
-Desktop-Apps (Wails v2: bisher nur Typprüfung, nie gestartet), echte Builds in
-Containern und mit `act`, GitHub-Actions-Dispatch. Erstes Release: Tag `v0.1.0`
-pushen oder `Release`-Workflow manuell mit „Desktop-Apps bauen“ starten.
+**Geprüft (v0.1.3):** Docker-Image (Container, API, Abgleich, Klonen), Windows-CLI mit
+MinGit, Windows-Desktop-App (Prüflauf `smoke.yml`), macOS-Desktop-App lokal.
+Noch nicht geprüft: echte Builds in Containern/mit `act` und GitHub-Actions-Dispatch
+(nur mit Ersatz-Docker getestet), Einrichtungsdialog der Desktop-App (nur im Fenster sichtbar).
 
 **Offene Fragen:** keine (F-007 → D-021, F-014 → D-022).
 
@@ -221,6 +221,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-08 · Claude Code · Prüflauf für `v0.1.3` grün (Docker, Windows-CLI, Windows-Desktop); macOS-Desktop lokal geprüft
 - 2026-11-08 · Claude Code · F-007/F-014 entschieden (D-021, D-022); Code-Suche (T-9.5); Prüflauf `smoke.yml` fand Fehler: Docker-Image und MinGit haben kein `git http-backend` → Smart-HTTP jetzt eigen (upload-pack/receive-pack); Release `v0.1.3`
 - 2026-11-08 · Claude Code · Release `v0.1.1` gebaut (alle Jobs grün). `v0.1.0` schlug fehl (Wails-Bindings, Artefakt-Kontingent voll) – Workflow korrigiert; Tag `v0.1.0` bleibt bestehen (Löschen nicht erlaubt)
 - 2026-11-08 · Claude Code · Phasen 5–8 und Rest von 9 umgesetzt (Docker, Unraid, Desktop, Release, Kapseln, Builds, Abgleich, ZIP); T-0.6/0.7/0.10/1.13 erledigt; F-014 neu
