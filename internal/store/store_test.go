@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -210,6 +211,28 @@ func TestFTSQuery(t *testing.T) {
 	for in, want := range cases {
 		if got := ftsQuery(in); got != want {
 			t.Errorf("ftsQuery(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestOpenWithSpecialCharactersInPath(t *testing.T) {
+	ctx := context.Background()
+	for _, name := range []string{"# Meine Apps", "a?b", "100% sicher", "Grüße & Co", "space dir"} {
+		dir := filepath.Join(t.TempDir(), name, "Vault")
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		path := filepath.Join(dir, "index.db")
+		s, err := Open(path, Options{})
+		if err != nil {
+			t.Fatalf("%q: %v", name, err)
+		}
+		if err := s.Upsert(ctx, entry("01AAAAAAAAAAAAAAAAAAAAAAAA", "o", "n")); err != nil {
+			t.Fatalf("%q: %v", name, err)
+		}
+		s.Close()
+		if _, err := os.Stat(path); err != nil {
+			t.Errorf("%q: database not at the expected place: %v", name, err)
 		}
 	}
 }

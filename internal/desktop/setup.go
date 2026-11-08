@@ -81,7 +81,7 @@ func (s *Setup) submit(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err := s.Open(dir); err != nil {
-		fail(err.Error())
+		fail("Der Ordner „" + dir + "“ konnte nicht geöffnet werden: " + err.Error())
 		return
 	}
 	s.SetReason("")

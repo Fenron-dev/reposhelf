@@ -17,7 +17,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -164,9 +166,16 @@ func (s *Store) ensureSchema(path string) error {
 	return tx.Commit()
 }
 
+// dsnOf builds the SQLite URI. The path must be escaped: characters like
+// "#", "?", "%" or spaces in a folder name ("# Meine Apps") would otherwise
+// end the file name early (reported for v0.1.6).
 func dsnOf(path, journal string) string {
+	p := filepath.ToSlash(path)
+	if !strings.HasPrefix(p, "/") {
+		p = "/" + p // Windows drive letters: file:/C:/…
+	}
 	return fmt.Sprintf("file:%s?_pragma=busy_timeout(%d)&_pragma=foreign_keys(1)&_pragma=journal_mode(%s)&_pragma=synchronous(NORMAL)",
-		path, busyTimeout.Milliseconds(), journal)
+		(&url.URL{Path: p}).EscapedPath(), busyTimeout.Milliseconds(), journal)
 }
 
 func (s *Store) info(key string) (string, error) {
