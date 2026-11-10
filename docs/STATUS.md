@@ -12,9 +12,9 @@
 
 ## Aktueller Stand
 
-- **Phase:** 0–9 umgesetzt (außer T-9.5, wartet auf F-007)
-- **Letzte Änderung:** 2026-11-08 · Builds/Kapseln (6/7), Abgleich zwischen Instanzen (8), ZIP-Import, Größenbegrenzung
-- **Nächster Schritt:** Dennis testet Release `v0.1.4` (alle Pakete gestartet und geprüft, echte Builds in CI geprüft)
+- **Phase:** 0–9 umgesetzt; Version `v0.1.7` von Dennis getestet und abgenommen
+- **Letzte Änderung:** 2026-11-08 · Dennis bestätigt v0.1.7: Datenordner mit „#“ öffnet, „Hinzufügen“ springt zum Repo
+- **Nächster Schritt:** keiner offen – weitere Wünsche als neue Aufgaben eintragen
 
 ## Übergabe-Notiz
 
@@ -227,6 +227,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-08 · Dennis · v0.1.7 getestet: Ordner öffnet, Hinzufügen springt zum Repo; Notarisierung bleibt weg (D-023)
 - 2026-11-08 · Claude Code · Dennis' Test v0.1.6: Datenordner `…/# Meine Apps/App-Vault` ließ sich nicht öffnen – `#` im Pfad beendete den SQLite-Dateinamen (URI) → Pfad wird jetzt maskiert, Test mit Sonderzeichen; Release `v0.1.7`
 - 2026-11-08 · Claude Code · v0.1.6 Prüflauf grün; Actions-Artefakt-Download live gegen GitHub geprüft (SoloSidian)
 - 2026-11-08 · Claude Code · Dennis' Test v0.1.5: Fenster ok, aber nach „Hinzufügen“ keine Weiterleitung (WKWebView folgt 303 im Wails-Schema nicht) → behoben; T-9.7 Actions-Artefakte; Release `v0.1.6`

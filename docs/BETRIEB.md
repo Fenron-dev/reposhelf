@@ -50,7 +50,8 @@ Einstellungen „Diese Instanz baut“ einschalten.
 
 ### Desktop (macOS, Windows)
 
-`RepoShelf.app` (DMG) bzw. `RepoShelf.exe` (portables ZIP mit Git). Beim ersten
+`RepoShelf.app` (DMG) bzw. `RepoShelf.exe` (portables ZIP mit Git). Die
+macOS-App ist nicht von Apple notarisiert (D-023): beim ersten Start Rechtsklick → „Öffnen“. Beim ersten
 Start fragt die App nach dem Datenordner: portabel neben der App oder ein
 eigener Ordner. Die App startet zusätzlich den Server auf `127.0.0.1:7373`, damit
 Git und Agenten auf demselben Rechner zugreifen können.

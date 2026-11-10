@@ -289,3 +289,16 @@ Dienste bezieht.
 
 **Folgen:** Wer den Datenordner kopiert, kopiert die Identität der Instanz mit;
 bei Verlust einfach neu koppeln.
+
+### D-023 · macOS-App ohne Apple-Notarisierung
+2026-11-08 · gültig
+
+**Entscheidung:** Die macOS-App wird ad-hoc signiert, aber nicht von Apple
+notarisiert. Erster Start per Rechtsklick → „Öffnen“.
+
+**Begründung:** Wunsch von Dennis; für den eigenen Gebrauch genügt das, eine
+Notarisierung bräuchte ein kostenpflichtiges Apple-Entwicklerkonto.
+
+**Folgen:** Hinweis in `docs/BETRIEB.md`. Wird die App später weitergegeben,
+kann die Notarisierung im Release-Workflow ergänzt werden (Zertifikat und
+Zugangsdaten als GitHub-Secrets).
