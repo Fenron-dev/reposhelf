@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/Fenron-dev/reposhelf/internal/fsinfo"
+	"github.com/Fenron-dev/reposhelf/internal/sources"
 	"github.com/Fenron-dev/reposhelf/internal/store"
 )
 
@@ -81,10 +82,13 @@ func (l *Library) Doctor(ctx context.Context) DoctorReport {
 		}
 		add("Spiegel", len(broken) == 0, "%s", map[bool]string{true: "alle lesbar", false: "ohne Inhalt: " + strings.Join(broken, ", ")}[len(broken) == 0])
 	}
-	if tok := l.Sources.Tokens("github.com"); tok == "" {
-		add("GitHub-Token", true, "keines gesetzt – 60 statt 5000 API-Anfragen pro Stunde (REPOSHELF_GITHUB_TOKEN)")
-	} else {
-		add("GitHub-Token", true, "gesetzt")
+	switch src := l.Tokens.Source("github.com"); src.Kind {
+	case sources.FromNone:
+		add("GitHub-Token", true, "keines gesetzt – private Repos und Actions-Artefakte nicht erreichbar, 60 statt 5000 API-Anfragen pro Stunde (Einstellungen → Zugänge)")
+	case sources.FromKeychain:
+		add("GitHub-Token", true, "gesetzt (Schlüsselbund)")
+	default:
+		add("GitHub-Token", true, "gesetzt (%s)", src.Name)
 	}
 	return rep
 }

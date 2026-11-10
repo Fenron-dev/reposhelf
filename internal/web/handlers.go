@@ -29,6 +29,7 @@ import (
 	"github.com/Fenron-dev/reposhelf/internal/githttp"
 	"github.com/Fenron-dev/reposhelf/internal/layout"
 	"github.com/Fenron-dev/reposhelf/internal/repometa"
+	"github.com/Fenron-dev/reposhelf/internal/sources"
 	"github.com/Fenron-dev/reposhelf/internal/store"
 )
 
@@ -1102,10 +1103,13 @@ type settingsData struct {
 	Doctor   core.DoctorReport
 	DataDir  string
 	Warnings []string
+	// TokenOK and TokenError are shown in the access card (T-9.10).
+	TokenOK, TokenError string
 }
 
 func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
-	d := settingsData{Cfg: s.Lib.Config(), DataDir: s.Lib.Layout.Root, Warnings: s.Lib.ConfigWarnings()}
+	d := settingsData{Cfg: s.Lib.Config(), DataDir: s.Lib.Layout.Root, Warnings: s.Lib.ConfigWarnings(),
+		TokenOK: r.URL.Query().Get("token_ok"), TokenError: r.URL.Query().Get("token_fehler")}
 	s.render(w, r, "settings", "Einstellungen", "settings", d)
 }
 
@@ -1113,6 +1117,81 @@ func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 // for every repository (T-9.9).
 func (s *Server) settingsDoctor(w http.ResponseWriter, r *http.Request) {
 	s.partial(w, "doctor", s.Lib.Doctor(r.Context()))
+}
+
+// settingsTokens lists the hosts and where their tokens come from (T-9.10).
+func (s *Server) settingsTokens(w http.ResponseWriter, r *http.Request) {
+	hosts, err := s.Lib.TokenHosts(r.Context())
+	if err != nil {
+		s.failErr(w, r, err)
+		return
+	}
+	s.partial(w, "tokens", map[string]any{"Hosts": hosts, "CanSave": s.Lib.Tokens.CanSave()})
+}
+
+// settingsTokenAction saves, checks or removes a host token. The token is
+// never written to a log or shown again.
+func (s *Server) settingsTokenAction(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	host := strings.ToLower(strings.TrimSpace(r.Form.Get("host")))
+	back := func(key, msg string) {
+		http.Redirect(w, r, "/settings?"+key+"="+url.QueryEscape(msg)+"#zugaenge", http.StatusSeeOther)
+	}
+	switch r.Form.Get("action") {
+	case "save":
+		acc, err := s.Lib.SaveToken(r.Context(), host, r.Form.Get("token"), s.actor(r))
+		if err != nil {
+			back("token_fehler", "Token für "+host+" nicht gespeichert: "+tokenErrText(err))
+			return
+		}
+		back("token_ok", "Token für "+host+" gespeichert. "+accountText(acc))
+	case "check":
+		acc, err := s.Lib.CheckToken(r.Context(), host)
+		if err != nil {
+			back("token_fehler", "Token für "+host+": "+tokenErrText(err))
+			return
+		}
+		back("token_ok", "Token für "+host+" gültig. "+accountText(acc))
+	case "remove":
+		if err := s.Lib.RemoveToken(host, s.actor(r)); err != nil {
+			back("token_fehler", "Token für "+host+" nicht entfernt: "+tokenErrText(err))
+			return
+		}
+		back("token_ok", "Token für "+host+" aus dem Schlüsselbund entfernt.")
+	default:
+		s.fail(w, r, http.StatusBadRequest, "Unbekannte Aktion")
+	}
+}
+
+func tokenErrText(err error) string {
+	switch {
+	case errors.Is(err, sources.ErrAuth):
+		return "der Host lehnt ihn ab (falsch, abgelaufen oder ohne Rechte)."
+	case errors.Is(err, sources.ErrUnavailable):
+		return "Host nicht erreichbar."
+	}
+	return err.Error()
+}
+
+// accountText describes what a checked token can do, in German.
+func accountText(a sources.Account) string {
+	if !a.Checked {
+		return "Prüfen war nicht möglich (Host ohne bekannte API oder nicht erreichbar)."
+	}
+	var b strings.Builder
+	b.WriteString("Angemeldet als " + a.Login)
+	switch {
+	case a.Scopes != "":
+		b.WriteString(", Rechte: " + a.Scopes)
+	case a.FineGrained:
+		b.WriteString(", fein eingestellter Token")
+	}
+	if a.Private {
+		b.WriteString(", private Repos sichtbar.")
+	} else {
+		b.WriteString(", keine privaten Repos sichtbar.")
+	}
+	return b.String()
 }
 
 // repoPanel is loaded after the repository page (builds and capsules need

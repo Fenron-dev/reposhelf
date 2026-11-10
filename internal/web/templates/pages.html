@@ -88,7 +88,8 @@
   <div class="small muted">{{if .Language}}Sprache: {{.Language}} · {{end}}Lizenz: {{if .License}}{{.License}}{{else}}keine erkannt{{end}} · Wiki: {{if .HasWiki}}ja{{else}}nein{{end}}{{if .Archived}} · archiviert{{end}}{{if .Fork}} · ist ein Fork von {{.ForkParent}}{{end}}</div>
   {{if .Topics}}<div class="small">Vorschläge aus Topics: {{range .Topics}}<button type="button" class="tag" data-add-tag="{{.}}">{{.}}</button> {{end}}</div>{{end}}
   {{else}}
-  <div class="small muted">{{if .MetaError}}Keine Metadaten: {{.MetaError}}{{else}}Ohne API – nur Git.{{end}}</div>
+  {{if .NoToken}}<div class="alert alert-error small">{{.Parsed.Source.Host}} zeigt dieses Repo nicht. Ist es privat? Dann zuerst unter <a href="/settings#zugaenge">Einstellungen → Zugänge</a> einen Token hinterlegen.</div>
+  {{else}}<div class="small muted">{{if .MetaError}}Keine Metadaten: {{.MetaError}}{{else}}Ohne API – nur Git.{{end}}</div>{{end}}
   {{end}}
   {{if ge .ReleaseBytes 0}}<div class="small {{if gt .ReleaseBytes 524288000}}warn{{else}}muted{{end}}">Release-Dateien der neuesten Versionen: {{.ReleaseFiles}} Dateien, etwa {{size .ReleaseBytes}}{{if gt .ReleaseBytes 524288000}} – viel Platz; „Releases &amp; Dateien“ ggf. abwählen oder in den Einstellungen eine Höchstgröße setzen{{end}}</div>{{end}}
   <div class="small muted">Wird gespeichert unter <span class="mono">meta/{{.Parsed.Source.Key}}/repo.yaml</span></div>
@@ -300,10 +301,17 @@
 <div><button class="btn btn-primary" type="submit">Speichern</button></div>
 </form>
 
+<div class="card stack" id="zugaenge">
+  <h2 class="h3">Zugänge zu Git-Hosts</h2>
+  {{with .Data.TokenOK}}<div class="alert alert-ok small" role="status">{{.}}</div>{{end}}
+  {{with .Data.TokenError}}<div class="alert alert-error small" role="alert">{{.}}</div>{{end}}
+  <p class="small muted">Ein Token öffnet private Repos, GitHub-Actions-Artefakte und 5000 statt 60 API-Anfragen pro Stunde. Er liegt im Schlüsselbund dieses Rechners, nie im Datenordner.</p>
+  <div hx-get="/settings/tokens" hx-trigger="load" hx-swap="outerHTML"><p class="small muted"><span class="spinner" aria-hidden="true"></span> wird geladen …</p></div>
+</div>
+
 <div class="card">
   <h2 class="h3">Prüfung (doctor)</h2>
   <div hx-get="/settings/doctor" hx-trigger="load" hx-swap="outerHTML"><p class="small muted"><span class="spinner" aria-hidden="true"></span> Prüfung läuft …</p></div>
-  <p class="small muted">Tokens für Hosts: <span class="mono">REPOSHELF_GITHUB_TOKEN</span> bzw. <span class="mono">REPOSHELF_TOKEN_&lt;HOST&gt;</span> (Docker: <span class="mono">…_FILE</span>), auf dem Mac auch im Schlüsselbund (Dienst „RepoShelf“, Konto = Host).</p>
 </div>
 {{template "foot" .}}{{end}}
 
@@ -416,5 +424,37 @@
 </div>
 {{end}}
 {{template "foot" .}}{{end}}
+
+{{define "tokens"}}<div class="stack">
+<table class="list small"><thead><tr><th>Host</th><th>Repos</th><th>Token</th><th></th></tr></thead><tbody>
+{{range .Hosts}}<tr>
+  <td class="mono">{{.Host}}</td><td>{{.Repos}}</td>
+  <td>{{with .Source}}{{if eq .Kind "keychain"}}<span class="ok">✓</span> im Schlüsselbund{{else if .Kind}}<span class="ok">✓</span> aus <span class="mono">{{.Name}}</span>{{else}}<span class="muted">keiner</span>{{end}}{{end}}</td>
+  <td>{{if .Source.Kind}}<form method="post" action="/settings/tokens" class="inline"><input type="hidden" name="host" value="{{.Host}}"><button class="btn btn-small" name="action" value="check">Prüfen</button>
+  {{if eq .Source.Kind "keychain"}}<details class="inline"><summary class="btn btn-small btn-ghost">Entfernen</summary><button class="btn btn-small btn-danger" name="action" value="remove">Ja, aus dem Schlüsselbund entfernen</button></details>{{end}}</form>{{end}}</td>
+</tr>{{end}}
+</tbody></table>
+{{if .CanSave}}
+<form method="post" action="/settings/tokens" class="stack">
+  <input type="hidden" name="action" value="save">
+  <div class="row-wrap token-row">
+    <label>Host <input name="host" class="mono" list="token-hosts" value="github.com" required autocomplete="off" spellcheck="false"></label>
+    <datalist id="token-hosts">{{range .Hosts}}<option value="{{.Host}}">{{end}}</datalist>
+    <label class="grow">Token <input name="token" type="password" class="mono" required autocomplete="off" spellcheck="false" placeholder="github_pat_…"></label>
+  </div>
+  <div><button class="btn btn-primary" type="submit">Prüfen und speichern</button></div>
+  <p class="small muted">Ein Token aus einer Umgebungsvariable hat Vorrang vor dem Schlüsselbund.</p>
+</form>
+<details class="small"><summary>So legst du einen GitHub-Token an</summary>
+<ol>
+  <li>Auf GitHub <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer">einen neuen fein eingestellten Token</a> anlegen (Ablaufdatum nach Wunsch).</li>
+  <li>„Repository access“: <em>All repositories</em> – oder nur die Repos, die RepoShelf sichern soll.</li>
+  <li>„Permissions → Repositories“: <em>Contents</em>, <em>Metadata</em>, <em>Actions</em> und <em>Issues</em> jeweils <em>Read-only</em>. Für Builds über GitHub Actions zusätzlich <em>Actions: Read and write</em>.</li>
+  <li>Token kopieren und oben einfügen.</li>
+</ol></details>
+{{else}}
+<p class="small">Auf diesem System gibt es keinen Schlüsselbund (z. B. Docker). Token als Umgebungsvariable setzen: <span class="mono">REPOSHELF_GITHUB_TOKEN</span> bzw. <span class="mono">REPOSHELF_TOKEN_&lt;HOST&gt;</span>, für Docker-Secrets mit <span class="mono">_FILE</span>.</p>
+{{end}}
+</div>{{end}}
 
 {{define "doctor"}}<ul class="checks">{{range .Checks}}<li><span class="{{if .OK}}ok{{else}}error{{end}}">{{if .OK}}✓{{else}}✕{{end}}</span> <strong>{{.Name}}</strong>: {{.Detail}}</li>{{end}}</ul>{{end}}

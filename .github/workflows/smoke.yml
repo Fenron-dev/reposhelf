@@ -83,6 +83,17 @@ jobs:
           ./reposhelf.exe add "$TEST_REPO" --no-releases
           ./reposhelf.exe list
           ./reposhelf.exe grep "Hello"
+      - name: Host token in the Windows Credential Manager (T-9.10)
+        run: |
+          set -e
+          cd reposhelf-*-windows-amd64
+          h=selftest.reposhelf.invalid
+          echo "smoke_token_123" | ./reposhelf.exe host-token set $h
+          ./reposhelf.exe host-token check $h | tee check.txt
+          grep -q "Schlüsselbund" check.txt
+          cmdkey //list:RepoShelf:$h | grep -qi "RepoShelf:$h"
+          ./reposhelf.exe host-token remove $h
+          if ./reposhelf.exe host-token check $h; then echo "token still there"; exit 1; fi
       - name: CLI server and clone
         run: |
           set -e
