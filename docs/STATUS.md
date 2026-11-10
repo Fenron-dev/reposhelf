@@ -238,7 +238,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
-- 2026-11-10 · Claude Code · Dennis' Rückmeldung v0.1.7 (Windows): Konsolenfenster blitzten auf, Seitenwechsel langsam → T-9.8 (kein Konsolenfenster), T-9.9 (Git-Aufrufe je Seite auf 0, Fortschrittsbalken, Ladebalken); Release `v0.1.8`
+- 2026-11-10 · Claude Code · Dennis' Rückmeldung v0.1.7 (Windows): Konsolenfenster blitzten auf, Seitenwechsel langsam → T-9.8 (kein Konsolenfenster), T-9.9 (Git-Aufrufe je Seite auf 0, Fortschrittsbalken, Ladebalken); Release `v0.1.8`, Prüflauf `smoke.yml` grün (Docker, Windows, Builds)
 
 - 2026-11-08 · Dennis · v0.1.7 getestet: Ordner öffnet, Hinzufügen springt zum Repo; Notarisierung bleibt weg (D-023)
 - 2026-11-08 · Claude Code · Dennis' Test v0.1.6: Datenordner `…/# Meine Apps/App-Vault` ließ sich nicht öffnen – `#` im Pfad beendete den SQLite-Dateinamen (URI) → Pfad wird jetzt maskiert, Test mit Sonderzeichen; Release `v0.1.7`
