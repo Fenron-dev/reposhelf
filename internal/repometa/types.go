@@ -84,6 +84,9 @@ type Sync struct {
 	LastSuccess *time.Time `yaml:"last_success"`
 	LastCheck   *time.Time `yaml:"last_check"`
 	LastError   *string    `yaml:"last_error"`
+	// PushUpstream passes pushes on to the original (D-029); only for own
+	// projects and forks with an original. Default off.
+	PushUpstream bool `yaml:"push_upstream,omitempty"`
 }
 
 // SyncMode tells when a repository is fetched.

@@ -24,6 +24,12 @@ const fakeDocker = `#!/bin/sh
 case "$1" in
   version) echo 27.0; exit 0 ;;
   pull) exit 0 ;;
+  image) for ref; do :; done
+    case "$ref" in
+      sha256:*) [ -f "$FAKEBIN/loaded" ] && { echo "$ref"; exit 0; }; exit 1 ;;
+      *) echo "sha256:$(printf %064d 7)"; exit 0 ;;
+    esac ;;
+  load) touch "$FAKEBIN/loaded"; exit 0 ;;
   save) shift; while [ $# -gt 0 ]; do if [ "$1" = "-o" ]; then echo image > "$2"; fi; shift; done; exit 0 ;;
 esac
 src=""; script=""; net=1
@@ -190,8 +196,14 @@ func TestCapsuleAndOfflineTest(t *testing.T) {
 	b2, _ := m.StartBuild(ctx, StartRequest{Repo: repoID, Ref: "v1.0", Target: "capsule", Version: "v1.0-b", Actor: "web", Confirm: true})
 	wait(t, m, b2.ID)
 	used := artifact.Referenced(lib.Layout.Path("capsules"))
-	if len(used) != 2 {
-		t.Errorf("blobs = %d, want 2 (dedup)", len(used))
+	if len(used) != 3 {
+		t.Errorf("blobs = %d, want 3: two files and the toolchain image (dedup)", len(used))
+	}
+	if l2, _ := m.BuildLog(b2.ID); !strings.Contains(l2, "schon gesichert") {
+		t.Errorf("toolchain image saved twice:\n%s", l2)
+	}
+	if caps, _ := m.Capsules(ctx, repoID); caps[0].Ecosystems[0].ImageID == "" {
+		t.Error("image id not recorded")
 	}
 
 	tb, err := m.StartBuild(ctx, StartRequest{Repo: repoID, Ref: "v1.0", Target: "capsule-test", Version: "v1.0", Actor: "web", Confirm: true})
@@ -200,7 +212,7 @@ func TestCapsuleAndOfflineTest(t *testing.T) {
 	}
 	tb = wait(t, m, tb.ID)
 	tlog, _ := m.BuildLog(tb.ID)
-	if tb.Status != artifact.StatusSuccess || !strings.Contains(tlog, "built") {
+	if tb.Status != artifact.StatusSuccess || !strings.Contains(tlog, "built") || !strings.Contains(tlog, "Lade Toolchain-Image") {
 		t.Fatalf("capsule test: %s\n%s", tb.Error, tlog)
 	}
 	caps, _ = m.Capsules(ctx, repoID)

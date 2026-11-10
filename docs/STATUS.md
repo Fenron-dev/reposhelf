@@ -12,9 +12,9 @@
 
 ## Aktueller Stand
 
-- **Phase:** 0–9 umgesetzt; `v0.1.7` abgenommen, `v0.1.10` (T-9.8–T-9.10) zum Test bei Dennis
-- **Letzte Änderung:** 2026-11-10 · Tokens für Git-Hosts in den Einstellungen (Schlüsselbund, auch Windows) – T-9.10
-- **Nächster Schritt:** Dennis testet `v0.1.10` unter Windows (Konsolenfenster weg? Seitenwechsel schnell? Token speichern und privates Repo sichern); offen: T-9.11, T-9.12
+- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.2.0` (T-9.11 Schritt 1, T-9.12–T-9.14) zum Test bei Dennis
+- **Letzte Änderung:** 2026-11-10 · Lokale Issues, Push-Weiterreichen, Toolchain-Image in Kapseln, Hugging-Face-Modelle
+- **Nächster Schritt:** Dennis testet `v0.2.0`; danach T-9.11 weiter (HF_HOME-Ordner, Python-Pakete), T-9.15 (Ordner umbenennen) am Ende der Sitzung
 
 ## Übergabe-Notiz
 
@@ -63,6 +63,15 @@ abgelehnte werden nicht gespeichert. macOS-Schlüsselbund lokal geprüft
 (`REPOSHELF_KEYCHAIN_TEST=1 go test ./internal/sources`), Windows im Prüflauf
 (`smoke.yml`, Schritt „Host token“). Offen aus D-024: „Mit GitHub anmelden“ braucht
 eine OAuth-App von Dennis.
+
+**2026-11-10 · Claude Code (T-9.11–T-9.14):** Lokale Issues liegen unter
+`meta/…/issues/local/<n>.md` (Kennung L<n>), gespiegelte bleiben schreibgeschützt.
+Push-Weiterreichen: `sync.push_upstream`, nach Push über Git-HTTP (`RefreshAfterPush` →
+`forwardPush`), Ergebnis in `upstream.json` (`forwarded`, `forward_error`). Kapseln:
+Toolchain-Image als Blob `.reposhelf-capsule/toolchain/<id>.tar`, `image_id` im Manifest;
+im echten Docker erst im Prüflauf `builds` belegt. Modelle: Provider `huggingface`
+(`internal/sources/huggingface.go`), Erkennung `internal/core/models.go`. Lokal ist kein
+git-lfs installiert: `TestLargeModelNeedsConfirmation` läuft nur in CI ganz durch.
 
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
@@ -245,10 +254,10 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.8 | Windows: kein Konsolenfenster bei Git- und Docker-Aufrufen | erledigt | Claude Code | 2026-11-10 | Rückmeldung Dennis zu v0.1.7; e196256 |
 | T-9.9 | Seitenwechsel beschleunigen; lange Arbeiten im Hintergrund mit Fortschrittsbalken | erledigt | Claude Code | 2026-11-10 | Rückmeldung Dennis zu v0.1.7; d59ea17; Test `TestPageGitCost` |
 | T-9.10 | Host-Tokens am Desktop: Windows-Anmeldeinformationsverwaltung lesen (Konzept 4.2 nennt den System-Schlüsselbund, bisher nur macOS/Linux) und Token in der Oberfläche eingeben, prüfen (Rechte anzeigen) und im Schlüsselbund ablegen – nie im Datenordner | erledigt | Claude Code | 2026-11-10 | D-024; `48c4c28` – Einstellungen „Zugänge zu Git-Hosts“, `reposhelf host-token`, Schlüsselbund macOS/Windows/Linux; „Mit GitHub anmelden“ folgt, wenn die OAuth-App angelegt ist |
-| T-9.11 | Laufzeit-Daten sichern: Modelle (Hugging Face als eigenes gespiegeltes Repo mit LFS, gemeinsamer Speicher, Bereitstellung als `HF_HOME`-Ordner für den Offline-Betrieb), Verweis „braucht“ vom Tool auf das Modell, Vorschläge aus dem Code (`from_pretrained`, `hf_hub_download`); Python-Pakete mit genauer Versionsliste für gewählte Plattformen; optional Laufzeit-Image (`docker save`) | offen | | 2026-11-10 | Wunsch von Dennis (Beispiel TTS Phonon); Rahmen: D-025, D-026, D-027 |
-| T-9.12 | Build-Kapsel: Toolchain-Image (z. B. `golang:1.24`, `node:20`) mit `docker save` in den gemeinsamen Speicher, damit der Kapsel-Test nicht vom Docker Hub abhängt | offen | | 2026-11-10 | Befund bei Dennis' Frage zu Kapseln: bisher wird nur der Image-Name festgehalten |
-| T-9.13 | Lokale Issues: anlegen, kommentieren, schließen, wieder öffnen – Oberfläche, CLI, MCP (Recht schreiben); gespiegelte Issues bleiben schreibgeschützt | offen | | 2026-11-10 | D-028 |
-| T-9.14 | Pushes auf eigene Projekte/Forks an das Original weiterreichen, je Repo einschaltbar (Standard aus), ohne Force-Push | offen | | 2026-11-10 | D-029 |
+| T-9.11 | Laufzeit-Daten sichern: Modelle (Hugging Face als eigenes gespiegeltes Repo mit LFS, gemeinsamer Speicher, Bereitstellung als `HF_HOME`-Ordner für den Offline-Betrieb), Verweis „braucht“ vom Tool auf das Modell, Vorschläge aus dem Code (`from_pretrained`, `hf_hub_download`); Python-Pakete mit genauer Versionsliste für gewählte Plattformen; optional Laufzeit-Image (`docker save`) | in Arbeit | Claude Code | 2026-11-10 | Schritt 1 erledigt (`60f8718`): Hugging-Face-Modelle sichern (LFS, Größe, Nachfrage ab `retention.ask_above_mb`, D-025), benötigte Modelle aus dem Code erkennen. Offen: Bereitstellung als `HF_HOME`-Ordner (Offline-Betrieb, ohne Doppelablage), Python-Pakete je Plattform (D-026), optional Laufzeit-Image |
+| T-9.12 | Build-Kapsel: Toolchain-Image (z. B. `golang:1.24`, `node:20`) mit `docker save` in den gemeinsamen Speicher, damit der Kapsel-Test nicht vom Docker Hub abhängt | erledigt | Claude Code | 2026-11-10 | `a96a9d0` – Toolchain-Image per `docker save` in den gemeinsamen Speicher (einmal je Image-ID), Kapsel-Test lädt es bei Bedarf |
+| T-9.13 | Lokale Issues: anlegen, kommentieren, schließen, wieder öffnen – Oberfläche, CLI, MCP (Recht schreiben); gespiegelte Issues bleiben schreibgeschützt | erledigt | Claude Code | 2026-11-10 | D-028; `e4bc0de` – Reiter „Issues“ immer da, `reposhelf issue`, MCP `list_issues`/`create_issue`/`comment_issue`/`set_issue_state` |
+| T-9.14 | Pushes auf eigene Projekte/Forks an das Original weiterreichen, je Repo einschaltbar (Standard aus), ohne Force-Push | erledigt | Claude Code | 2026-11-10 | D-029; `8c60f60` – `sync.push_upstream` (SCHEMA ergänzt), nie erzwungen, Fehler am Repo |
 | T-9.15 | Projektordner ohne Leerzeichen am Ende | offen | | 2026-11-10 | D-030 |
 
 ---
@@ -256,6 +265,8 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 ## Verlauf
 
 Neueste oben. Eine Zeile pro Sitzung.
+
+- 2026-11-10 · Claude Code · T-9.12 Toolchain-Image in Kapseln, T-9.13 lokale Issues, T-9.14 Push-Weiterreichen (opt-in), T-9.11 Schritt 1 Hugging-Face-Modelle; Release `v0.2.0`
 
 - 2026-11-10 · Dennis · v0.1.10 unter Windows getestet und abgenommen: keine Konsolenfenster, Seitenwechsel flott, Fortschrittsbalken läuft, privates Repo lässt sich mit Token sichern; F-006/F-009/F-011 entschieden (D-028–D-030)
 

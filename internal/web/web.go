@@ -98,6 +98,8 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /repo/{id}/collections", write(s.repoCollections))
 	mux.Handle("POST /repo/{id}/relation", write(s.repoRelation))
 	mux.Handle("POST /repo/{id}/notes", write(s.repoNotes))
+	mux.Handle("POST /repo/{id}/issues", write(s.issueCreate))
+	mux.Handle("POST /repo/{id}/issues/{n}", write(s.issueAction))
 	mux.Handle("POST /repo/{id}/settings", write(s.repoSettings))
 	mux.Handle("POST /repo/{id}/pin", write(s.repoPin))
 	mux.Handle("POST /repo/{id}/fork", write(s.repoFork))
@@ -323,7 +325,7 @@ func (s *Server) failErr(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, core.ErrNotFound):
 		code = http.StatusNotFound
-	case errors.Is(err, core.ErrInvalid), errors.Is(err, core.ErrExists), errors.Is(err, sources.ErrBadURL):
+	case errors.Is(err, core.ErrInvalid), errors.Is(err, core.ErrExists), errors.Is(err, sources.ErrBadURL), errors.Is(err, core.ErrTooLarge):
 		code = http.StatusBadRequest
 	case errors.Is(err, core.ErrForbidden), errors.Is(err, core.ErrReadOnly):
 		code = http.StatusForbidden
@@ -342,6 +344,8 @@ func ErrText(err error) string {
 		return "Das sieht nicht nach einem Repository-Link aus: " + err.Error()
 	case errors.Is(err, core.ErrInvalid):
 		return "Ungültige Angabe: " + err.Error()
+	case errors.Is(err, core.ErrTooLarge):
+		return "Sehr groß – " + strings.TrimPrefix(err.Error(), core.ErrTooLarge.Error()+": ")
 	case errors.Is(err, gitcli.ErrAuth), errors.Is(err, sources.ErrAuth):
 		return "Zugriff verweigert – für private Repos ein Token hinterlegen: " + err.Error()
 	case errors.Is(err, sources.ErrRateLimited):
@@ -363,11 +367,16 @@ func redirect(w http.ResponseWriter, r *http.Request, to string) {
 }
 
 func withMsg(to, key, msg string) string {
+	to, frag, hasFrag := strings.Cut(to, "#")
 	sep := "?"
 	if strings.Contains(to, "?") {
 		sep = "&"
 	}
-	return to + sep + key + "=" + url.QueryEscape(msg)
+	to += sep + key + "=" + url.QueryEscape(msg)
+	if hasFrag {
+		to += "#" + frag
+	}
+	return to
 }
 
 // ---- Markdown ----

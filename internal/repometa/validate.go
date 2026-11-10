@@ -64,6 +64,9 @@ func (r *Repo) Validate() error {
 	default:
 		v.addf("kind", "must be own, mirror or fork, is %q", r.Kind)
 	}
+	if r.Sync.PushUpstream && (r.Kind == KindMirror || r.Source.Host == LocalHost) {
+		v.add("sync.push_upstream", "only for own projects and forks with an original")
+	}
 	switch {
 	case r.Kind == KindFork && r.ForkOf == nil:
 		v.add("fork_of", "is required for kind fork")

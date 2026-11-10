@@ -44,10 +44,11 @@ var scpLike = regexp.MustCompile(`^([A-Za-z0-9._-]+)@([A-Za-z0-9.-]+):(.+)$`)
 
 // knownHosts maps well-known hosts to their API kind.
 var knownHosts = map[string]string{
-	"github.com":   KindGitHub,
-	"gitlab.com":   KindGitLab,
-	"codeberg.org": KindGitea,
-	"gitea.com":    KindGitea,
+	"github.com":    KindGitHub,
+	"gitlab.com":    KindGitLab,
+	"codeberg.org":  KindGitea,
+	"gitea.com":     KindGitea,
+	HuggingFaceHost: KindHuggingFace,
 }
 
 // ParseURL recognises a repository link. Accepted: https/http URLs (also
@@ -92,6 +93,15 @@ func ParseURL(input string) (Parsed, error) {
 		path = path[:i]
 	}
 	segs := strings.Split(path, "/")
+	if kind == KindHuggingFace {
+		// Models only for now; /tree/main, /blob/… are pages of a model.
+		if len(segs) > 0 && (segs[0] == "datasets" || segs[0] == "spaces") {
+			return Parsed{}, fmt.Errorf("%w: Hugging-Face-%s werden noch nicht unterstützt, nur Modelle", ErrBadURL, segs[0])
+		}
+		if len(segs) > 2 {
+			segs = segs[:2]
+		}
+	}
 	if kind == KindGitHub || kind == KindGitea {
 		// Only owner/name; anything after is a page (tree, issues, …).
 		if len(segs) > 2 {

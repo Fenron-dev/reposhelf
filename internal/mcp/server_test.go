@@ -76,7 +76,7 @@ func TestTools(t *testing.T) {
 	for _, tl := range tools.Tools {
 		names = append(names, tl.Name)
 	}
-	if slices.Contains(names, "add_repo") || !slices.Contains(names, "read_file") {
+	if slices.Contains(names, "add_repo") || slices.Contains(names, "create_issue") || !slices.Contains(names, "read_file") || !slices.Contains(names, "list_issues") {
 		t.Errorf("read-only tools = %v", names)
 	}
 	for _, n := range names {
@@ -120,6 +120,24 @@ func TestTools(t *testing.T) {
 	}
 	if _, isErr := call(t, rw, "write_notes", map[string]any{"repo": "o/tool", "text": "# Notiz"}); isErr {
 		t.Error("write_notes failed")
+	}
+	// Local issues (D-028): only writers get the tools (see tool list above).
+	out, isErr = call(t, rw, "create_issue", map[string]any{"repo": "o/tool", "title": "Test fehlt", "body": "Bitte ergänzen", "labels": []string{"test"}})
+	if isErr || out["id"] != "L1" {
+		t.Fatalf("create_issue = %v", out)
+	}
+	call(t, rw, "comment_issue", map[string]any{"repo": "o/tool", "issue": "L1", "text": "Erledige ich"})
+	if _, isErr := call(t, rw, "set_issue_state", map[string]any{"repo": "o/tool", "issue": "L1", "state": "closed", "comment": "Test ergänzt"}); isErr {
+		t.Error("set_issue_state failed")
+	}
+	out, _ = call(t, ro, "list_issues", map[string]any{"repo": "o/tool"})
+	if is, _ := out["issues"].([]any); len(is) != 0 {
+		t.Errorf("open issues = %v", out)
+	}
+	out, _ = call(t, ro, "list_issues", map[string]any{"repo": "o/tool", "all": true})
+	is, _ := out["issues"].([]any)
+	if len(is) != 1 || is[0].(map[string]any)["state"] != "closed" || !strings.Contains(is[0].(map[string]any)["body"].(string), "Test ergänzt") {
+		t.Errorf("all issues = %v", out)
 	}
 	if acts := lib.RecentActivity(20, ""); !slices.ContainsFunc(acts, func(a core.Activity) bool { return a.Actor == "mcp:test" }) {
 		t.Error("MCP actions not logged")

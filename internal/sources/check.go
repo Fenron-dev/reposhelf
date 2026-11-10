@@ -90,6 +90,14 @@ func (r *Registry) Check(ctx context.Context, host, token string) (Account, erro
 			return acc, err
 		}
 		acc.Login, acc.Checked = u.Login, true
+	case KindHuggingFace:
+		var u struct {
+			Name string `json:"name"`
+		}
+		if _, err := get(r.base(host, "https://"+host+"/api")+"/whoami-v2", "Bearer ", &u); err != nil {
+			return acc, err
+		}
+		acc.Login, acc.Checked = u.Name, true
 	case KindGitLab:
 		var u struct {
 			Username string `json:"username"`

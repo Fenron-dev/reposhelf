@@ -94,6 +94,15 @@ die Artefakte der neuesten Läufe – wie viele, stellst du global, je Sammlung 
 Repo ein (`retention.actions_keep`, Standard 3). Ältere Läufe schlägt die Lösch-Prüfung
 vor. Braucht ein GitHub-Token.
 
+**Modelle (Hugging Face):** Viele KI-Werkzeuge laden beim Start Modelle von
+Hugging Face. Ein Modell sicherst du wie ein Repo: Link `https://huggingface.co/<org>/<modell>`
+bei „+ Repo hinzufügen“ (Dateien über Git LFS). Der Dialog zeigt die Größe; über
+`retention.ask_above_mb` (Standard 1024 MB, Einstellungen) musst du bestätigen (D-025),
+Agenten können das nicht. Beim Abgleich durchsucht RepoShelf den Code eines Projekts nach
+`from_pretrained(…)`, `hf_hub_download(…)` usw. und zeigt auf der Repo-Seite „Benötigte
+Modelle“ mit einem Knopf zum Sichern. Für gesperrte Modelle (Zustimmung nötig) einen
+Token für `huggingface.co` unter „Zugänge“ hinterlegen.
+
 **Achtung Speicher:** „Releases mitsichern“ lädt die Dateien der neuesten
 Releases (Standard: 5) – bei Projekten mit vielen Plattform-Builds können das
 schnell Hunderte MB sein. Einstellbar global, je Sammlung und je Repo.
@@ -111,6 +120,13 @@ schnell Hunderte MB sein. Einstellbar global, je Sammlung und je Repo.
   Befehlspalette. **Code-Suche** über alle Repos: „Code-Suche“ in der
   Seitenleiste oder `reposhelf grep <text>` (mit `git grep`).
 
+**Issues:** Jedes Repo hat den Reiter „Issues“. Lokale Issues (L1, L2 …) legst
+du dort an, kommentierst und schließt sie – auch ohne GitHub, z. B. als Aufgabenliste
+für Agenten. Gespiegelte Issues vom Original (#12) bleiben schreibgeschützt.
+CLI: `reposhelf issue list|new|comment|close|reopen <repo> [L3]`; MCP: `list_issues`,
+`create_issue`, `comment_issue`, `set_issue_state`. Abgelegt als Markdown unter
+`meta/…/issues/local/`.
+
 ## 4. Aufbewahrung und Papierkorb
 
 Regeln gelten global → Sammlung → Repo (das Spezifischere gewinnt). Was eine
@@ -124,7 +140,10 @@ Angeheftete Versionen und die Git-Geschichte selbst sind nie betroffen.
 
 - **Git:** `git clone http://<server>:7373/git/<host>/<owner>/<name>.git`
   Benutzername beliebig, Passwort = Token. Pushen nur in eigene Projekte und
-  Forks; Spiegel sind schreibgeschützt.
+  Forks; Spiegel sind schreibgeschützt. Auf Wunsch reicht RepoShelf Pushes an das
+  Original weiter (Repo-Einstellungen → „Pushes“; Standard aus, D-029): Branches und
+  Tags, nie erzwungen, nie gelöscht. Hat das Original neuere Stände, steht der Fehler
+  am Repo. Der Token für den Host braucht dafür Schreibrecht (Contents: Read and write).
 - **MCP lokal (stdio)** – Claude Code:
   `claude mcp add reposhelf -- /pfad/zu/reposhelf mcp --data /pfad/zu/RepoShelf-Daten`
   Claude Desktop / LM Studio / Codex: Befehl `reposhelf`, Argumente
@@ -156,7 +175,8 @@ Runner-Rolle in den Einstellungen einschalten (braucht Docker). Ziele kommen aus
 
 **Build-Kapseln** („Baubar halten“) sichern pro Version alle Abhängigkeiten
 (Go, Rust, Dart/Flutter, Node mit `package-lock.json`, Python, Docker-Basis-Images)
-in einem gemeinsamen, deduplizierten Speicher. Der **Kapsel-Test** baut ohne Netz
+in einem gemeinsamen, deduplizierten Speicher – dazu das Toolchain-Image (z. B.
+`golang:1.24`) per `docker save`, jedes Image nur einmal für alle Kapseln. Der **Kapsel-Test** baut ohne Netz
 aus der Kapsel und beweist so, dass sie vollständig ist. Für die neueste Version
 baubarer Repos wird automatisch eine Kapsel angelegt (mit Bestätigung, falls
 eingestellt). Builds von Agenten (MCP) warten immer auf deine Bestätigung, wenn

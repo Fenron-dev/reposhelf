@@ -19,6 +19,7 @@
       {{if $e.Language}} · {{$e.Language}}{{end}}{{if $e.License}} · Lizenz {{$e.License}}{{else}} · <span class="warn" title="Ohne Lizenz gilt: alle Rechte vorbehalten">keine Lizenz erkannt</span>{{end}}
     </p>
     {{if $d.Busy}}<div class="card-inset" hx-get="/repo/{{$id}}/progress" hx-trigger="every 1s" hx-swap="outerHTML">{{template "repo-progress" $d.Job}}</div>{{end}}
+    {{if and $r.R.Sync.PushUpstream $r.Upstream.ForwardError}}<div class="alert alert-error small" role="alert"><strong>Weiterreichen an das Original fehlgeschlagen:</strong> {{$r.Upstream.ForwardError}}</div>{{end}}
     {{if $e.LastError}}<div class="alert alert-error small" role="alert"><strong>Letzter Abgleich fehlgeschlagen:</strong> {{$e.LastError}}{{if $r.Upstream.HostDown}} – der ganze Host ist seit über 24 h gestört, das Repo gilt deshalb nicht als verschwunden.{{end}}</div>{{end}}
     {{if $r.Upstream.LastBackup}}<div class="alert small">Das Original hat Geschichte umgeschrieben. Der alte Stand ist gesichert unter <span class="mono">{{$r.Upstream.LastBackup}}</span> (siehe „Versionen“).</div>{{end}}
   </div>
@@ -38,7 +39,7 @@
   <a href="/repo/{{$id}}" {{if eq $d.Tab "overview"}}aria-current="page"{{end}}>Übersicht</a>
   <a href="/repo/{{$id}}/tree/" {{if eq $d.Tab "code"}}aria-current="page"{{end}}>Code</a>
   <a href="/repo/{{$id}}?tab=versions" {{if eq $d.Tab "versions"}}aria-current="page"{{end}}>Versionen · {{$e.Versions}}</a>
-  {{if $r.R.Include.Issues}}<a href="/repo/{{$id}}?tab=issues" {{if eq $d.Tab "issues"}}aria-current="page"{{end}}>Issues</a>{{end}}
+  <a href="/repo/{{$id}}?tab=issues" {{if eq $d.Tab "issues"}}aria-current="page"{{end}}>Issues</a>
   {{if .Sidebar.Builds}}<a href="/builds?repo={{$id}}">Builds</a>{{end}}
   <a href="/repo/{{$id}}?tab=notes" {{if eq $d.Tab "notes"}}aria-current="page"{{end}}>Notizen</a>
   <a href="/repo/{{$id}}?tab=yaml" {{if eq $d.Tab "yaml"}}aria-current="page"{{end}}>YAML</a>
@@ -71,12 +72,29 @@
 {{else if eq $d.Tab "versions"}}
   {{template "versions" (dict "D" $d "Page" $)}}
 {{else if eq $d.Tab "issues"}}
+  {{if $d.CanWrite}}<details class="card" {{if not $d.Issues}}open{{end}}><summary><strong>+ Neues Issue</strong></summary>
+    <form method="post" action="/repo/{{$id}}/issues" class="stack">
+      <label>Titel <input name="title" required maxlength="200"></label>
+      <label>Beschreibung (Markdown) <textarea name="body" rows="6"></textarea></label>
+      <label>Labels <input name="labels" placeholder="bug, idee"></label>
+      <div><button class="btn btn-primary" type="submit">Anlegen</button></div>
+    </form>
+  </details>{{end}}
   <div class="card">
   {{range $d.Issues}}
-    <details class="issue"><summary><span class="status {{if eq .State "open"}}status-ok{{else}}muted{{end}}">{{if eq .State "open"}}● offen{{else}}✓ geschlossen{{end}}</span> <strong>#{{.Number}}</strong> {{.Title}} <span class="small muted">· {{.Author}}</span> {{range .Labels}}<span class="tag">{{.}}</span>{{end}}</summary>
-      <pre class="issue-body">{{.Body}}</pre>
+    <details class="issue" id="issue-{{.Ref}}"><summary><span class="status {{if eq .State "open"}}status-ok{{else}}muted{{end}}">{{if eq .State "open"}}● offen{{else}}✓ geschlossen{{end}}</span> <strong>{{.Ref}}</strong> {{.Title}} <span class="small muted">· {{.Author}}{{if .Comments}} · {{.Comments}} Kommentar{{if gt .Comments 1}}e{{end}}{{end}}{{if not .Local}} · gespiegelt{{end}}</span> {{range .Labels}}<span class="tag">{{.}}</span>{{end}}</summary>
+      {{if .Body}}<pre class="issue-body">{{.Body}}</pre>{{end}}
+      {{if and .Local $d.CanWrite}}
+      <form method="post" action="/repo/{{$id}}/issues/{{.Number}}" class="stack">
+        <label>Kommentar <textarea name="text" rows="3"></textarea></label>
+        <div class="row-wrap">
+          <button class="btn btn-small" name="action" value="comment">Kommentieren</button>
+          {{if eq .State "open"}}<button class="btn btn-small" name="action" value="close">Schließen</button>{{else}}<button class="btn btn-small" name="action" value="reopen">Wieder öffnen</button>{{end}}
+        </div>
+      </form>
+      {{else if .URL}}<p class="small"><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">Im Original öffnen</a> – gespiegelte Issues sind schreibgeschützt.</p>{{end}}
     </details>
-  {{else}}<p class="muted">Keine Issues gespiegelt. Sie werden beim nächsten Abgleich geholt, wenn „Issues mitsichern“ an ist.</p>{{end}}
+  {{else}}<p class="muted">Noch keine Issues. Lokale Issues legst du hier an; gespiegelte kommen beim Abgleich, wenn „Issues mitsichern“ an ist.</p>{{end}}
   </div>
 {{else if eq $d.Tab "notes"}}
   <div class="card">
@@ -156,6 +174,16 @@
     {{range $d.NoteLinks}}<li><a href="/notes/{{pathEsc .}}">Notiz „{{.}}“</a> <span class="small muted">· Wiki-Link</span></li>{{end}}
     </ul>
   </div>
+
+  {{if $d.Models}}<div class="card">
+    <h2 class="h3">Benötigte Modelle</h2>
+    <p class="small muted">Im Code gefunden (Hugging Face). Ohne sie startet das Programm oft nicht – sichern, solange es sie gibt.</p>
+    <ul class="rels">
+    {{range $d.Models}}<li><span class="mono">{{.ID}}</span>
+      {{if .RepoID}}<a class="small" href="/repo/{{.RepoID}}">✓ gesichert</a>
+      {{else if $d.CanWrite}}<a class="btn btn-small" href="/add?url={{.URL}}">Sichern</a>{{end}}</li>{{end}}
+    </ul>
+  </div>{{end}}
 
   <div class="card">
     <h2 class="h3">Aufbewahrung</h2>
@@ -283,6 +311,12 @@
     <label class="check"><input type="radio" name="mode" value="once" {{if eq $r.Sync.Mode "once"}}checked{{end}}> Einmalig</label>
     <label class="check"><input type="radio" name="mode" value="manual" {{if eq $r.Sync.Mode "manual"}}checked{{end}}> Nur von Hand</label>
   </fieldset>
+  {{if and (ne $r.Kind "mirror") (ne $r.Source.Host "local")}}
+  <fieldset><legend>Pushes</legend>
+    <label class="check"><input type="checkbox" name="push_upstream" {{if $r.Sync.PushUpstream}}checked{{end}}> Pushes an das Original weiterreichen (<span class="mono">{{$r.Source.Host}}</span>)</label>
+    <p class="small muted">Nach jedem Push in RepoShelf werden Branches und Tags an das Original geschickt – nie erzwungen, nie gelöscht. Braucht einen Token mit Schreibrecht (Contents: Read and write).</p>
+  </fieldset>
+  {{end}}
   <fieldset><legend>Mitsichern</legend>
     <label class="check"><input type="checkbox" name="releases" {{if $r.Include.Releases}}checked{{end}}> Releases &amp; Dateien</label>
     <label class="check"><input type="checkbox" name="lfs" {{if $r.Include.LFS}}checked{{end}}> Git LFS</label>

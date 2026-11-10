@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strings"
 	"time"
 
@@ -60,8 +59,10 @@ type issueFront struct {
 	Created  time.Time  `yaml:"created"`
 	Updated  time.Time  `yaml:"updated"`
 	Closed   *time.Time `yaml:"closed,omitempty"`
-	URL      string     `yaml:"url"`
+	URL      string     `yaml:"url,omitempty"`
 	Comments int        `yaml:"comments"`
+	// Source is "local" for issues created in RepoShelf (D-028).
+	Source string `yaml:"source,omitempty"`
 }
 
 func writeIssue(dir string, is sources.Issue) error {
@@ -82,56 +83,41 @@ func writeIssue(dir string, is sources.Issue) error {
 	return atomicfile.WriteFile(filepath.Join(dir, fmt.Sprintf("%d.md", is.Number)), []byte(b.String()), filePerm)
 }
 
-// IssueSummary is one mirrored issue for lists.
+// IssueSummary is one issue for lists, mirrored or local.
 type IssueSummary struct {
-	Number int
-	Title  string
-	State  string
-	Author string
-	Labels []string
-	Body   string
+	Number   int
+	Title    string
+	State    string
+	Author   string
+	Labels   []string
+	Body     string
+	Local    bool // created in RepoShelf; referred to as L<Number>
+	URL      string
+	Comments int
+	Updated  time.Time
 }
 
-// Issues lists mirrored issues of a repository, open first.
+// Ref is how the issue is named: "L3" for local, "#3" for mirrored ones.
+func (i IssueSummary) Ref() string {
+	if i.Local {
+		return fmt.Sprintf("L%d", i.Number)
+	}
+	return fmt.Sprintf("#%d", i.Number)
+}
+
+// Issues lists the local and mirrored issues of a repository, open ones
+// first.
 func (l *Library) Issues(ctx context.Context, ref string) ([]IssueSummary, error) {
 	r, err := l.Get(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
-	dir := filepath.Join(r.Paths.Meta, IssuesDir)
-	entries, err := os.ReadDir(dir)
-	if errors.Is(err, os.ErrNotExist) {
-		return nil, nil
+	out := readIssues(filepath.Join(r.Paths.Meta, IssuesDir))
+	for i := range out {
+		out[i].Local = false // only files below local/ are local
 	}
-	if err != nil {
-		return nil, err
-	}
-	var out []IssueSummary
-	for _, e := range entries {
-		b, err := os.ReadFile(filepath.Join(dir, e.Name()))
-		if err != nil || !strings.HasPrefix(string(b), "---\n") {
-			continue
-		}
-		rest := string(b)[4:]
-		fm, body, ok := strings.Cut(rest, "\n---\n")
-		if !ok {
-			continue
-		}
-		var f issueFront
-		if yaml.Unmarshal([]byte(fm), &f) != nil {
-			continue
-		}
-		out = append(out, IssueSummary{Number: f.Number, Title: f.Title, State: f.State, Author: f.Author, Labels: f.Labels, Body: strings.TrimSpace(body)})
-	}
-	slices.SortFunc(out, func(a, b IssueSummary) int {
-		if a.State != b.State {
-			if a.State == "open" {
-				return -1
-			}
-			return 1
-		}
-		return b.Number - a.Number
-	})
+	out = append(out, readIssues(l.localIssuesDir(r))...)
+	sortIssues(out)
 	return out, nil
 }
 

@@ -232,6 +232,7 @@ type repoData struct {
 	HasBuilds   bool
 	NoteLinks   []string
 	Job         core.JobState
+	Models      []core.ModelRef
 }
 
 type crumb struct{ Name, URL string }
@@ -267,6 +268,7 @@ func (s *Server) baseRepoData(r *http.Request, repo *core.Repo) repoData {
 	d.CloneURL = githttp.CloneURL(s.CloneBase(r), repo.Entry.Key)
 	d.HasBuilds = s.Ext.Builds != nil
 	d.NoteLinks = s.Lib.NoteBacklinks(r.Context(), repo.R().ID)
+	d.Models = s.Lib.ModelsOf(r.Context(), repo)
 	d.Collections, _ = s.Lib.Collections(r.Context())
 	for _, bl := range repo.Backlinks {
 		if e, err := s.Lib.Store.Get(r.Context(), bl.From); err == nil {
@@ -535,6 +537,46 @@ func (s *Server) repoNotes(w http.ResponseWriter, r *http.Request) {
 	redirect(w, r, withMsg("/repo/"+id+"?tab=notes", "ok", "Notizen gespeichert."))
 }
 
+// issueCreate adds a local issue (D-028).
+func (s *Server) issueCreate(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	id := r.PathValue("id")
+	n, err := s.Lib.CreateIssue(r.Context(), id, r.Form.Get("title"), r.Form.Get("body"), strings.Split(r.Form.Get("labels"), ","), s.actor(r))
+	if err != nil {
+		s.failErr(w, r, err)
+		return
+	}
+	redirect(w, r, withMsg("/repo/"+id+"?tab=issues", "ok", fmt.Sprintf("Issue L%d angelegt.", n)))
+}
+
+// issueAction comments, closes or reopens a local issue.
+func (s *Server) issueAction(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	id := r.PathValue("id")
+	n, err := core.ParseIssueRef(r.PathValue("n"))
+	if err != nil {
+		s.failErr(w, r, err)
+		return
+	}
+	text := r.Form.Get("text")
+	var msg string
+	switch r.Form.Get("action") {
+	case "comment":
+		err, msg = s.Lib.CommentIssue(r.Context(), id, n, text, s.actor(r)), "Kommentar gespeichert."
+	case "close":
+		err, msg = s.Lib.SetIssueState(r.Context(), id, n, core.IssueClosed, text, s.actor(r)), "Issue geschlossen."
+	case "reopen":
+		err, msg = s.Lib.SetIssueState(r.Context(), id, n, core.IssueOpen, text, s.actor(r)), "Issue wieder geöffnet."
+	default:
+		err = fmt.Errorf("%w: Aktion", core.ErrInvalid)
+	}
+	if err != nil {
+		s.failErr(w, r, err)
+		return
+	}
+	redirect(w, r, withMsg(fmt.Sprintf("/repo/%s?tab=issues#issue-L%d", id, n), "ok", msg))
+}
+
 func (s *Server) repoSettings(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	f := r.Form
@@ -544,7 +586,8 @@ func (s *Server) repoSettings(w http.ResponseWriter, r *http.Request) {
 		Include: repometa.Include{Releases: f.Get("releases") == "on", LFS: f.Get("lfs") == "on",
 			Submodules: f.Get("submodules") == "on", Issues: f.Get("issues") == "on", Wiki: f.Get("wiki") == "on",
 			Actions: f.Get("actions") == "on"},
-		Buildable: f.Get("buildable") == "on",
+		Buildable:    f.Get("buildable") == "on",
+		PushUpstream: f.Get("push_upstream") == "on",
 	}
 	if v := f.Get("interval"); v != "" && set.Mode == repometa.SyncFollow {
 		d, err := repometa.ParseDuration(v)
@@ -675,7 +718,7 @@ func (s *Server) addSubmit(w http.ResponseWriter, r *http.Request) {
 	req := core.AddRequest{
 		URL: f.Get("url"), Kind: repometa.Kind(f.Get("kind")), Mode: repometa.SyncMode(f.Get("mode")),
 		Tags: splitList(f.Get("tags")), Collections: f["collection"], Buildable: f.Get("buildable") == "on",
-		Notes: f.Get("notes"), Actor: s.actor(r),
+		Notes: f.Get("notes"), Actor: s.actor(r), ConfirmLarge: f.Get("large_ok") == "on",
 	}
 	if v := f.Get("interval"); v != "" && req.Mode == repometa.SyncFollow {
 		d, err := repometa.ParseDuration(v)
@@ -1231,7 +1274,7 @@ func (s *Server) settingsSave(w http.ResponseWriter, r *http.Request) {
 			*dst = d
 		}
 	}
-	for key, dst := range map[string]*int{"actions_keep": &cfg.Retention.ActionsKeep, "max_asset_mb": &cfg.Retention.MaxAssetMB, "capsules_keep": &cfg.Retention.CapsulesKeep, "builds_keep": &cfg.Retention.BuildsKeep, "trash_days": &cfg.Retention.TrashDays, "max_parallel": &cfg.Runner.MaxParallel, "min_free_gb": &cfg.Runner.MinFreeGB} {
+	for key, dst := range map[string]*int{"actions_keep": &cfg.Retention.ActionsKeep, "max_asset_mb": &cfg.Retention.MaxAssetMB, "ask_above_mb": &cfg.Retention.AskAboveMB, "capsules_keep": &cfg.Retention.CapsulesKeep, "builds_keep": &cfg.Retention.BuildsKeep, "trash_days": &cfg.Retention.TrashDays, "max_parallel": &cfg.Runner.MaxParallel, "min_free_gb": &cfg.Runner.MinFreeGB} {
 		if n, err := strconv.Atoi(f.Get(key)); err == nil {
 			*dst = n
 		}

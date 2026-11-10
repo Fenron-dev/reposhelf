@@ -180,6 +180,18 @@ func TestForms(t *testing.T) {
 		t.Error("note backlink missing on repo page")
 	}
 
+	// Local issues (D-028): create, comment, close; the tab is always there.
+	e.post("/repo/"+id+"/issues", url.Values{"title": {"Export kaputt"}, "body": {"Datei fehlt"}, "labels": {"bug"}}, 303)
+	ir := e.post("/repo/"+id+"/issues/L1", url.Values{"action": {"comment"}, "text": {"Liegt am Pfad"}}, 303)
+	if loc := ir.Header.Get("Location"); !strings.HasSuffix(loc, "#issue-L1") || !strings.Contains(loc, "&ok=") {
+		t.Errorf("issue redirect = %s", loc)
+	}
+	e.post("/repo/"+id+"/issues/L1", url.Values{"action": {"close"}}, 303)
+	if body := e.get("/repo/"+id+"?tab=issues", 200); !strings.Contains(body, "L1") || !strings.Contains(body, "geschlossen") || !strings.Contains(body, "Liegt am Pfad") {
+		t.Error("local issue not shown")
+	}
+	e.post("/repo/"+id+"/issues/L7", url.Values{"action": {"comment"}, "text": {"x"}}, 404)
+
 	// Cleanup: mark, review, trash, restore.
 	e.post("/repo/"+e.other.R().ID+"/mark", nil, 303)
 	if body := e.get("/", 200); !strings.Contains(body, "zur Löschung vorgemerkt") {

@@ -40,6 +40,10 @@ type Preview struct {
 	// token is in effect.
 	NoAccess  bool
 	TokenFrom string
+	// ModelBytes is the size of a Hugging Face model (-1 unknown); Large
+	// asks for a confirmation before it is added (D-025).
+	ModelBytes int64
+	Large      bool
 }
 
 // Preview recognises a link and fetches metadata without writing anything.
@@ -57,7 +61,7 @@ func (l *Library) preview(ctx context.Context, link string, estimate bool) (Prev
 	if p.Source.Host == repometa.LocalHost {
 		return Preview{}, fmt.Errorf("%w: host %q is reserved", ErrInvalid, repometa.LocalHost)
 	}
-	pv := Preview{Parsed: p, ReleaseBytes: -1}
+	pv := Preview{Parsed: p, ReleaseBytes: -1, ModelBytes: -1}
 	if e, err := l.Store.ByFolder(ctx, p.Source.Key()); err == nil {
 		pv.Existing = &e
 	}
@@ -67,7 +71,12 @@ func (l *Library) preview(ctx context.Context, link string, estimate bool) (Prev
 			pv.MetaError = err
 		} else {
 			pv.Metadata = &m
-			if estimate {
+			if p.Provider == sources.KindHuggingFace {
+				pv.ModelBytes = m.Size
+				ask := int64(l.Config().Retention.AskAboveMB) << 20
+				pv.Large = ask > 0 && m.Size > ask
+			}
+			if estimate && p.Provider != sources.KindHuggingFace {
 				if rels, err := api.Releases(ctx, p.Source); err == nil {
 					cfg := l.Config().Retention
 					pv.ReleaseBytes, pv.ReleaseFiles = EstimateReleaseSize(rels, cfg.ReleasesKeep, cfg.MaxAssetMB)
@@ -107,7 +116,13 @@ type AddRequest struct {
 	// Wait runs the first sync before returning (CLI); otherwise it is
 	// queued in the background (server).
 	Wait bool
+	// ConfirmLarge confirms downloading a model above the size limit
+	// (D-025). Agents cannot set it: a person decides.
+	ConfirmLarge bool
 }
+
+// ErrTooLarge is returned when a large download needs a confirmation.
+var ErrTooLarge = errors.New("needs confirmation because of its size")
 
 // Add registers a repository: repo.yaml, upstream.json and an empty bare
 // repository are written at once; the first sync follows.
@@ -121,6 +136,12 @@ func (l *Library) Add(ctx context.Context, req AddRequest) (*Repo, error) {
 	}
 	if pv.NoToken {
 		return nil, fmt.Errorf("%w: %s – bei einem privaten Repo zuerst unter Einstellungen → Zugänge einen Token für %s hinterlegen", ErrNotFound, pv.Parsed.Source.URL, pv.Parsed.Source.Host)
+	}
+	if pv.Parsed.Provider == sources.KindHuggingFace && !l.lfs {
+		return nil, fmt.Errorf("%w: Modelle brauchen Git LFS – bitte git-lfs installieren", ErrInvalid)
+	}
+	if pv.Large && !req.ConfirmLarge {
+		return nil, fmt.Errorf("%w: das Modell ist etwa %.1f GB groß – bitte bestätigen", ErrTooLarge, float64(pv.ModelBytes)/(1<<30))
 	}
 	if pv.NoAccess {
 		return nil, fmt.Errorf("%w: %s – %s zeigt dieses Repo mit dem Token %s nicht. Ist es privat, fehlt dem Token der Zugriff darauf: auf GitHub beim Token unter „Repository access“ das Repo freigeben (oder „All repositories“) und „Contents: Read-only“ setzen; dann unter Einstellungen → Zugänge „Prüfen“", ErrNotFound, pv.Parsed.Source.URL, pv.Parsed.Source.Host, pv.TokenFrom)
@@ -153,6 +174,10 @@ func (l *Library) Add(ctx context.Context, req AddRequest) (*Repo, error) {
 	}
 	if req.Include != nil {
 		r.Include = *req.Include
+	}
+	if pv.Parsed.Provider == sources.KindHuggingFace {
+		// A model is its files: LFS is required, the rest does not exist.
+		r.Include = repometa.Include{LFS: true}
 	}
 	r.Tags = cleanList(req.Tags)
 	r.Collections = cleanList(req.Collections)
