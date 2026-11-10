@@ -254,7 +254,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
-- 2026-11-10 · Claude Code · T-9.10: Tokens in den Einstellungen eingeben/prüfen/entfernen, Schlüsselbund auch unter Windows, `reposhelf host-token`, Hinweis bei privaten Repos ohne Token; Release `v0.1.9`
+- 2026-11-10 · Claude Code · T-9.10: Tokens in den Einstellungen eingeben/prüfen/entfernen, Schlüsselbund auch unter Windows, `reposhelf host-token`, Hinweis bei privaten Repos ohne Token; Release `v0.1.9`, Prüflauf grün (auch Windows-Anmeldeinformationsverwaltung)
 
 - 2026-11-10 · Dennis · F-015–F-018 entschieden (D-024 Token zuerst, D-025 Nachfrage ab 1 GB, D-026 Plattformen je Repo, D-027 Modelle wie Repos)
 
