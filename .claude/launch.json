@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "reposhelf",
-      "runtimeExecutable": "/Users/dennis/Documents/AI/claude-code/Portable RepoShelf /bin/reposhelf",
+      "runtimeExecutable": "/Users/dennis/Documents/AI/claude-code/Portable RepoShelf/bin/reposhelf",
       "runtimeArgs": [
         "serve",
         "--data",

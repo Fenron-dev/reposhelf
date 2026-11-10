@@ -14,7 +14,7 @@
 
 - **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.2.0` (T-9.11 Schritt 1, T-9.12–T-9.14) zum Test bei Dennis
 - **Letzte Änderung:** 2026-11-10 · Lokale Issues, Push-Weiterreichen, Toolchain-Image in Kapseln, Hugging-Face-Modelle
-- **Nächster Schritt:** Dennis testet `v0.2.0`; danach T-9.11 weiter (HF_HOME-Ordner, Python-Pakete), T-9.15 (Ordner umbenennen) am Ende der Sitzung
+- **Nächster Schritt:** Dennis testet `v0.2.0`; danach T-9.11 weiter (HF_HOME-Ordner, Python-Pakete), Projektordner ist jetzt `…/claude-code/Portable RepoShelf` (ohne Leerzeichen) – neue Sitzung dort öffnen
 
 ## Übergabe-Notiz
 
@@ -258,7 +258,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.12 | Build-Kapsel: Toolchain-Image (z. B. `golang:1.24`, `node:20`) mit `docker save` in den gemeinsamen Speicher, damit der Kapsel-Test nicht vom Docker Hub abhängt | erledigt | Claude Code | 2026-11-10 | `a96a9d0` – Toolchain-Image per `docker save` in den gemeinsamen Speicher (einmal je Image-ID), Kapsel-Test lädt es bei Bedarf |
 | T-9.13 | Lokale Issues: anlegen, kommentieren, schließen, wieder öffnen – Oberfläche, CLI, MCP (Recht schreiben); gespiegelte Issues bleiben schreibgeschützt | erledigt | Claude Code | 2026-11-10 | D-028; `e4bc0de` – Reiter „Issues“ immer da, `reposhelf issue`, MCP `list_issues`/`create_issue`/`comment_issue`/`set_issue_state` |
 | T-9.14 | Pushes auf eigene Projekte/Forks an das Original weiterreichen, je Repo einschaltbar (Standard aus), ohne Force-Push | erledigt | Claude Code | 2026-11-10 | D-029; `8c60f60` – `sync.push_upstream` (SCHEMA ergänzt), nie erzwungen, Fehler am Repo |
-| T-9.15 | Projektordner ohne Leerzeichen am Ende | offen | | 2026-11-10 | D-030 |
+| T-9.15 | Projektordner ohne Leerzeichen am Ende | erledigt | Claude Code | 2026-11-10 | D-030 – Ordner heißt jetzt `Portable RepoShelf` (am Sitzungsende umbenannt; `.claude/launch.json` angepasst) |
 
 ---
 
@@ -266,7 +266,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
-- 2026-11-10 · Claude Code · T-9.12 Toolchain-Image in Kapseln, T-9.13 lokale Issues, T-9.14 Push-Weiterreichen (opt-in), T-9.11 Schritt 1 Hugging-Face-Modelle; Release `v0.2.0`
+- 2026-11-10 · Claude Code · T-9.12 Toolchain-Image in Kapseln, T-9.13 lokale Issues, T-9.14 Push-Weiterreichen (opt-in), T-9.11 Schritt 1 Hugging-Face-Modelle; Release `v0.2.0`, Prüflauf grün (Toolchain-Image `golang:1.24` echt gesichert, 319 MB); Projektordner ohne Leerzeichen (T-9.15)
 
 - 2026-11-10 · Dennis · v0.1.10 unter Windows getestet und abgenommen: keine Konsolenfenster, Seitenwechsel flott, Fortschrittsbalken läuft, privates Repo lässt sich mit Token sichern; F-006/F-009/F-011 entschieden (D-028–D-030)
 
