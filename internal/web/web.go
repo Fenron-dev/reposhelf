@@ -55,11 +55,13 @@ type Server struct {
 	// CloneBase returns scheme://host for clone URLs of a request.
 	CloneBase func(r *http.Request) string
 
-	tmpl     *template.Template
-	md       goldmark.Markdown
-	once     sync.Once
-	reviewMu sync.Mutex
-	reviewed bool // cleanup dialog answered in this run ("beim nächsten Start erneut fragen")
+	tmpl      *template.Template
+	md        goldmark.Markdown
+	once      sync.Once
+	reviews   reviewCache
+	overviews overviewCache
+	reviewMu  sync.Mutex
+	reviewed  bool // cleanup dialog answered in this run ("beim nächsten Start erneut fragen")
 }
 
 // Handler returns the routes of the web UI.
@@ -127,13 +129,16 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /trash/restore", admin(s.trashRestore))
 	mux.Handle("POST /trash/purge", admin(s.trashPurge))
 	mux.Handle("GET /settings", admin(s.settingsPage))
+	mux.Handle("GET /settings/doctor", admin(s.settingsDoctor))
+	mux.Handle("GET /repo/{id}/panel", read(s.repoPanel))
+	mux.Handle("GET /repo/{id}/progress", read(s.repoProgress))
 	mux.Handle("POST /settings", admin(s.settingsSave))
 	mux.Handle("GET /access", admin(s.accessPage))
 	mux.Handle("POST /access/tokens", admin(s.tokenCreate))
 	mux.Handle("POST /access/tokens/{id}/revoke", admin(s.tokenRevoke))
 
 	s.extRoutes(mux)
-	return securityHeaders(sameOrigin(mux))
+	return securityHeaders(sameOrigin(s.freshReview(mux)))
 }
 
 func cacheStatic(h http.Handler) http.Handler {

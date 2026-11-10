@@ -100,7 +100,19 @@ code { background: var(--surface-3); padding: 1px 5px; border-radius: 5px; font-
 .dot.big { width: 16px; height: 16px; vertical-align: middle; }
 .badge-smart { color: var(--accent); }
 .sidebar-foot { margin-top: auto; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--text-2); border-top: 1px solid var(--border); padding-top: 12px; }
-.joblist { list-style: none; margin: 2px 0 0; padding: 0; max-height: 90px; overflow: auto; }
+.joblist { list-style: none; margin: 4px 0 0; padding: 0; max-height: 160px; overflow: auto; display: flex; flex-direction: column; gap: 6px; }
+.progress-line { display: flex; flex-direction: column; gap: 2px; }
+progress { width: 100%; height: 6px; appearance: none; border: 0; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+progress::-webkit-progress-bar { background: var(--surface-3); border-radius: 3px; }
+progress::-webkit-progress-value { background: var(--accent); border-radius: 3px; }
+progress::-moz-progress-bar { background: var(--accent); }
+progress:indeterminate { background: linear-gradient(90deg, var(--surface-3) 0%, var(--accent) 50%, var(--surface-3) 100%); background-size: 200% 100%; animation: indet 1.2s linear infinite; }
+@keyframes indet { from { background-position: 200% 0; } to { background-position: 0 0; } }
+.nav-progress { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: var(--accent); z-index: 300; opacity: 0; transition: opacity .2s; }
+html.navigating .nav-progress { opacity: 1; animation: navbar 8s cubic-bezier(.1,.7,.2,1) forwards; }
+@keyframes navbar { from { width: 0; } to { width: 92%; } }
+.spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--surface-3); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .nav-toggle { display: none; }
 .linklike { background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; font: inherit; }
 

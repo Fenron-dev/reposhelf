@@ -29,6 +29,7 @@ import (
 	"github.com/Fenron-dev/reposhelf/internal/artifact"
 	"github.com/Fenron-dev/reposhelf/internal/core"
 	"github.com/Fenron-dev/reposhelf/internal/fsinfo"
+	"github.com/Fenron-dev/reposhelf/internal/gitcli"
 	"github.com/Fenron-dev/reposhelf/internal/repometa"
 )
 
@@ -165,7 +166,9 @@ func (m *Manager) dockerOK(ctx context.Context) error {
 	}
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	if err := exec.CommandContext(ctx, m.Docker, "version", "--format", "{{.Server.Version}}").Run(); err != nil {
+	cmd := exec.CommandContext(ctx, m.Docker, "version", "--format", "{{.Server.Version}}")
+	gitcli.HideWindow(cmd)
+	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("%w: %v", ErrNoDocker, err)
 	}
 	return nil

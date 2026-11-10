@@ -73,7 +73,11 @@ func (l *Library) Sync(ctx context.Context, ref, actor string) (SyncReport, erro
 			return rep, err
 		}
 	}
-	rep.Mirror, rep.Err = l.Git.Mirror(ctx, r.Paths.Mirror, src.URL, auth, now)
+	id := r.R().ID
+	l.progress(id, "Code wird geholt", 0)
+	gctx := gitcli.WithProgress(ctx, func(p int) { l.progress(id, "Code wird geholt", p) })
+	rep.Mirror, rep.Err = l.Git.Mirror(gctx, r.Paths.Mirror, src.URL, auth, now)
+	l.progress(id, "Metadaten", -1)
 
 	// Metadata from the API (independent of git success: an API 404 is the
 	// clearest "gone" signal).
@@ -105,6 +109,7 @@ func (l *Library) Sync(ctx context.Context, ref, actor string) (SyncReport, erro
 		msg := rep.Err.Error()
 		cr.Sync.LastError = &msg
 	}
+	l.progress(id, "Statistik", -1)
 	l.measure(ctx, r)
 	if err := writeUpstream(r.Paths.Meta, r.Upstream); err != nil {
 		return rep, err
@@ -209,6 +214,7 @@ func (l *Library) syncExtras(ctx context.Context, r *Repo, auth *gitcli.Auth, re
 		notes = append(notes, "LFS: git-lfs ist nicht installiert, große Dateien fehlen")
 	}
 	if cr.Include.Releases {
+		l.progress(cr.ID, "Releases", -1)
 		rr, err := l.syncReleases(ctx, r)
 		rep.Releases = rr
 		if err != nil {
@@ -216,6 +222,7 @@ func (l *Library) syncExtras(ctx context.Context, r *Repo, auth *gitcli.Auth, re
 		}
 	}
 	if cr.Include.Actions {
+		l.progress(cr.ID, "Actions-Artefakte", -1)
 		ar, err := l.syncActions(ctx, r)
 		rep.Actions = ar
 		if err != nil {
@@ -223,11 +230,13 @@ func (l *Library) syncExtras(ctx context.Context, r *Repo, auth *gitcli.Auth, re
 		}
 	}
 	if cr.Include.Issues {
+		l.progress(cr.ID, "Issues", -1)
 		if err := l.syncIssues(ctx, r); err != nil && !errors.Is(err, sources.ErrNoAPI) {
 			notes = append(notes, "Issues: "+err.Error())
 		}
 	}
 	if cr.Include.Wiki {
+		l.progress(cr.ID, "Wiki", -1)
 		if err := l.syncWiki(ctx, r, auth); err != nil {
 			notes = append(notes, "Wiki: "+err.Error())
 		}

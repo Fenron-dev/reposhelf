@@ -36,6 +36,12 @@ type Preview struct {
 
 // Preview recognises a link and fetches metadata without writing anything.
 func (l *Library) Preview(ctx context.Context, link string) (Preview, error) {
+	return l.preview(ctx, link, true)
+}
+
+// preview with estimate=false skips the release listing (one or more API
+// calls) – adding a repository does not need it.
+func (l *Library) preview(ctx context.Context, link string, estimate bool) (Preview, error) {
 	p, err := sources.ParseURL(link)
 	if err != nil {
 		return Preview{}, fmt.Errorf("%w: %w", ErrInvalid, err)
@@ -53,9 +59,11 @@ func (l *Library) Preview(ctx context.Context, link string) (Preview, error) {
 			pv.MetaError = err
 		} else {
 			pv.Metadata = &m
-			if rels, err := api.Releases(ctx, p.Source); err == nil {
-				cfg := l.Config().Retention
-				pv.ReleaseBytes, pv.ReleaseFiles = EstimateReleaseSize(rels, cfg.ReleasesKeep, cfg.MaxAssetMB)
+			if estimate {
+				if rels, err := api.Releases(ctx, p.Source); err == nil {
+					cfg := l.Config().Retention
+					pv.ReleaseBytes, pv.ReleaseFiles = EstimateReleaseSize(rels, cfg.ReleasesKeep, cfg.MaxAssetMB)
+				}
 			}
 			for _, t := range m.Topics {
 				if safepath.CheckSegment(t) == nil {
@@ -89,7 +97,7 @@ type AddRequest struct {
 // Add registers a repository: repo.yaml, upstream.json and an empty bare
 // repository are written at once; the first sync follows.
 func (l *Library) Add(ctx context.Context, req AddRequest) (*Repo, error) {
-	pv, err := l.Preview(ctx, req.URL)
+	pv, err := l.preview(ctx, req.URL, false)
 	if err != nil {
 		return nil, err
 	}

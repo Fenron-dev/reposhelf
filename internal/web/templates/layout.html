@@ -11,6 +11,7 @@
 <script src="/static/app.js" defer></script>
 </head>
 <body>
+<div class="nav-progress" aria-hidden="true"></div>
 <a class="skip" href="#main">Zum Inhalt springen</a>
 <div class="app">
 {{template "sidebar" .}}
@@ -76,7 +77,10 @@
 </nav>
 {{end}}
 
-{{define "jobs"}}{{if .}}<span class="running">◐ {{len .}} Abgleich{{if gt (len .) 1}}e{{end}} {{if (index . 0).Running}}laufen{{else}}warten{{end}}</span><ul class="joblist">{{range .}}<li class="mono small">{{.Key}}{{if not .Running}} (wartet){{end}}</li>{{end}}</ul>{{end}}{{end}}
+{{define "jobs"}}{{if .}}<span class="running">◐ {{len .}} Abgleich{{if gt (len .) 1}}e{{end}}</span><ul class="joblist">{{range .}}<li class="small"><a class="mono" href="/repo/{{.RepoID}}">{{.Key}}</a>{{template "progress" .}}</li>{{end}}</ul>{{end}}{{end}}
+
+{{define "progress"}}<div class="progress-line"><span class="muted">{{if .Running}}{{.Phase}}{{else}}wartet{{end}}{{if ge .Percent 0}} · {{.Percent}} %{{end}}</span>
+<progress {{if and .Running (ge .Percent 0)}}value="{{.Percent}}" max="100"{{end}} aria-label="Fortschritt"></progress></div>{{end}}
 
 {{define "palette"}}
 <div class="palette" id="palette" hidden role="dialog" aria-modal="true" aria-label="Befehlspalette">

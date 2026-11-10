@@ -48,6 +48,22 @@
     if (e.target.closest("[data-back]")) { e.preventDefault(); history.back(); }
   });
 
+  // Loading bar while the next page is requested (T-9.9).
+  function navigating() { document.documentElement.classList.add("navigating"); }
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest("a[href]");
+    if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+    var href = a.getAttribute("href");
+    if (!href || href.charAt(0) === "#" || a.target === "_blank" || a.hasAttribute("download") || a.hasAttribute("hx-get")) return;
+    if (a.origin && a.origin !== location.origin) return;
+    if (/\/(asset|action|raw|artifact)\b/.test(a.pathname)) return; // downloads keep the page
+    navigating();
+  });
+  document.addEventListener("submit", function (e) {
+    if (!e.defaultPrevented && !e.target.hasAttribute("hx-get") && !e.target.hasAttribute("hx-post")) navigating();
+  });
+  window.addEventListener("pageshow", function () { document.documentElement.classList.remove("navigating"); });
+
   document.addEventListener("change", function (e) {
     if (e.target.matches("[data-autosubmit]")) e.target.form.submit();
   });

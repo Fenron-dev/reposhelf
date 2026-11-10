@@ -105,7 +105,7 @@ func (s *Server) library(w http.ResponseWriter, r *http.Request) {
 		reviewed := s.reviewed
 		s.reviewMu.Unlock()
 		if !reviewed {
-			if rv, err := s.Lib.Review(ctx); err == nil && (len(rv.Pending) > 0 || len(rv.Due) > 0) {
+			if rv := s.review(); len(rv.Pending) > 0 || len(rv.Due) > 0 {
 				d.Review, d.ShowRev = rv, true
 			}
 		}
@@ -178,6 +178,18 @@ func (s *Server) eventsSSE(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// repoProgress answers the progress poll of a repository page; when the
+// sync is over, the page reloads to show the result.
+func (s *Server) repoProgress(w http.ResponseWriter, r *http.Request) {
+	job, busy := s.Lib.Job(r.PathValue("id"))
+	if !busy {
+		w.Header().Set("HX-Refresh", "true")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	s.partial(w, "repo-progress-wrap", map[string]any{"ID": r.PathValue("id"), "Job": job})
+}
+
 func (s *Server) jobsPartial(w http.ResponseWriter, r *http.Request) {
 	jobs := s.Lib.Jobs()
 	s.partial(w, "jobs", jobs)
@@ -216,8 +228,9 @@ type repoData struct {
 	CanWrite    bool
 	CanAdmin    bool
 	CanBuild    bool
-	Builds      any
+	HasBuilds   bool
 	NoteLinks   []string
+	Job         core.JobState
 }
 
 type crumb struct{ Name, URL string }
@@ -246,13 +259,12 @@ func (s *Server) loadRepo(w http.ResponseWriter, r *http.Request) (*core.Repo, b
 
 func (s *Server) baseRepoData(r *http.Request, repo *core.Repo) repoData {
 	tok, _ := s.Identity(r)
-	d := repoData{Repo: repo, Busy: s.Lib.IsBusy(repo.R().ID), Marked: s.Lib.IsMarked(repo.R().ID),
+	job, busy := s.Lib.Job(repo.R().ID)
+	d := repoData{Repo: repo, Busy: busy, Job: job, Marked: s.Lib.IsMarked(repo.R().ID),
 		Retention: s.Lib.EffectiveRetention(repo), Names: map[string]string{},
 		RelTypes: repometa.KnownRelationTypes, CanWrite: tok.Has(auth.Write), CanAdmin: tok.Has(auth.Admin), CanBuild: tok.Has(auth.Build)}
 	d.CloneURL = githttp.CloneURL(s.CloneBase(r), repo.Entry.Key)
-	if s.Ext.Builds != nil {
-		d.Builds = s.Ext.Builds.Panel(r, repo.R().ID)
-	}
+	d.HasBuilds = s.Ext.Builds != nil
 	d.NoteLinks = s.Lib.NoteBacklinks(r.Context(), repo.R().ID)
 	d.Collections, _ = s.Lib.Collections(r.Context())
 	for _, bl := range repo.Backlinks {
@@ -285,19 +297,12 @@ func (s *Server) repoPage(w http.ResponseWriter, r *http.Request) {
 		d.Tab = "overview"
 	}
 	mirror := repo.Paths.Mirror
-	hasCommits := s.Lib.Git.HasCommits(ctx, mirror)
+	hasCommits := hasContent(repo)
 	switch d.Tab {
 	case "overview":
 		if hasCommits {
-			if name, b, err := s.Lib.Git.Readme(ctx, mirror, "HEAD", maxView); err == nil && name != "" {
-				d.ReadmeName = name
-				if isMarkdown(name) {
-					d.Readme = s.renderMarkdown(b, repo.R().ID, "HEAD", "")
-				} else {
-					d.Readme = template.HTML("<pre>" + template.HTMLEscapeString(string(b)) + "</pre>")
-				}
-			}
-			d.Commits, _ = s.Lib.Git.Log(ctx, mirror, "HEAD", 5)
+			ov := s.overviewFor(ctx, repo)
+			d.ReadmeName, d.Readme, d.Commits = ov.ReadmeName, ov.Readme, ov.Commits
 		}
 	case "code":
 		s.fillTree(r, &d, "", r.URL.Query().Get("ref"))
@@ -1034,6 +1039,7 @@ func (s *Server) cleanupSubmit(w http.ResponseWriter, r *http.Request) {
 		if len(r.Form["keep"]) > 0 {
 			ids = r.Form["keep"]
 		}
+		s.invalidateReview()
 		if err := s.Lib.KeepItems(r.Context(), ids, s.actor(r)); err != nil {
 			s.failErr(w, r, err)
 			return
@@ -1041,6 +1047,7 @@ func (s *Server) cleanupSubmit(w http.ResponseWriter, r *http.Request) {
 		redirect(w, r, withMsg("/cleanup", "ok", "Behalten – diese Einträge werden nicht mehr vorgeschlagen."))
 		return
 	}
+	defer s.invalidateReview()
 	n, err := s.Lib.MoveToTrash(r.Context(), ids, s.actor(r))
 	if err != nil {
 		s.failErr(w, r, err)
@@ -1099,8 +1106,22 @@ type settingsData struct {
 
 func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 	d := settingsData{Cfg: s.Lib.Config(), DataDir: s.Lib.Layout.Root, Warnings: s.Lib.ConfigWarnings()}
-	d.Doctor = s.Lib.Doctor(r.Context())
 	s.render(w, r, "settings", "Einstellungen", "settings", d)
+}
+
+// settingsDoctor is loaded after the settings page: the checks start git
+// for every repository (T-9.9).
+func (s *Server) settingsDoctor(w http.ResponseWriter, r *http.Request) {
+	s.partial(w, "doctor", s.Lib.Doctor(r.Context()))
+}
+
+// repoPanel is loaded after the repository page (builds and capsules need
+// several git calls).
+func (s *Server) repoPanel(w http.ResponseWriter, r *http.Request) {
+	if s.Ext.Builds == nil {
+		return
+	}
+	s.partial(w, "repo-builds", map[string]any{"P": s.Ext.Builds.Panel(r, r.PathValue("id")), "ID": r.PathValue("id")})
 }
 
 func (s *Server) settingsSave(w http.ResponseWriter, r *http.Request) {

@@ -18,6 +18,7 @@
       Abgleich {{intervalText $e}} · zuletzt {{ago $e.LastSuccess}}
       {{if $e.Language}} · {{$e.Language}}{{end}}{{if $e.License}} · Lizenz {{$e.License}}{{else}} · <span class="warn" title="Ohne Lizenz gilt: alle Rechte vorbehalten">keine Lizenz erkannt</span>{{end}}
     </p>
+    {{if $d.Busy}}<div class="card-inset" hx-get="/repo/{{$id}}/progress" hx-trigger="every 1s" hx-swap="outerHTML">{{template "repo-progress" $d.Job}}</div>{{end}}
     {{if $e.LastError}}<div class="alert alert-error small" role="alert"><strong>Letzter Abgleich fehlgeschlagen:</strong> {{$e.LastError}}{{if $r.Upstream.HostDown}} – der ganze Host ist seit über 24 h gestört, das Repo gilt deshalb nicht als verschwunden.{{end}}</div>{{end}}
     {{if $r.Upstream.LastBackup}}<div class="alert small">Das Original hat Geschichte umgeschrieben. Der alte Stand ist gesichert unter <span class="mono">{{$r.Upstream.LastBackup}}</span> (siehe „Versionen“).</div>{{end}}
   </div>
@@ -169,7 +170,7 @@
     </dl>
   </div>
 
-  {{if $d.Builds}}{{template "repo-builds" (dict "P" $d.Builds "ID" $id)}}{{end}}
+  {{if $d.HasBuilds}}<div hx-get="/repo/{{$id}}/panel" hx-trigger="load" hx-swap="outerHTML"><div class="card"><h2 class="h3">Build-Kapsel</h2><p class="small muted"><span class="spinner" aria-hidden="true"></span> wird geladen …</p></div></div>{{end}}
   {{if $d.CanWrite}}
   <div class="card">
     <h2 class="h3">Aktionen</h2>
@@ -311,3 +312,7 @@
   <div><button class="btn btn-primary" type="submit">Speichern</button></div>
 </form>
 {{end}}
+
+{{define "repo-progress"}}<div class="small"><strong>Abgleich läuft</strong> – die Seite aktualisiert sich danach von selbst.</div>{{template "progress" .}}{{end}}
+
+{{define "repo-progress-wrap"}}<div class="card-inset" hx-get="/repo/{{.ID}}/progress" hx-trigger="every 1s" hx-swap="outerHTML">{{template "repo-progress" .Job}}</div>{{end}}

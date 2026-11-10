@@ -153,6 +153,7 @@ func (l *Library) syncReleases(ctx context.Context, r *Repo) (ReleaseReport, err
 					rep.Skipped = append(rep.Skipped, rel.Tag+"/"+a.Name)
 					continue
 				}
+				l.progress(r.R().ID, "Releases: "+rel.Tag+" / "+a.Name, -1)
 				sa, n, deduped, err := l.storeAsset(ctx, api, dir, a, known)
 				if err != nil {
 					return rep, fmt.Errorf("%s/%s: %w", rel.Tag, a.Name, err)

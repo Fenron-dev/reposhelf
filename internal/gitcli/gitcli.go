@@ -26,6 +26,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync/atomic"
 )
 
 // MinVersion is the oldest git that RepoShelf supports (protocol v2 by
@@ -110,6 +111,12 @@ func (e *Error) Error() string {
 
 func (e *Error) Unwrap() error { return e.Err }
 
+// calls counts started git processes (tests guard page costs with it).
+var calls atomic.Int64
+
+// Calls returns how many git processes were started so far.
+func Calls() int64 { return calls.Load() }
+
 // Run executes git in dir and returns stdout.
 func (g *Git) Run(ctx context.Context, dir string, auth *Auth, args ...string) ([]byte, error) {
 	var stdout, stderr bytes.Buffer
@@ -127,7 +134,9 @@ func (g *Git) Command(ctx context.Context, dir string, args ...string) *exec.Cmd
 }
 
 func (g *Git) command(ctx context.Context, dir string, auth *Auth, args ...string) *exec.Cmd {
+	calls.Add(1)
 	cmd := exec.CommandContext(ctx, g.Path, args...)
+	HideWindow(cmd)
 	cmd.Dir = dir
 	if dir == "" {
 		// Commands without a repository (ls-remote, init, clone) must not
@@ -282,23 +291,27 @@ func (g *Git) InitBare(ctx context.Context, dir, url string) error {
 	if _, err := g.Run(ctx, "", nil, "init", "--bare", "--quiet", "--initial-branch=main", "--", dir); err != nil {
 		return err
 	}
-	cmds := [][]string{
-		{"config", "remote.origin.url", url},
-		{"config", "--replace-all", "remote.origin.fetch", "refs/heads/*:refs/heads/*"},
-		{"config", "--add", "remote.origin.fetch", "refs/tags/*:refs/tags/*"},
-		{"config", "--add", "remote.origin.fetch", "refs/notes/*:refs/notes/*"},
-		{"config", "remote.origin.tagOpt", "--no-tags"},
+	// Written in one go instead of eight "git config" calls: every process
+	// start is slow on Windows (T-9.9). Repeated sections are valid.
+	quote := strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", "")
+	cfg := "[remote \"origin\"]\n" +
+		"\turl = \"" + quote.Replace(url) + "\"\n" +
+		"\tfetch = refs/heads/*:refs/heads/*\n" +
+		"\tfetch = refs/tags/*:refs/tags/*\n" +
+		"\tfetch = refs/notes/*:refs/notes/*\n" +
+		"\ttagOpt = --no-tags\n" +
 		// Keep unreachable objects of rewritten history for backups.
-		{"config", "gc.reflogExpire", "never"},
-		{"config", "gc.reflogExpireUnreachable", "never"},
-		{"config", "core.logAllRefUpdates", "always"},
+		"[gc]\n\treflogExpire = never\n\treflogExpireUnreachable = never\n" +
+		"[core]\n\tlogAllRefUpdates = always\n"
+	f, err := os.OpenFile(filepath.Join(dir, "config"), os.O_APPEND|os.O_WRONLY, 0)
+	if err != nil {
+		return err
 	}
-	for _, c := range cmds {
-		if _, err := g.Run(ctx, dir, nil, c...); err != nil {
-			return err
-		}
+	if _, err := f.WriteString(cfg); err != nil {
+		f.Close()
+		return err
 	}
-	return nil
+	return f.Close()
 }
 
 // SetURL changes the origin URL of a mirror.
