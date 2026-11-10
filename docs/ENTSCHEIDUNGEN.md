@@ -356,3 +356,42 @@ Revision, mit der ein Tool nachweislich lief.
 
 **Folgen:** Aufbewahrungsregeln (global → Sammlung → Repo) gelten auch für
 Modelle.
+
+### D-028 · Lokale Issues für eigene Projekte
+2026-11-10 · gültig (F-006)
+
+**Entscheidung:** RepoShelf führt eigene Issues für Repos, die nicht (nur) über
+GitHub laufen – anlegen, kommentieren, schließen in Oberfläche, CLI und MCP.
+
+**Begründung:** Wunsch von Dennis: RepoShelf mit KI-Agenten als Alternative zu
+GitHub nutzen, auch ohne GitHub.
+
+**Folgen:** Gleiches Format wie gespiegelte Issues (Markdown mit YAML-Kopf unter
+`meta/…/issues/`), unterschieden durch die Quelle; gespiegelte Issues bleiben
+schreibgeschützt. Agenten brauchen das Recht „schreiben“; Löschen gibt es nicht
+über MCP (D-011).
+
+### D-029 · Pushes nur auf Wunsch an das Original weiterreichen
+2026-11-10 · gültig (F-009)
+
+**Entscheidung:** Pushes auf eigene Projekte und Forks werden nur dann an das
+Original (z. B. GitHub) weitergereicht, wenn das je Repo eingeschaltet ist.
+Standard: aus.
+
+**Begründung:** Wunsch von Dennis; nichts verlässt RepoShelf ohne ausdrückliche
+Einstellung.
+
+**Folgen:** Weiterreichen nach erfolgreichem Push im Hintergrund, mit dem Token
+des Hosts; Fehler stehen am Repo und im Protokoll, der Push in RepoShelf bleibt
+gültig. Kein Force-Push zum Original.
+
+### D-030 · Projektordner ohne Leerzeichen am Ende
+2026-11-10 · gültig (F-011)
+
+**Entscheidung:** Der Projektordner heißt `Portable RepoShelf` (ohne Leerzeichen
+am Ende).
+
+**Begründung:** Das Leerzeichen am Ende führt in Skripten und Pfaden zu Fehlern.
+
+**Folgen:** Umbenennen am Ende einer Sitzung; die nächste Sitzung startet im
+neuen Ordner.

@@ -44,7 +44,7 @@ Apple-Entwicklerkonto). Artefakt-Download von GitHub Actions gegen das echte Git
 die zwei neuesten Läufe, ZIPs gültig, Prüfsummen stimmen) und per Test gegen eine
 nachgebildete API (`internal/runner/github_test.go`).
 
-**Offene Fragen:** keine (F-015–F-018 → D-024–D-027).
+**Offene Fragen:** keine (F-006, F-009, F-011 → D-028–D-030; F-015–F-018 → D-024–D-027).
 
 **2026-11-10 · Claude Code (T-9.8/T-9.9, Rückmeldung zu v0.1.7 unter Windows):**
 Jeder Git-/Docker-/act-Aufruf startet ohne Konsolenfenster (`gitcli.HideWindow`).
@@ -84,12 +84,12 @@ Entscheidung: Status `entschieden`, Eintrag in `docs/ENTSCHEIDUNGEN.md`, Verweis
 | F-003 | Lizenz von RepoShelf | MIT (kompatibel mit Gitea-Übernahmen; GPL nur, falls Forgejo-Code gewollt) | entschieden | **GPL-3.0-or-later** → D-014 |
 | F-004 | Wails v2 (stabil) oder v3 (seit 08/2026 Beta)? | In Phase 5 entscheiden; bis dahin keine Wails-Abhängigkeit im Kern | entschieden | **Wails v2** → D-019 |
 | F-005 | Oberfläche: Go-Templates + htmx oder kleines JS-Framework? | htmx (kein Node-Build) | entschieden | **Go-Templates + htmx** → D-017 |
-| F-006 | Eigene, lokale Issues für eigene Projekte (nicht nur GitHub spiegeln)? | Später; erst spiegeln (T-9.1) | offen | |
+| F-006 | Eigene, lokale Issues für eigene Projekte (nicht nur GitHub spiegeln)? | Später; erst spiegeln (T-9.1) | entschieden | **Ja** – lokale Issues → D-028 (T-9.13) |
 | F-007 | Code-Volltextsuche über alle Repos (z. B. zoekt)? | Phase 9 | entschieden | **git grep, ohne Index** → D-021 |
 | F-008 | Standard-Port der Weboberfläche | z. B. 7878 (unbelegt prüfen) | entschieden | **7373** (7878 ist Radarr) → D-016 |
-| F-009 | Pushes auf eigene Projekte automatisch an GitHub weiterreichen? | Später, optional pro Repo | offen | |
+| F-009 | Pushes auf eigene Projekte automatisch an GitHub weiterreichen? | Später, optional pro Repo | entschieden | **Nur wenn je Repo eingeschaltet** → D-029 (T-9.14) |
 | F-010 | Windows: portables Git mitliefern oder Installation voraussetzen? | Voraussetzen + Prüfung mit Hinweis; mitliefern später | entschieden | **Portables Git mitliefern** → D-020 |
-| F-011 | Projektordner heißt `Portable RepoShelf ` (Leerzeichen am Ende) – umbenennen? | Ja, auf `Portable RepoShelf` oder `reposhelf` | offen | |
+| F-011 | Projektordner heißt `Portable RepoShelf ` (Leerzeichen am Ende) – umbenennen? | Ja, auf `Portable RepoShelf` oder `reposhelf` | entschieden | **Ja, ohne Leerzeichen** → D-030 |
 | F-012 | Forgejo-Code übernehmen erlauben (Folge von F-003, bisher durch D-002 verboten)? | Erlauben, da RepoShelf selbst GPL ist | entschieden | **Ja** → D-015 (ersetzt D-002) |
 | F-013 | Wie wird ein Host mit Port (`gitea.local:3000`, z. B. Gitea auf Unraid) im Ordnerpfad abgebildet? `:` ist unter Windows im Dateinamen verboten; bis zur Entscheidung lehnt die Prüfung solche Hosts ab | `source.host` bleibt `gitea.local:3000`, Ordner heißt `gitea.local+3000` (`+` kommt in Hostnamen nie vor); IPv6-Adressen ebenso ohne `[]` und `:` abbilden | entschieden | **Ordner ohne Port** (`gitea.local`), Doppelte werden gemeldet → D-018 |
 | F-014 | Der Instanzschlüssel für den Abgleich (Ed25519, `.reposhelf/instance.key`, Rechte 0600) liegt im Datenordner. Konzept 4.2 sagt „Geheimnisse nie im Datenordner im Klartext“. So lassen? | So lassen: Er ist ein selbst erzeugter Maschinenschlüssel wie ein SSH-Hostkey, verlässt die Instanz nie und macht den portablen Betrieb (USB, Docker-Volume) erst möglich. Alternative: auf dem Desktop im Schlüsselbund, in Docker als Secret-Datei | entschieden | **So lassen** (Datei, 0600) → D-022 |
@@ -247,12 +247,17 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.10 | Host-Tokens am Desktop: Windows-Anmeldeinformationsverwaltung lesen (Konzept 4.2 nennt den System-Schlüsselbund, bisher nur macOS/Linux) und Token in der Oberfläche eingeben, prüfen (Rechte anzeigen) und im Schlüsselbund ablegen – nie im Datenordner | erledigt | Claude Code | 2026-11-10 | D-024; `48c4c28` – Einstellungen „Zugänge zu Git-Hosts“, `reposhelf host-token`, Schlüsselbund macOS/Windows/Linux; „Mit GitHub anmelden“ folgt, wenn die OAuth-App angelegt ist |
 | T-9.11 | Laufzeit-Daten sichern: Modelle (Hugging Face als eigenes gespiegeltes Repo mit LFS, gemeinsamer Speicher, Bereitstellung als `HF_HOME`-Ordner für den Offline-Betrieb), Verweis „braucht“ vom Tool auf das Modell, Vorschläge aus dem Code (`from_pretrained`, `hf_hub_download`); Python-Pakete mit genauer Versionsliste für gewählte Plattformen; optional Laufzeit-Image (`docker save`) | offen | | 2026-11-10 | Wunsch von Dennis (Beispiel TTS Phonon); Rahmen: D-025, D-026, D-027 |
 | T-9.12 | Build-Kapsel: Toolchain-Image (z. B. `golang:1.24`, `node:20`) mit `docker save` in den gemeinsamen Speicher, damit der Kapsel-Test nicht vom Docker Hub abhängt | offen | | 2026-11-10 | Befund bei Dennis' Frage zu Kapseln: bisher wird nur der Image-Name festgehalten |
+| T-9.13 | Lokale Issues: anlegen, kommentieren, schließen, wieder öffnen – Oberfläche, CLI, MCP (Recht schreiben); gespiegelte Issues bleiben schreibgeschützt | offen | | 2026-11-10 | D-028 |
+| T-9.14 | Pushes auf eigene Projekte/Forks an das Original weiterreichen, je Repo einschaltbar (Standard aus), ohne Force-Push | offen | | 2026-11-10 | D-029 |
+| T-9.15 | Projektordner ohne Leerzeichen am Ende | offen | | 2026-11-10 | D-030 |
 
 ---
 
 ## Verlauf
 
 Neueste oben. Eine Zeile pro Sitzung.
+
+- 2026-11-10 · Dennis · v0.1.10 unter Windows getestet und abgenommen: keine Konsolenfenster, Seitenwechsel flott, Fortschrittsbalken läuft, privates Repo lässt sich mit Token sichern; F-006/F-009/F-011 entschieden (D-028–D-030)
 
 - 2026-11-10 · Claude Code · Dennis' Test v0.1.9: eigenes privates Repo „nicht gefunden“ trotz Token (Token ohne Zugriff auf das Repo) → Meldung nennt jetzt Token-Herkunft und was auf GitHub freizugeben ist; Hinweis, wenn eine Umgebungsvariable den Schlüsselbund überdeckt; Release `v0.1.10`
 
