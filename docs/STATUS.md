@@ -12,9 +12,9 @@
 
 ## Aktueller Stand
 
-- **Phase:** 0–9 umgesetzt; `v0.1.7` abgenommen, `v0.1.9` (T-9.8–T-9.10) zum Test bei Dennis
+- **Phase:** 0–9 umgesetzt; `v0.1.7` abgenommen, `v0.1.10` (T-9.8–T-9.10) zum Test bei Dennis
 - **Letzte Änderung:** 2026-11-10 · Tokens für Git-Hosts in den Einstellungen (Schlüsselbund, auch Windows) – T-9.10
-- **Nächster Schritt:** Dennis testet `v0.1.9` unter Windows (Konsolenfenster weg? Seitenwechsel schnell? Token speichern und privates Repo sichern); offen: T-9.11, T-9.12
+- **Nächster Schritt:** Dennis testet `v0.1.10` unter Windows (Konsolenfenster weg? Seitenwechsel schnell? Token speichern und privates Repo sichern); offen: T-9.11, T-9.12
 
 ## Übergabe-Notiz
 
@@ -253,6 +253,8 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 ## Verlauf
 
 Neueste oben. Eine Zeile pro Sitzung.
+
+- 2026-11-10 · Claude Code · Dennis' Test v0.1.9: eigenes privates Repo „nicht gefunden“ trotz Token (Token ohne Zugriff auf das Repo) → Meldung nennt jetzt Token-Herkunft und was auf GitHub freizugeben ist; Hinweis, wenn eine Umgebungsvariable den Schlüsselbund überdeckt; Release `v0.1.10`
 
 - 2026-11-10 · Claude Code · T-9.10: Tokens in den Einstellungen eingeben/prüfen/entfernen, Schlüsselbund auch unter Windows, `reposhelf host-token`, Hinweis bei privaten Repos ohne Token; Release `v0.1.9`, Prüflauf grün (auch Windows-Anmeldeinformationsverwaltung)
 
