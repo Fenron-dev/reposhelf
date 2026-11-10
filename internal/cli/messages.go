@@ -36,6 +36,9 @@ Repos:
   import-zip <datei.zip>   Eigenes Projekt aus einem ZIP anlegen (mit .git: ganze Geschichte)
   grep <text>              Code aller Repos durchsuchen (--regex -i --tag --repo)
   reindex                  Index aus den Dateien neu aufbauen
+  issue list|new|comment|close|reopen <repo> [L3]
+                           Lokale Issues (--title, --body, --body - liest von der
+                           Eingabe, --labels a,b, --all)
   host-token list | check | set | remove [<host>]
                            Zugänge zu Git-Hosts (Standard github.com); set liest den
                            Token von der Eingabe und legt ihn im Schlüsselbund ab

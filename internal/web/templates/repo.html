@@ -38,7 +38,7 @@
   <a href="/repo/{{$id}}" {{if eq $d.Tab "overview"}}aria-current="page"{{end}}>Übersicht</a>
   <a href="/repo/{{$id}}/tree/" {{if eq $d.Tab "code"}}aria-current="page"{{end}}>Code</a>
   <a href="/repo/{{$id}}?tab=versions" {{if eq $d.Tab "versions"}}aria-current="page"{{end}}>Versionen · {{$e.Versions}}</a>
-  {{if $r.R.Include.Issues}}<a href="/repo/{{$id}}?tab=issues" {{if eq $d.Tab "issues"}}aria-current="page"{{end}}>Issues</a>{{end}}
+  <a href="/repo/{{$id}}?tab=issues" {{if eq $d.Tab "issues"}}aria-current="page"{{end}}>Issues</a>
   {{if .Sidebar.Builds}}<a href="/builds?repo={{$id}}">Builds</a>{{end}}
   <a href="/repo/{{$id}}?tab=notes" {{if eq $d.Tab "notes"}}aria-current="page"{{end}}>Notizen</a>
   <a href="/repo/{{$id}}?tab=yaml" {{if eq $d.Tab "yaml"}}aria-current="page"{{end}}>YAML</a>
@@ -71,12 +71,29 @@
 {{else if eq $d.Tab "versions"}}
   {{template "versions" (dict "D" $d "Page" $)}}
 {{else if eq $d.Tab "issues"}}
+  {{if $d.CanWrite}}<details class="card" {{if not $d.Issues}}open{{end}}><summary><strong>+ Neues Issue</strong></summary>
+    <form method="post" action="/repo/{{$id}}/issues" class="stack">
+      <label>Titel <input name="title" required maxlength="200"></label>
+      <label>Beschreibung (Markdown) <textarea name="body" rows="6"></textarea></label>
+      <label>Labels <input name="labels" placeholder="bug, idee"></label>
+      <div><button class="btn btn-primary" type="submit">Anlegen</button></div>
+    </form>
+  </details>{{end}}
   <div class="card">
   {{range $d.Issues}}
-    <details class="issue"><summary><span class="status {{if eq .State "open"}}status-ok{{else}}muted{{end}}">{{if eq .State "open"}}● offen{{else}}✓ geschlossen{{end}}</span> <strong>#{{.Number}}</strong> {{.Title}} <span class="small muted">· {{.Author}}</span> {{range .Labels}}<span class="tag">{{.}}</span>{{end}}</summary>
-      <pre class="issue-body">{{.Body}}</pre>
+    <details class="issue" id="issue-{{.Ref}}"><summary><span class="status {{if eq .State "open"}}status-ok{{else}}muted{{end}}">{{if eq .State "open"}}● offen{{else}}✓ geschlossen{{end}}</span> <strong>{{.Ref}}</strong> {{.Title}} <span class="small muted">· {{.Author}}{{if .Comments}} · {{.Comments}} Kommentar{{if gt .Comments 1}}e{{end}}{{end}}{{if not .Local}} · gespiegelt{{end}}</span> {{range .Labels}}<span class="tag">{{.}}</span>{{end}}</summary>
+      {{if .Body}}<pre class="issue-body">{{.Body}}</pre>{{end}}
+      {{if and .Local $d.CanWrite}}
+      <form method="post" action="/repo/{{$id}}/issues/{{.Number}}" class="stack">
+        <label>Kommentar <textarea name="text" rows="3"></textarea></label>
+        <div class="row-wrap">
+          <button class="btn btn-small" name="action" value="comment">Kommentieren</button>
+          {{if eq .State "open"}}<button class="btn btn-small" name="action" value="close">Schließen</button>{{else}}<button class="btn btn-small" name="action" value="reopen">Wieder öffnen</button>{{end}}
+        </div>
+      </form>
+      {{else if .URL}}<p class="small"><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">Im Original öffnen</a> – gespiegelte Issues sind schreibgeschützt.</p>{{end}}
     </details>
-  {{else}}<p class="muted">Keine Issues gespiegelt. Sie werden beim nächsten Abgleich geholt, wenn „Issues mitsichern“ an ist.</p>{{end}}
+  {{else}}<p class="muted">Noch keine Issues. Lokale Issues legst du hier an; gespiegelte kommen beim Abgleich, wenn „Issues mitsichern“ an ist.</p>{{end}}
   </div>
 {{else if eq $d.Tab "notes"}}
   <div class="card">

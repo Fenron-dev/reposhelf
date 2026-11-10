@@ -111,6 +111,13 @@ schnell Hunderte MB sein. Einstellbar global, je Sammlung und je Repo.
   Befehlspalette. **Code-Suche** über alle Repos: „Code-Suche“ in der
   Seitenleiste oder `reposhelf grep <text>` (mit `git grep`).
 
+**Issues:** Jedes Repo hat den Reiter „Issues“. Lokale Issues (L1, L2 …) legst
+du dort an, kommentierst und schließt sie – auch ohne GitHub, z. B. als Aufgabenliste
+für Agenten. Gespiegelte Issues vom Original (#12) bleiben schreibgeschützt.
+CLI: `reposhelf issue list|new|comment|close|reopen <repo> [L3]`; MCP: `list_issues`,
+`create_issue`, `comment_issue`, `set_issue_state`. Abgelegt als Markdown unter
+`meta/…/issues/local/`.
+
 ## 4. Aufbewahrung und Papierkorb
 
 Regeln gelten global → Sammlung → Repo (das Spezifischere gewinnt). Was eine

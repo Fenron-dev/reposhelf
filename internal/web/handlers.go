@@ -535,6 +535,46 @@ func (s *Server) repoNotes(w http.ResponseWriter, r *http.Request) {
 	redirect(w, r, withMsg("/repo/"+id+"?tab=notes", "ok", "Notizen gespeichert."))
 }
 
+// issueCreate adds a local issue (D-028).
+func (s *Server) issueCreate(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	id := r.PathValue("id")
+	n, err := s.Lib.CreateIssue(r.Context(), id, r.Form.Get("title"), r.Form.Get("body"), strings.Split(r.Form.Get("labels"), ","), s.actor(r))
+	if err != nil {
+		s.failErr(w, r, err)
+		return
+	}
+	redirect(w, r, withMsg("/repo/"+id+"?tab=issues", "ok", fmt.Sprintf("Issue L%d angelegt.", n)))
+}
+
+// issueAction comments, closes or reopens a local issue.
+func (s *Server) issueAction(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	id := r.PathValue("id")
+	n, err := core.ParseIssueRef(r.PathValue("n"))
+	if err != nil {
+		s.failErr(w, r, err)
+		return
+	}
+	text := r.Form.Get("text")
+	var msg string
+	switch r.Form.Get("action") {
+	case "comment":
+		err, msg = s.Lib.CommentIssue(r.Context(), id, n, text, s.actor(r)), "Kommentar gespeichert."
+	case "close":
+		err, msg = s.Lib.SetIssueState(r.Context(), id, n, core.IssueClosed, text, s.actor(r)), "Issue geschlossen."
+	case "reopen":
+		err, msg = s.Lib.SetIssueState(r.Context(), id, n, core.IssueOpen, text, s.actor(r)), "Issue wieder geöffnet."
+	default:
+		err = fmt.Errorf("%w: Aktion", core.ErrInvalid)
+	}
+	if err != nil {
+		s.failErr(w, r, err)
+		return
+	}
+	redirect(w, r, withMsg(fmt.Sprintf("/repo/%s?tab=issues#issue-L%d", id, n), "ok", msg))
+}
+
 func (s *Server) repoSettings(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	f := r.Form

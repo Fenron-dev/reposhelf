@@ -98,6 +98,8 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /repo/{id}/collections", write(s.repoCollections))
 	mux.Handle("POST /repo/{id}/relation", write(s.repoRelation))
 	mux.Handle("POST /repo/{id}/notes", write(s.repoNotes))
+	mux.Handle("POST /repo/{id}/issues", write(s.issueCreate))
+	mux.Handle("POST /repo/{id}/issues/{n}", write(s.issueAction))
 	mux.Handle("POST /repo/{id}/settings", write(s.repoSettings))
 	mux.Handle("POST /repo/{id}/pin", write(s.repoPin))
 	mux.Handle("POST /repo/{id}/fork", write(s.repoFork))
@@ -363,11 +365,16 @@ func redirect(w http.ResponseWriter, r *http.Request, to string) {
 }
 
 func withMsg(to, key, msg string) string {
+	to, frag, hasFrag := strings.Cut(to, "#")
 	sep := "?"
 	if strings.Contains(to, "?") {
 		sep = "&"
 	}
-	return to + sep + key + "=" + url.QueryEscape(msg)
+	to += sep + key + "=" + url.QueryEscape(msg)
+	if hasFrag {
+		to += "#" + frag
+	}
+	return to
 }
 
 // ---- Markdown ----

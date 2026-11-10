@@ -48,4 +48,21 @@ func TestHostToken(t *testing.T) {
 	if code, out := run("", "host-token", "remove", "git.example.org", "--data", dir); code != ExitOK || kc["git.example.org"] != "" {
 		t.Errorf("remove: %d %s", code, out)
 	}
+
+	// Local issues on a repository created here.
+	if code, out := run("", "create", "werkzeug", "--data", dir); code != ExitOK {
+		t.Fatalf("create: %s", out)
+	}
+	if code, out := run("Lange Beschreibung\nmit Zeilen", "issue", "new", "werkzeug", "--title", "Fehler beim Export", "--body", "-", "--labels", "bug", "--data", dir); code != ExitOK || !strings.Contains(out, "L1 angelegt") {
+		t.Fatalf("issue new: %d %s", code, out)
+	}
+	if code, out := run("", "issue", "close", "werkzeug", "L1", "--body", "behoben", "--data", dir); code != ExitOK {
+		t.Errorf("issue close: %s", out)
+	}
+	if _, out := run("", "issue", "list", "werkzeug", "--data", dir); strings.Contains(out, "L1") {
+		t.Errorf("closed issue listed: %s", out)
+	}
+	if _, out := run("", "issue", "list", "werkzeug", "--all", "--data", dir); !strings.Contains(out, "L1    zu    Fehler beim Export [bug]") {
+		t.Errorf("issue list --all: %q", out)
+	}
 }
