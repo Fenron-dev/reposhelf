@@ -21,21 +21,26 @@ type JobState struct {
 	Queued  time.Time
 	Started time.Time
 	Actor   string
+	// Phase and Percent describe what a running sync does right now
+	// (Percent < 0: unknown), for progress bars (T-9.9).
+	Phase   string
+	Percent int
 }
 
 // jobs runs syncs in the background with limited concurrency. A repository
 // is never queued twice.
 type jobs struct {
-	l       *Library
-	mu      sync.Mutex
-	queue   []JobState
-	running map[string]JobState
-	limit   int
-	wake    chan struct{}
-	ctx     context.Context
-	cancel  context.CancelFunc
-	wg      sync.WaitGroup
-	started bool
+	l         *Library
+	mu        sync.Mutex
+	queue     []JobState
+	running   map[string]JobState
+	limit     int
+	wake      chan struct{}
+	ctx       context.Context
+	cancel    context.CancelFunc
+	wg        sync.WaitGroup
+	started   bool
+	lastEvent time.Time
 }
 
 func newJobs(l *Library) *jobs {
@@ -78,7 +83,7 @@ func (l *Library) Enqueue(repoID, key, actor string) bool {
 			return false
 		}
 	}
-	j.queue = append(j.queue, JobState{RepoID: repoID, Key: key, Queued: l.now(), Actor: actor})
+	j.queue = append(j.queue, JobState{RepoID: repoID, Key: key, Queued: l.now(), Actor: actor, Phase: "wartet", Percent: -1})
 	j.mu.Unlock()
 	l.events.publish(Event{Kind: "job", RepoID: repoID})
 	j.poke()
@@ -96,6 +101,47 @@ func (l *Library) Jobs() []JobState {
 	}
 	sort.Slice(out, func(a, b int) bool { return out[a].Started.Before(out[b].Started) })
 	return append(out, j.queue...)
+}
+
+// Job returns the state of repoID's sync, if one is queued or running.
+func (l *Library) Job(repoID string) (JobState, bool) {
+	j := l.jobs
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	if r, ok := j.running[repoID]; ok {
+		return r, true
+	}
+	for _, q := range j.queue {
+		if q.RepoID == repoID {
+			return q, true
+		}
+	}
+	return JobState{}, false
+}
+
+// progressEvery throttles progress events (each one refreshes the UI).
+const progressEvery = 400 * time.Millisecond
+
+// progress records the current phase of a running background sync.
+func (l *Library) progress(repoID, phase string, percent int) {
+	j := l.jobs
+	j.mu.Lock()
+	js, ok := j.running[repoID]
+	if !ok {
+		j.mu.Unlock()
+		return
+	}
+	changedPhase := js.Phase != phase
+	js.Phase, js.Percent = phase, percent
+	j.running[repoID] = js
+	publish := changedPhase || time.Since(j.lastEvent) >= progressEvery
+	if publish {
+		j.lastEvent = time.Now()
+	}
+	j.mu.Unlock()
+	if publish {
+		l.events.publish(Event{Kind: "job", RepoID: repoID, Text: phase})
+	}
 }
 
 // IsBusy reports whether repoID is queued or syncing.
@@ -138,6 +184,7 @@ func (j *jobs) dispatch() {
 			next := j.queue[0]
 			j.queue = j.queue[1:]
 			next.Running, next.Started = true, j.l.now()
+			next.Phase, next.Percent = "startet", -1
 			j.running[next.RepoID] = next
 			j.wg.Add(1)
 			go j.run(next)

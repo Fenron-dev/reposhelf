@@ -302,7 +302,7 @@
 
 <div class="card">
   <h2 class="h3">Prüfung (doctor)</h2>
-  <ul class="checks">{{range $d.Doctor.Checks}}<li><span class="{{if .OK}}ok{{else}}error{{end}}">{{if .OK}}✓{{else}}✕{{end}}</span> <strong>{{.Name}}</strong>: {{.Detail}}</li>{{end}}</ul>
+  <div hx-get="/settings/doctor" hx-trigger="load" hx-swap="outerHTML"><p class="small muted"><span class="spinner" aria-hidden="true"></span> Prüfung läuft …</p></div>
   <p class="small muted">Tokens für Hosts: <span class="mono">REPOSHELF_GITHUB_TOKEN</span> bzw. <span class="mono">REPOSHELF_TOKEN_&lt;HOST&gt;</span> (Docker: <span class="mono">…_FILE</span>), auf dem Mac auch im Schlüsselbund (Dienst „RepoShelf“, Konto = Host).</p>
 </div>
 {{template "foot" .}}{{end}}
@@ -416,3 +416,5 @@
 </div>
 {{end}}
 {{template "foot" .}}{{end}}
+
+{{define "doctor"}}<ul class="checks">{{range .Checks}}<li><span class="{{if .OK}}ok{{else}}error{{end}}">{{if .OK}}✓{{else}}✕{{end}}</span> <strong>{{.Name}}</strong>: {{.Detail}}</li>{{end}}</ul>{{end}}

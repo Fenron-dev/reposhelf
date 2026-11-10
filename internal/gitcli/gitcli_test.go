@@ -5,6 +5,7 @@ package gitcli
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -265,5 +266,38 @@ func TestNoForeignRepoConfig(t *testing.T) {
 	out, err := g.Run(ctx, "", nil, "config", "--get", "http.extraHeader")
 	if err == nil && strings.TrimSpace(string(out)) != "" {
 		t.Errorf("foreign repository config leaked: %q", out)
+	}
+}
+
+func TestMirrorReportsProgress(t *testing.T) {
+	ctx := context.Background()
+	g := testGit(t)
+	up := newUpstream(t, g)
+	for i := range 30 {
+		up.commit(fmt.Sprintf("f%d.txt", i), strings.Repeat("x", 4000+i), "c")
+	}
+	mirror := filepath.Join(t.TempDir(), "m.git")
+	if err := g.InitBare(ctx, mirror, up.dir); err != nil {
+		t.Fatal(err)
+	}
+	var seen []int
+	pctx := WithProgress(ctx, func(p int) { seen = append(seen, p) })
+	if _, err := g.Mirror(pctx, mirror, up.dir, nil, time.Now()); err != nil {
+		t.Fatal(err)
+	}
+	if !g.HasCommits(ctx, mirror) {
+		t.Fatal("mirror empty")
+	}
+	t.Logf("progress: %v", seen)
+	for i := 1; i < len(seen); i++ {
+		if seen[i] < 0 || seen[i] > 100 {
+			t.Errorf("out of range: %v", seen)
+		}
+	}
+	pw := &progressWriter{fn: func(p int) { seen = append(seen, p) }}
+	seen = nil
+	pw.Write([]byte("Receiving objects:  50% (5/10)\rReceiving objects: 100% (10/10), done.\nResolving deltas: 100% (3/3), done.\n"))
+	if len(seen) != 3 || seen[0] != 50 || seen[1] != 90 || seen[2] != 100 {
+		t.Errorf("parsed = %v", seen)
 	}
 }

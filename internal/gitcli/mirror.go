@@ -98,8 +98,15 @@ func (g *Git) mirror(ctx context.Context, dir, from, url string, auth *Auth, now
 	// Step 2: safe fetch. git exits non-zero when it rejects a ref; that
 	// is expected and handled below, any other failure is not.
 	// Not --quiet: git reports rejections only without it.
-	fetch := append([]string{"fetch", "--no-progress", "--no-tags", "--end-of-options", from}, mirrorRefspecs...)
-	if _, err := g.Run(ctx, dir, auth, fetch...); err != nil {
+	var fetchErr error
+	if fn := progressOf(ctx); fn != nil {
+		fetch := append([]string{"fetch", "--progress", "--no-tags", "--end-of-options", from}, mirrorRefspecs...)
+		_, fetchErr = g.runProgress(ctx, dir, auth, fn, fetch...)
+	} else {
+		fetch := append([]string{"fetch", "--no-progress", "--no-tags", "--end-of-options", from}, mirrorRefspecs...)
+		_, fetchErr = g.Run(ctx, dir, auth, fetch...)
+	}
+	if err := fetchErr; err != nil {
 		var ge *Error
 		if !errors.As(err, &ge) || !strings.Contains(ge.Stderr, "rejected") {
 			return res, err
