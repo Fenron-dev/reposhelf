@@ -12,9 +12,9 @@
 
 ## Aktueller Stand
 
-- **Phase:** 0–9 umgesetzt; Version `v0.1.7` von Dennis getestet und abgenommen
-- **Letzte Änderung:** 2026-11-08 · Dennis bestätigt v0.1.7: Datenordner mit „#“ öffnet, „Hinzufügen“ springt zum Repo
-- **Nächster Schritt:** keiner offen – weitere Wünsche als neue Aufgaben eintragen
+- **Phase:** 0–9 umgesetzt; `v0.1.7` abgenommen, `v0.1.8` (T-9.8/T-9.9) zum Test bei Dennis
+- **Letzte Änderung:** 2026-11-10 · Windows ohne Konsolenfenster, schnellere Seitenwechsel, Fortschrittsbalken beim Abgleich
+- **Nächster Schritt:** Dennis testet `v0.1.8` unter Windows (Konsolenfenster weg? Seitenwechsel schnell genug?)
 
 ## Übergabe-Notiz
 
@@ -45,6 +45,15 @@ die zwei neuesten Läufe, ZIPs gültig, Prüfsummen stimmen) und per Test gegen 
 nachgebildete API (`internal/runner/github_test.go`).
 
 **Offene Fragen:** keine (F-007 → D-021, F-014 → D-022).
+
+**2026-11-10 · Claude Code (T-9.8/T-9.9, Rückmeldung zu v0.1.7 unter Windows):**
+Jeder Git-/Docker-/act-Aufruf startet ohne Konsolenfenster (`gitcli.HideWindow`).
+Seiten starten im Normalfall keinen Git-Prozess mehr: Lösch-Prüfung im Hintergrund
+(`internal/web/cache.go`, nach jeder Änderung neu), README/Commits je Abgleichstand
+zwischengespeichert, Diagnose und Build-Kapsel-Panel werden nachgeladen.
+`TestPageGitCost` wacht darüber. Abgleiche melden Phase und Git-Prozent
+(Seitenleiste + Repo-Seite, die sich danach selbst neu lädt); oben ein Ladebalken
+bei Seitenwechseln. Unter Windows noch nicht von Dennis bestätigt.
 
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
@@ -220,12 +229,16 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.5 | Code-Volltextsuche (nach F-007) | erledigt | Claude Code | 2026-11-08 | D-021 – `git grep` in Oberfläche (`/code`), CLI (`reposhelf grep`) und MCP (`search_code`) |
 | T-9.6 | Massenimport (eigene / gesternte GitHub-Repos) | erledigt | Claude Code | 2026-11-08 | `fad38bc` – `reposhelf import [--starred]` |
 | T-9.7 | GitHub-Actions-Artefakte mitsichern, Anzahl der Läufe einstellbar (global/Sammlung/Repo) | erledigt | Claude Code | 2026-11-08 | Wunsch von Dennis beim Test von v0.1.5; `include.actions`, `retention.actions_keep` (SCHEMA ergänzt) |
+| T-9.8 | Windows: kein Konsolenfenster bei Git- und Docker-Aufrufen | erledigt | Claude Code | 2026-11-10 | Rückmeldung Dennis zu v0.1.7; e196256 |
+| T-9.9 | Seitenwechsel beschleunigen; lange Arbeiten im Hintergrund mit Fortschrittsbalken | erledigt | Claude Code | 2026-11-10 | Rückmeldung Dennis zu v0.1.7; d59ea17; Test `TestPageGitCost` |
 
 ---
 
 ## Verlauf
 
 Neueste oben. Eine Zeile pro Sitzung.
+
+- 2026-11-10 · Claude Code · Dennis' Rückmeldung v0.1.7 (Windows): Konsolenfenster blitzten auf, Seitenwechsel langsam → T-9.8 (kein Konsolenfenster), T-9.9 (Git-Aufrufe je Seite auf 0, Fortschrittsbalken, Ladebalken); Release `v0.1.8`
 
 - 2026-11-08 · Dennis · v0.1.7 getestet: Ordner öffnet, Hinzufügen springt zum Repo; Notarisierung bleibt weg (D-023)
 - 2026-11-08 · Claude Code · Dennis' Test v0.1.6: Datenordner `…/# Meine Apps/App-Vault` ließ sich nicht öffnen – `#` im Pfad beendete den SQLite-Dateinamen (URI) → Pfad wird jetzt maskiert, Test mit Sonderzeichen; Release `v0.1.7`
