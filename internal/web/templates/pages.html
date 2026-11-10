@@ -89,6 +89,7 @@
   {{if .Topics}}<div class="small">Vorschläge aus Topics: {{range .Topics}}<button type="button" class="tag" data-add-tag="{{.}}">{{.}}</button> {{end}}</div>{{end}}
   {{else}}
   {{if .NoToken}}<div class="alert alert-error small">{{.Parsed.Source.Host}} zeigt dieses Repo nicht. Ist es privat? Dann zuerst unter <a href="/settings#zugaenge">Einstellungen → Zugänge</a> einen Token hinterlegen.</div>
+  {{else if .NoAccess}}<div class="alert alert-error small">{{.Parsed.Source.Host}} zeigt dieses Repo mit dem Token {{.TokenFrom}} nicht. Ist es privat, fehlt dem Token der Zugriff darauf: auf GitHub beim Token unter „Repository access“ das Repo freigeben (oder „All repositories“) und „Contents: Read-only“ setzen, dann unter <a href="/settings#zugaenge">Einstellungen → Zugänge</a> „Prüfen“.</div>
   {{else}}<div class="small muted">{{if .MetaError}}Keine Metadaten: {{.MetaError}}{{else}}Ohne API – nur Git.{{end}}</div>{{end}}
   {{end}}
   {{if ge .ReleaseBytes 0}}<div class="small {{if gt .ReleaseBytes 524288000}}warn{{else}}muted{{end}}">Release-Dateien der neuesten Versionen: {{.ReleaseFiles}} Dateien, etwa {{size .ReleaseBytes}}{{if gt .ReleaseBytes 524288000}} – viel Platz; „Releases &amp; Dateien“ ggf. abwählen oder in den Einstellungen eine Höchstgröße setzen{{end}}</div>{{end}}
@@ -429,7 +430,7 @@
 <table class="list small"><thead><tr><th>Host</th><th>Repos</th><th>Token</th><th></th></tr></thead><tbody>
 {{range .Hosts}}<tr>
   <td class="mono">{{.Host}}</td><td>{{.Repos}}</td>
-  <td>{{with .Source}}{{if eq .Kind "keychain"}}<span class="ok">✓</span> im Schlüsselbund{{else if .Kind}}<span class="ok">✓</span> aus <span class="mono">{{.Name}}</span>{{else}}<span class="muted">keiner</span>{{end}}{{end}}</td>
+  <td>{{with .Source}}{{if eq .Kind "keychain"}}<span class="ok">✓</span> im Schlüsselbund{{else if .Kind}}<span class="ok">✓</span> aus <span class="mono">{{.Name}}</span>{{else}}<span class="muted">keiner</span>{{end}}{{end}}{{if .Shadowed}}<div class="small warn">Im Schlüsselbund liegt ein weiterer Token – die Umgebungsvariable hat Vorrang.</div>{{end}}</td>
   <td>{{if .Source.Kind}}<form method="post" action="/settings/tokens" class="inline"><input type="hidden" name="host" value="{{.Host}}"><button class="btn btn-small" name="action" value="check">Prüfen</button>
   {{if eq .Source.Kind "keychain"}}<details class="inline"><summary class="btn btn-small btn-ghost">Entfernen</summary><button class="btn btn-small btn-danger" name="action" value="remove">Ja, aus dem Schlüsselbund entfernen</button></details>{{end}}</form>{{end}}</td>
 </tr>{{end}}

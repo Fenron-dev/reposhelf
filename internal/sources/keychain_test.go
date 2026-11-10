@@ -38,6 +38,9 @@ func TestTokenStore(t *testing.T) {
 	if src := s.Source("github.com"); src.Kind != FromEnv || src.Name != "GITHUB_TOKEN" || s.Token("github.com") != "ghp_fromenvironment" {
 		t.Errorf("env did not win: %+v", src)
 	}
+	if !s.InKeychain("github.com") {
+		t.Error("overridden keychain token not reported")
+	}
 	delete(env, "GITHUB_TOKEN")
 	if err := s.Remove("github.com"); err != nil {
 		t.Fatal(err)
