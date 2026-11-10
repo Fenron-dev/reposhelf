@@ -131,7 +131,10 @@ Angeheftete Versionen und die Git-Geschichte selbst sind nie betroffen.
 
 - **Git:** `git clone http://<server>:7373/git/<host>/<owner>/<name>.git`
   Benutzername beliebig, Passwort = Token. Pushen nur in eigene Projekte und
-  Forks; Spiegel sind schreibgeschützt.
+  Forks; Spiegel sind schreibgeschützt. Auf Wunsch reicht RepoShelf Pushes an das
+  Original weiter (Repo-Einstellungen → „Pushes“; Standard aus, D-029): Branches und
+  Tags, nie erzwungen, nie gelöscht. Hat das Original neuere Stände, steht der Fehler
+  am Repo. Der Token für den Host braucht dafür Schreibrecht (Contents: Read and write).
 - **MCP lokal (stdio)** – Claude Code:
   `claude mcp add reposhelf -- /pfad/zu/reposhelf mcp --data /pfad/zu/RepoShelf-Daten`
   Claude Desktop / LM Studio / Codex: Befehl `reposhelf`, Argumente

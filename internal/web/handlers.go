@@ -584,7 +584,8 @@ func (s *Server) repoSettings(w http.ResponseWriter, r *http.Request) {
 		Include: repometa.Include{Releases: f.Get("releases") == "on", LFS: f.Get("lfs") == "on",
 			Submodules: f.Get("submodules") == "on", Issues: f.Get("issues") == "on", Wiki: f.Get("wiki") == "on",
 			Actions: f.Get("actions") == "on"},
-		Buildable: f.Get("buildable") == "on",
+		Buildable:    f.Get("buildable") == "on",
+		PushUpstream: f.Get("push_upstream") == "on",
 	}
 	if v := f.Get("interval"); v != "" && set.Mode == repometa.SyncFollow {
 		d, err := repometa.ParseDuration(v)

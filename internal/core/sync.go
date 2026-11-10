@@ -316,4 +316,27 @@ func (l *Library) RefreshAfterPush(ctx context.Context, ref, actor string) {
 	defer unlock()
 	l.refreshStats(ctx, r)
 	l.Record(Activity{Actor: actor, Action: "push", RepoID: r.R().ID})
+	if r.R().Sync.PushUpstream {
+		l.forwardPush(ctx, r)
+	}
+}
+
+// forwardPush passes branches and tags on to the original (D-029): never
+// forced and never deleting there; refs the original has moved on are
+// rejected and reported.
+func (l *Library) forwardPush(ctx context.Context, r *Repo) {
+	src := r.R().Source
+	err := l.Git.PushAll(ctx, r.Paths.Mirror, src.URL, l.Sources.GitAuth(src))
+	now := l.now().UTC()
+	if err != nil {
+		r.Upstream.ForwardError = err.Error()
+		l.Record(Activity{Actor: "push-forward", Action: "push-forward-failed", RepoID: r.R().ID, Detail: err.Error()})
+	} else {
+		r.Upstream.Forwarded, r.Upstream.ForwardError = &now, ""
+		l.Record(Activity{Actor: "push-forward", Action: "push-forwarded", RepoID: r.R().ID, Detail: src.URL})
+	}
+	if err := writeUpstream(r.Paths.Meta, r.Upstream); err != nil {
+		l.Log.Warn("write upstream", "err", err)
+	}
+	l.events.publish(Event{Kind: "repo", RepoID: r.R().ID})
 }

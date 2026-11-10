@@ -19,6 +19,7 @@
       {{if $e.Language}} · {{$e.Language}}{{end}}{{if $e.License}} · Lizenz {{$e.License}}{{else}} · <span class="warn" title="Ohne Lizenz gilt: alle Rechte vorbehalten">keine Lizenz erkannt</span>{{end}}
     </p>
     {{if $d.Busy}}<div class="card-inset" hx-get="/repo/{{$id}}/progress" hx-trigger="every 1s" hx-swap="outerHTML">{{template "repo-progress" $d.Job}}</div>{{end}}
+    {{if and $r.R.Sync.PushUpstream $r.Upstream.ForwardError}}<div class="alert alert-error small" role="alert"><strong>Weiterreichen an das Original fehlgeschlagen:</strong> {{$r.Upstream.ForwardError}}</div>{{end}}
     {{if $e.LastError}}<div class="alert alert-error small" role="alert"><strong>Letzter Abgleich fehlgeschlagen:</strong> {{$e.LastError}}{{if $r.Upstream.HostDown}} – der ganze Host ist seit über 24 h gestört, das Repo gilt deshalb nicht als verschwunden.{{end}}</div>{{end}}
     {{if $r.Upstream.LastBackup}}<div class="alert small">Das Original hat Geschichte umgeschrieben. Der alte Stand ist gesichert unter <span class="mono">{{$r.Upstream.LastBackup}}</span> (siehe „Versionen“).</div>{{end}}
   </div>
@@ -300,6 +301,12 @@
     <label class="check"><input type="radio" name="mode" value="once" {{if eq $r.Sync.Mode "once"}}checked{{end}}> Einmalig</label>
     <label class="check"><input type="radio" name="mode" value="manual" {{if eq $r.Sync.Mode "manual"}}checked{{end}}> Nur von Hand</label>
   </fieldset>
+  {{if and (ne $r.Kind "mirror") (ne $r.Source.Host "local")}}
+  <fieldset><legend>Pushes</legend>
+    <label class="check"><input type="checkbox" name="push_upstream" {{if $r.Sync.PushUpstream}}checked{{end}}> Pushes an das Original weiterreichen (<span class="mono">{{$r.Source.Host}}</span>)</label>
+    <p class="small muted">Nach jedem Push in RepoShelf werden Branches und Tags an das Original geschickt – nie erzwungen, nie gelöscht. Braucht einen Token mit Schreibrecht (Contents: Read and write).</p>
+  </fieldset>
+  {{end}}
   <fieldset><legend>Mitsichern</legend>
     <label class="check"><input type="checkbox" name="releases" {{if $r.Include.Releases}}checked{{end}}> Releases &amp; Dateien</label>
     <label class="check"><input type="checkbox" name="lfs" {{if $r.Include.LFS}}checked{{end}}> Git LFS</label>

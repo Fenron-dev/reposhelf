@@ -357,3 +357,30 @@ func (g *Git) FixHead(ctx context.Context, dir string) {
 	}
 	_ = g.SetHead(ctx, dir, pick) // best effort; stats work without it
 }
+
+// PushAll pushes all branches and tags of the bare repository dir to url
+// (D-029). It never forces and never deletes refs there; refs that the
+// remote has moved on are rejected and named in the error.
+func (g *Git) PushAll(ctx context.Context, dir, url string, auth *Auth) error {
+	out, err := g.Run(ctx, dir, auth, "push", "--porcelain", "--no-verify", "--", url,
+		"refs/heads/*:refs/heads/*", "refs/tags/*:refs/tags/*")
+	if err == nil {
+		return nil
+	}
+	var rejected []string
+	for _, line := range strings.Split(string(out), "\n") {
+		if strings.HasPrefix(line, "!\t") {
+			if f := strings.SplitN(line, "\t", 3); len(f) >= 2 {
+				ref := f[1]
+				if _, dst, ok := strings.Cut(ref, ":"); ok {
+					ref = dst
+				}
+				rejected = append(rejected, strings.TrimPrefix(ref, "refs/heads/"))
+			}
+		}
+	}
+	if len(rejected) > 0 {
+		return fmt.Errorf("das Original hat neuere Stände, nicht überschrieben: %s", strings.Join(rejected, ", "))
+	}
+	return err
+}

@@ -50,6 +50,10 @@ type Upstream struct {
 	LastBackup      string     `json:"last_backup,omitempty"`
 	LastSnapshot    *time.Time `json:"last_snapshot,omitempty"`
 	IssuesSynced    *time.Time `json:"issues_synced,omitempty"`
+	// Forwarded and ForwardError describe the last push passed on to the
+	// original (D-029).
+	Forwarded    *time.Time `json:"forwarded,omitempty"`
+	ForwardError string     `json:"forward_error,omitempty"`
 }
 
 // MetaChange keeps metadata as it was before a change upstream.
