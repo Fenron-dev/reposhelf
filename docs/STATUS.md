@@ -12,9 +12,9 @@
 
 ## Aktueller Stand
 
-- **Phase:** 0–9 umgesetzt; `v0.1.7` abgenommen, `v0.1.8` (T-9.8/T-9.9) zum Test bei Dennis
-- **Letzte Änderung:** 2026-11-10 · Windows ohne Konsolenfenster, schnellere Seitenwechsel, Fortschrittsbalken beim Abgleich
-- **Nächster Schritt:** Dennis testet `v0.1.8` unter Windows (Konsolenfenster weg? Seitenwechsel schnell genug?); neu offen: T-9.10–T-9.12 (Fragen dazu entschieden: D-024–D-027)
+- **Phase:** 0–9 umgesetzt; `v0.1.7` abgenommen, `v0.1.9` (T-9.8–T-9.10) zum Test bei Dennis
+- **Letzte Änderung:** 2026-11-10 · Tokens für Git-Hosts in den Einstellungen (Schlüsselbund, auch Windows) – T-9.10
+- **Nächster Schritt:** Dennis testet `v0.1.9` unter Windows (Konsolenfenster weg? Seitenwechsel schnell? Token speichern und privates Repo sichern); offen: T-9.11, T-9.12
 
 ## Übergabe-Notiz
 
@@ -54,6 +54,15 @@ zwischengespeichert, Diagnose und Build-Kapsel-Panel werden nachgeladen.
 `TestPageGitCost` wacht darüber. Abgleiche melden Phase und Git-Prozent
 (Seitenleiste + Repo-Seite, die sich danach selbst neu lädt); oben ein Ladebalken
 bei Seitenwechseln. Unter Windows noch nicht von Dennis bestätigt.
+
+**2026-11-10 · Claude Code (T-9.10):** Tokens für Git-Hosts: Einstellungen →
+„Zugänge zu Git-Hosts“ bzw. `reposhelf host-token`. Reihenfolge: Umgebungsvariable,
+dann Schlüsselbund (`internal/sources/keychain_*.go`; Windows: Anmeldeinformations-
+verwaltung, Eintrag `RepoShelf:<host>`). Neuer Token wird vorher beim Host geprüft;
+abgelehnte werden nicht gespeichert. macOS-Schlüsselbund lokal geprüft
+(`REPOSHELF_KEYCHAIN_TEST=1 go test ./internal/sources`), Windows im Prüflauf
+(`smoke.yml`, Schritt „Host token“). Offen aus D-024: „Mit GitHub anmelden“ braucht
+eine OAuth-App von Dennis.
 
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
@@ -235,7 +244,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.7 | GitHub-Actions-Artefakte mitsichern, Anzahl der Läufe einstellbar (global/Sammlung/Repo) | erledigt | Claude Code | 2026-11-08 | Wunsch von Dennis beim Test von v0.1.5; `include.actions`, `retention.actions_keep` (SCHEMA ergänzt) |
 | T-9.8 | Windows: kein Konsolenfenster bei Git- und Docker-Aufrufen | erledigt | Claude Code | 2026-11-10 | Rückmeldung Dennis zu v0.1.7; e196256 |
 | T-9.9 | Seitenwechsel beschleunigen; lange Arbeiten im Hintergrund mit Fortschrittsbalken | erledigt | Claude Code | 2026-11-10 | Rückmeldung Dennis zu v0.1.7; d59ea17; Test `TestPageGitCost` |
-| T-9.10 | Host-Tokens am Desktop: Windows-Anmeldeinformationsverwaltung lesen (Konzept 4.2 nennt den System-Schlüsselbund, bisher nur macOS/Linux) und Token in der Oberfläche eingeben, prüfen (Rechte anzeigen) und im Schlüsselbund ablegen – nie im Datenordner | offen | | 2026-11-10 | Dennis konnte sein privates Repo nicht sichern (kein Token); D-024: erst Token, dann „Mit GitHub anmelden“ |
+| T-9.10 | Host-Tokens am Desktop: Windows-Anmeldeinformationsverwaltung lesen (Konzept 4.2 nennt den System-Schlüsselbund, bisher nur macOS/Linux) und Token in der Oberfläche eingeben, prüfen (Rechte anzeigen) und im Schlüsselbund ablegen – nie im Datenordner | erledigt | Claude Code | 2026-11-10 | D-024; `48c4c28` – Einstellungen „Zugänge zu Git-Hosts“, `reposhelf host-token`, Schlüsselbund macOS/Windows/Linux; „Mit GitHub anmelden“ folgt, wenn die OAuth-App angelegt ist |
 | T-9.11 | Laufzeit-Daten sichern: Modelle (Hugging Face als eigenes gespiegeltes Repo mit LFS, gemeinsamer Speicher, Bereitstellung als `HF_HOME`-Ordner für den Offline-Betrieb), Verweis „braucht“ vom Tool auf das Modell, Vorschläge aus dem Code (`from_pretrained`, `hf_hub_download`); Python-Pakete mit genauer Versionsliste für gewählte Plattformen; optional Laufzeit-Image (`docker save`) | offen | | 2026-11-10 | Wunsch von Dennis (Beispiel TTS Phonon); Rahmen: D-025, D-026, D-027 |
 | T-9.12 | Build-Kapsel: Toolchain-Image (z. B. `golang:1.24`, `node:20`) mit `docker save` in den gemeinsamen Speicher, damit der Kapsel-Test nicht vom Docker Hub abhängt | offen | | 2026-11-10 | Befund bei Dennis' Frage zu Kapseln: bisher wird nur der Image-Name festgehalten |
 
@@ -244,6 +253,8 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 ## Verlauf
 
 Neueste oben. Eine Zeile pro Sitzung.
+
+- 2026-11-10 · Claude Code · T-9.10: Tokens in den Einstellungen eingeben/prüfen/entfernen, Schlüsselbund auch unter Windows, `reposhelf host-token`, Hinweis bei privaten Repos ohne Token; Release `v0.1.9`
 
 - 2026-11-10 · Dennis · F-015–F-018 entschieden (D-024 Token zuerst, D-025 Nachfrage ab 1 GB, D-026 Plattformen je Repo, D-027 Modelle wie Repos)
 
