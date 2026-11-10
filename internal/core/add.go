@@ -35,6 +35,11 @@ type Preview struct {
 	// NoToken is set when the host does not show the repository and no
 	// token is set: it may be private (T-9.10).
 	NoToken bool
+	// NoAccess is set when the host does not show the repository although
+	// a token is set: the token lacks access to it; TokenFrom says which
+	// token is in effect.
+	NoAccess  bool
+	TokenFrom string
 }
 
 // Preview recognises a link and fetches metadata without writing anything.
@@ -77,8 +82,13 @@ func (l *Library) preview(ctx context.Context, link string, estimate bool) (Prev
 	} else {
 		pv.MetaError = err
 	}
-	pv.NoToken = (errors.Is(pv.MetaError, sources.ErrGone) || errors.Is(pv.MetaError, sources.ErrAuth)) &&
-		l.Sources.Tokens(pv.Parsed.Source.Host) == ""
+	if errors.Is(pv.MetaError, sources.ErrGone) || errors.Is(pv.MetaError, sources.ErrAuth) {
+		if src := l.Tokens.Source(pv.Parsed.Source.Host); src.Kind == sources.FromNone {
+			pv.NoToken = true
+		} else {
+			pv.NoAccess, pv.TokenFrom = true, TokenOrigin(src)
+		}
+	}
 	return pv, nil
 }
 
@@ -111,6 +121,9 @@ func (l *Library) Add(ctx context.Context, req AddRequest) (*Repo, error) {
 	}
 	if pv.NoToken {
 		return nil, fmt.Errorf("%w: %s – bei einem privaten Repo zuerst unter Einstellungen → Zugänge einen Token für %s hinterlegen", ErrNotFound, pv.Parsed.Source.URL, pv.Parsed.Source.Host)
+	}
+	if pv.NoAccess {
+		return nil, fmt.Errorf("%w: %s – %s zeigt dieses Repo mit dem Token %s nicht. Ist es privat, fehlt dem Token der Zugriff darauf: auf GitHub beim Token unter „Repository access“ das Repo freigeben (oder „All repositories“) und „Contents: Read-only“ setzen; dann unter Einstellungen → Zugänge „Prüfen“", ErrNotFound, pv.Parsed.Source.URL, pv.Parsed.Source.Host, pv.TokenFrom)
 	}
 	if errors.Is(pv.MetaError, sources.ErrGone) {
 		return nil, fmt.Errorf("%w: %s", ErrNotFound, pv.Parsed.Source.URL)

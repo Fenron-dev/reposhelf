@@ -108,6 +108,16 @@ func (s *TokenStore) Source(host string) TokenSource {
 	return src
 }
 
+// InKeychain reports whether the keychain holds a token for host (it may
+// be overridden by an environment variable).
+func (s *TokenStore) InKeychain(host string) bool {
+	if s.kc == nil {
+		return false
+	}
+	t, err := s.kc.Get(strings.ToLower(host))
+	return err == nil && t != ""
+}
+
 // CanSave reports whether tokens can be saved in a keychain here.
 func (s *TokenStore) CanSave() bool { return s.kc != nil }
 

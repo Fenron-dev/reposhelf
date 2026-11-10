@@ -20,6 +20,20 @@ type HostToken struct {
 	Provider string
 	Source   sources.TokenSource
 	Repos    int // repositories from this host in the library
+	// Shadowed is set when the keychain holds a token that an environment
+	// variable overrides.
+	Shadowed bool
+}
+
+// TokenOrigin describes where a token comes from, in German.
+func TokenOrigin(s sources.TokenSource) string {
+	switch s.Kind {
+	case sources.FromKeychain:
+		return "aus dem Schlüsselbund"
+	case sources.FromNone:
+		return "(keiner)"
+	}
+	return "aus der Umgebungsvariable " + s.Name
 }
 
 // TokenHosts lists github.com and every host the library has repositories
@@ -37,7 +51,9 @@ func (l *Library) TokenHosts(ctx context.Context) ([]HostToken, error) {
 	}
 	out := make([]HostToken, 0, len(count))
 	for h, n := range count {
-		out = append(out, HostToken{Host: h, Provider: l.Sources.Provider(h), Source: l.Tokens.Source(h), Repos: n})
+		src := l.Tokens.Source(h)
+		out = append(out, HostToken{Host: h, Provider: l.Sources.Provider(h), Source: src, Repos: n,
+			Shadowed: src.Kind != sources.FromKeychain && src.Kind != sources.FromNone && l.Tokens.InKeychain(h)})
 	}
 	sort.Slice(out, func(a, b int) bool {
 		if (out[a].Host == "github.com") != (out[b].Host == "github.com") {

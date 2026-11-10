@@ -36,6 +36,8 @@ func TestTokenSettings(t *testing.T) {
 			w.Write([]byte(`{"login":"dennis"}`))
 		case "/user/repos":
 			w.Write([]byte(`[{}]`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
 	defer api.Close()
@@ -81,6 +83,14 @@ func TestTokenSettings(t *testing.T) {
 	}
 	if body := e.get("/settings/tokens", 200); !strings.Contains(body, "im Schlüsselbund") || strings.Contains(body, "GOOD123") {
 		t.Errorf("token state wrong or token shown:\n%s", body)
+	}
+	// With a token that does not see the repository: name the token and
+	// what to change on GitHub.
+	if pv, _ := lib.Preview(context.Background(), "https://github.com/dennis/Hidden"); pv.NoToken || !pv.NoAccess || pv.TokenFrom != "aus dem Schlüsselbund" {
+		t.Errorf("preview with token: %+v", pv)
+	}
+	if _, err := lib.Add(context.Background(), core.AddRequest{URL: "https://github.com/dennis/Hidden"}); err == nil || !strings.Contains(err.Error(), "Repository access") {
+		t.Errorf("add with token = %v", err)
 	}
 	resp = e.post("/settings/tokens", url.Values{"action": {"check"}, "host": {"github.com"}}, 303)
 	if loc, _ := url.QueryUnescape(resp.Header.Get("Location")); !strings.Contains(loc, "gültig") {

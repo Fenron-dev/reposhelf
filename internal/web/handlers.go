@@ -1189,7 +1189,7 @@ func accountText(a sources.Account) string {
 	if a.Private {
 		b.WriteString(", private Repos sichtbar.")
 	} else {
-		b.WriteString(", keine privaten Repos sichtbar.")
+		b.WriteString(", aber keine privaten Repos sichtbar – auf GitHub beim Token unter „Repository access“ „All repositories“ oder die gewünschten Repos wählen.")
 	}
 	return b.String()
 }
