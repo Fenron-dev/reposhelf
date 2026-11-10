@@ -14,7 +14,7 @@
 
 - **Phase:** 0–9 umgesetzt; `v0.1.7` abgenommen, `v0.1.8` (T-9.8/T-9.9) zum Test bei Dennis
 - **Letzte Änderung:** 2026-11-10 · Windows ohne Konsolenfenster, schnellere Seitenwechsel, Fortschrittsbalken beim Abgleich
-- **Nächster Schritt:** Dennis testet `v0.1.8` unter Windows (Konsolenfenster weg? Seitenwechsel schnell genug?); neu offen: T-9.10–T-9.12, Fragen F-015–F-018
+- **Nächster Schritt:** Dennis testet `v0.1.8` unter Windows (Konsolenfenster weg? Seitenwechsel schnell genug?); neu offen: T-9.10–T-9.12 (Fragen dazu entschieden: D-024–D-027)
 
 ## Übergabe-Notiz
 
@@ -44,7 +44,7 @@ Apple-Entwicklerkonto). Artefakt-Download von GitHub Actions gegen das echte Git
 die zwei neuesten Läufe, ZIPs gültig, Prüfsummen stimmen) und per Test gegen eine
 nachgebildete API (`internal/runner/github_test.go`).
 
-**Offene Fragen:** F-015 (GitHub-Anmeldung), F-016–F-018 (Laufzeit-Daten) – vor T-9.10/T-9.11 klären.
+**Offene Fragen:** keine (F-015–F-018 → D-024–D-027).
 
 **2026-11-10 · Claude Code (T-9.8/T-9.9, Rückmeldung zu v0.1.7 unter Windows):**
 Jeder Git-/Docker-/act-Aufruf startet ohne Konsolenfenster (`gitcli.HideWindow`).
@@ -84,10 +84,10 @@ Entscheidung: Status `entschieden`, Eintrag in `docs/ENTSCHEIDUNGEN.md`, Verweis
 | F-012 | Forgejo-Code übernehmen erlauben (Folge von F-003, bisher durch D-002 verboten)? | Erlauben, da RepoShelf selbst GPL ist | entschieden | **Ja** → D-015 (ersetzt D-002) |
 | F-013 | Wie wird ein Host mit Port (`gitea.local:3000`, z. B. Gitea auf Unraid) im Ordnerpfad abgebildet? `:` ist unter Windows im Dateinamen verboten; bis zur Entscheidung lehnt die Prüfung solche Hosts ab | `source.host` bleibt `gitea.local:3000`, Ordner heißt `gitea.local+3000` (`+` kommt in Hostnamen nie vor); IPv6-Adressen ebenso ohne `[]` und `:` abbilden | entschieden | **Ordner ohne Port** (`gitea.local`), Doppelte werden gemeldet → D-018 |
 | F-014 | Der Instanzschlüssel für den Abgleich (Ed25519, `.reposhelf/instance.key`, Rechte 0600) liegt im Datenordner. Konzept 4.2 sagt „Geheimnisse nie im Datenordner im Klartext“. So lassen? | So lassen: Er ist ein selbst erzeugter Maschinenschlüssel wie ein SSH-Hostkey, verlässt die Instanz nie und macht den portablen Betrieb (USB, Docker-Volume) erst möglich. Alternative: auf dem Desktop im Schlüsselbund, in Docker als Secret-Datei | entschieden | **So lassen** (Datei, 0600) → D-022 |
-| F-015 | GitHub-Zugang am Desktop: Token selbst anlegen und eingeben, oder „Mit GitHub anmelden“ (Device-Flow: RepoShelf zeigt einen Code, du bestätigst auf github.com)? Letzteres braucht eine einmal registrierte OAuth-App (Client-ID, kein Geheimnis) | Beides: Token eingeben (T-9.10) sofort; Anmelden mit GitHub danach, wenn du die OAuth-App anlegen möchtest | offen | |
-| F-016 | Laufzeit-Daten (T-9.11): Ab welcher Größe fragt RepoShelf vor dem Herunterladen nach? | Je Eintrag ab 1 GB nachfragen; globale Obergrenze wie `retention.max_asset_mb` | offen | |
-| F-017 | Python-Pakete (z. B. PyTorch) für welche Plattformen sichern? | Nur die gewählten Plattformen je Repo (Standard: die eigene + linux/amd64 für Unraid); CUDA-Variante nur auf Wunsch | offen | |
-| F-018 | Modelle aktualisieren oder einfrieren? | Wie Repos: festgehaltene Revision bleibt; neue Revisionen werden zusätzlich gesichert, ältere schlägt die Lösch-Prüfung vor | offen | |
+| F-015 | GitHub-Zugang am Desktop: Token selbst anlegen und eingeben, oder „Mit GitHub anmelden“ (Device-Flow: RepoShelf zeigt einen Code, du bestätigst auf github.com)? Letzteres braucht eine einmal registrierte OAuth-App (Client-ID, kein Geheimnis) | Beides: Token eingeben (T-9.10) sofort; Anmelden mit GitHub danach, wenn du die OAuth-App anlegen möchtest | entschieden | **Beides, Token zuerst** → D-024 |
+| F-016 | Laufzeit-Daten (T-9.11): Ab welcher Größe fragt RepoShelf vor dem Herunterladen nach? | Je Eintrag ab 1 GB nachfragen; globale Obergrenze wie `retention.max_asset_mb` | entschieden | **Ab 1 GB je Eintrag** → D-025 |
+| F-017 | Python-Pakete (z. B. PyTorch) für welche Plattformen sichern? | Nur die gewählten Plattformen je Repo (Standard: die eigene + linux/amd64 für Unraid); CUDA-Variante nur auf Wunsch | entschieden | **Je Repo wählbar** (Standard: eigene + linux/amd64) → D-026 |
+| F-018 | Modelle aktualisieren oder einfrieren? | Wie Repos: festgehaltene Revision bleibt; neue Revisionen werden zusätzlich gesichert, ältere schlägt die Lösch-Prüfung vor | entschieden | **Wie Repos** → D-027 |
 
 ---
 
@@ -235,8 +235,8 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.7 | GitHub-Actions-Artefakte mitsichern, Anzahl der Läufe einstellbar (global/Sammlung/Repo) | erledigt | Claude Code | 2026-11-08 | Wunsch von Dennis beim Test von v0.1.5; `include.actions`, `retention.actions_keep` (SCHEMA ergänzt) |
 | T-9.8 | Windows: kein Konsolenfenster bei Git- und Docker-Aufrufen | erledigt | Claude Code | 2026-11-10 | Rückmeldung Dennis zu v0.1.7; e196256 |
 | T-9.9 | Seitenwechsel beschleunigen; lange Arbeiten im Hintergrund mit Fortschrittsbalken | erledigt | Claude Code | 2026-11-10 | Rückmeldung Dennis zu v0.1.7; d59ea17; Test `TestPageGitCost` |
-| T-9.10 | Host-Tokens am Desktop: Windows-Anmeldeinformationsverwaltung lesen (Konzept 4.2 nennt den System-Schlüsselbund, bisher nur macOS/Linux) und Token in der Oberfläche eingeben, prüfen (Rechte anzeigen) und im Schlüsselbund ablegen – nie im Datenordner | offen | | 2026-11-10 | Dennis konnte sein privates Repo nicht sichern (kein Token); Variante „Mit GitHub anmelden“ hängt an F-015 |
-| T-9.11 | Laufzeit-Daten sichern: Modelle (Hugging Face als eigenes gespiegeltes Repo mit LFS, gemeinsamer Speicher, Bereitstellung als `HF_HOME`-Ordner für den Offline-Betrieb), Verweis „braucht“ vom Tool auf das Modell, Vorschläge aus dem Code (`from_pretrained`, `hf_hub_download`); Python-Pakete mit genauer Versionsliste für gewählte Plattformen; optional Laufzeit-Image (`docker save`) | offen | | 2026-11-10 | Wunsch von Dennis (Beispiel TTS Phonon); Umfang hängt an F-016, F-017, F-018 |
+| T-9.10 | Host-Tokens am Desktop: Windows-Anmeldeinformationsverwaltung lesen (Konzept 4.2 nennt den System-Schlüsselbund, bisher nur macOS/Linux) und Token in der Oberfläche eingeben, prüfen (Rechte anzeigen) und im Schlüsselbund ablegen – nie im Datenordner | offen | | 2026-11-10 | Dennis konnte sein privates Repo nicht sichern (kein Token); D-024: erst Token, dann „Mit GitHub anmelden“ |
+| T-9.11 | Laufzeit-Daten sichern: Modelle (Hugging Face als eigenes gespiegeltes Repo mit LFS, gemeinsamer Speicher, Bereitstellung als `HF_HOME`-Ordner für den Offline-Betrieb), Verweis „braucht“ vom Tool auf das Modell, Vorschläge aus dem Code (`from_pretrained`, `hf_hub_download`); Python-Pakete mit genauer Versionsliste für gewählte Plattformen; optional Laufzeit-Image (`docker save`) | offen | | 2026-11-10 | Wunsch von Dennis (Beispiel TTS Phonon); Rahmen: D-025, D-026, D-027 |
 | T-9.12 | Build-Kapsel: Toolchain-Image (z. B. `golang:1.24`, `node:20`) mit `docker save` in den gemeinsamen Speicher, damit der Kapsel-Test nicht vom Docker Hub abhängt | offen | | 2026-11-10 | Befund bei Dennis' Frage zu Kapseln: bisher wird nur der Image-Name festgehalten |
 
 ---
@@ -244,6 +244,8 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 ## Verlauf
 
 Neueste oben. Eine Zeile pro Sitzung.
+
+- 2026-11-10 · Dennis · F-015–F-018 entschieden (D-024 Token zuerst, D-025 Nachfrage ab 1 GB, D-026 Plattformen je Repo, D-027 Modelle wie Repos)
 
 - 2026-11-10 · Claude Code · Neue Aufgaben T-9.10 (Tokens am Desktop/Windows), T-9.11 (Laufzeit-Daten: Modelle, Pakete, Image), T-9.12 (Toolchain-Image in Kapsel); Fragen F-015–F-018 an Dennis
 

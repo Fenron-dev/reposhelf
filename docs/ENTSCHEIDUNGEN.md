@@ -302,3 +302,57 @@ Notarisierung bräuchte ein kostenpflichtiges Apple-Entwicklerkonto.
 **Folgen:** Hinweis in `docs/BETRIEB.md`. Wird die App später weitergegeben,
 kann die Notarisierung im Release-Workflow ergänzt werden (Zertifikat und
 Zugangsdaten als GitHub-Secrets).
+
+### D-024 · GitHub-Zugang am Desktop: erst Token, dann Anmelden mit GitHub
+2026-11-10 · gültig (F-015)
+
+**Entscheidung:** Zuerst kann ein Token in der Oberfläche eingegeben werden
+(T-9.10); er wird geprüft und im Schlüsselbund des Systems abgelegt (macOS,
+Windows-Anmeldeinformationsverwaltung, Linux Secret Service). Danach kommt
+„Mit GitHub anmelden“ (Device-Flow), sobald Dennis eine OAuth-App angelegt hat.
+
+**Begründung:** Der Token-Weg funktioniert sofort ohne Vorarbeit; das Anmelden
+ist bequemer, braucht aber eine registrierte OAuth-App (nur Client-ID, kein
+Geheimnis).
+
+**Folgen:** Tokens weiterhin nie im Datenordner (Konzept 4.2). Umgebungsvariablen
+haben weiter Vorrang (Docker).
+
+### D-025 · Laufzeit-Daten: Nachfrage ab 1 GB je Eintrag
+2026-11-10 · gültig (F-016)
+
+**Entscheidung:** Modelle, Pakete und Laufzeit-Images werden ohne Nachfrage
+geladen, solange ein Eintrag kleiner als 1 GB ist; darüber fragt RepoShelf.
+Zusätzlich gibt es eine globale Obergrenze wie bei Release-Dateien.
+
+**Begründung:** Kleine Modelle sollen einfach mitlaufen; große Downloads kosten
+spürbar Platz (Speicher ist knapp).
+
+**Folgen:** Grenze einstellbar (global → Sammlung → Repo) wie die übrigen
+Aufbewahrungsregeln.
+
+### D-026 · Python-Pakete: Plattformen je Repo wählbar
+2026-11-10 · gültig (F-017)
+
+**Entscheidung:** Pakete wie PyTorch werden für die je Repo gewählten
+Plattformen gesichert. Standard: die eigene Plattform plus linux/amd64 (Unraid).
+CUDA-Varianten nur, wenn sie je Repo eingeschaltet sind.
+
+**Begründung:** Pakete für alle Systeme kosten viel Platz und werden kaum
+genutzt; Linux deckt den Betrieb im Container ab.
+
+**Folgen:** Genaue Versionsliste (Lockfile) wird immer gesichert, auch wenn für
+eine Plattform keine Pakete vorliegen.
+
+### D-027 · Modelle werden wie Repos aktualisiert
+2026-11-10 · gültig (F-018)
+
+**Entscheidung:** Eine festgehaltene Modell-Revision bleibt erhalten; neue
+Revisionen kommen beim Abgleich zusätzlich dazu, ältere schlägt die
+Lösch-Prüfung vor (Papierkorb, Bestätigung).
+
+**Begründung:** Gleiche Regeln wie für Repos und Releases; kein Verlust einer
+Revision, mit der ein Tool nachweislich lief.
+
+**Folgen:** Aufbewahrungsregeln (global → Sammlung → Repo) gelten auch für
+Modelle.
