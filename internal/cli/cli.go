@@ -18,6 +18,7 @@ import (
 	"github.com/Fenron-dev/reposhelf/internal/config"
 	"github.com/Fenron-dev/reposhelf/internal/datadir"
 	"github.com/Fenron-dev/reposhelf/internal/gitcli"
+	"github.com/Fenron-dev/reposhelf/internal/sources"
 )
 
 // extraCommands are registered by files that need heavier imports (serve,
@@ -39,6 +40,9 @@ type system struct {
 	executable     func() (string, error)
 	// git overrides the git executable (tests); nil = search.
 	git *gitcli.Git
+	// stdin feeds "host-token set"; keychain replaces the OS keychain (tests).
+	stdin    io.Reader
+	keychain sources.Keychain
 }
 
 // Run executes the command given in args (without the program name) and
@@ -50,6 +54,7 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		lookupEnv:     os.LookupEnv,
 		userConfigDir: os.UserConfigDir,
 		executable:    os.Executable,
+		stdin:         os.Stdin,
 	})
 }
 
@@ -96,6 +101,8 @@ func run(args []string, sys system) int {
 		return runTrash(args[1:], sys)
 	case "import":
 		return runImport(args[1:], sys)
+	case "host-token":
+		return runHostToken(args[1:], sys)
 	default:
 		if h, ok := extraCommands[args[0]]; ok {
 			return h(args[1:], sys)

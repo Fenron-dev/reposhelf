@@ -3,61 +3,180 @@
 package sources
 
 import (
-	"context"
+	"errors"
 	"os"
-	"os/exec"
-	"runtime"
+	"regexp"
 	"strings"
-	"time"
+	"sync"
 	"unicode"
 )
 
-// Keychain service name used on macOS and Linux (secret-tool).
+// KeychainService is the service name of RepoShelf's entries in the system
+// keychain; the account is the host.
 const KeychainService = "RepoShelf"
 
-// EnvTokens looks up tokens for a host, in this order:
+// Keychain keeps host tokens in the operating system's secret store
+// (macOS Keychain, Windows Credential Manager, Linux Secret Service).
+type Keychain interface {
+	// Get returns the token for host, "" when there is none.
+	Get(host string) (string, error)
+	Set(host, token string) error
+	// Delete removes the token; a missing entry is not an error.
+	Delete(host string) error
+}
+
+// Where a token comes from.
+const (
+	FromNone     = ""
+	FromEnv      = "env"
+	FromFile     = "file"
+	FromKeychain = "keychain"
+)
+
+// TokenSource names the origin of a host's token.
+type TokenSource struct {
+	Kind string // FromNone, FromEnv, FromFile, FromKeychain
+	Name string // environment variable, if any
+}
+
+// ErrNoKeychain is returned when tokens cannot be saved on this system.
+var ErrNoKeychain = errors.New("kein Schlüsselbund verfügbar – Token als Umgebungsvariable setzen")
+
+// ErrInvalidToken is returned for values that cannot be a token.
+var ErrInvalidToken = errors.New("das sieht nicht wie ein Token aus")
+
+// Tokens of the common hosts consist of these characters only; anything
+// else (spaces, quotes, line breaks) is a copy-and-paste mistake.
+var tokenChars = regexp.MustCompile(`^[A-Za-z0-9_.~+/=-]{8,512}$`)
+
+// ValidToken reports whether s can be a host token.
+func ValidToken(s string) bool { return tokenChars.MatchString(s) }
+
+// TokenStore looks up tokens for a host, in this order:
 //
 //  1. REPOSHELF_TOKEN_<HOST> (e.g. REPOSHELF_TOKEN_GITHUB_COM), or
 //     REPOSHELF_TOKEN_<HOST>_FILE naming a file (Docker secrets),
 //  2. for github.com: REPOSHELF_GITHUB_TOKEN, GITHUB_TOKEN, GH_TOKEN (and
-//     REPOSHELF_GITHUB_TOKEN_FILE),
-//  3. the system keychain (macOS Keychain, Linux Secret Service) under the
-//     service "RepoShelf" with the host as account.
+//     their _FILE variants),
+//  3. the system keychain under the service "RepoShelf" with the host as
+//     account.
 //
-// Tokens are never stored in the data folder (KONZEPT 4.2).
-func EnvTokens(lookupEnv func(string) (string, bool), useKeychain bool) Tokens {
-	cache := map[string]string{}
-	return func(host string) string {
-		if t, ok := cache[host]; ok {
-			return t
-		}
-		t := lookupToken(lookupEnv, host, useKeychain)
-		cache[host] = t
-		return t
-	}
+// Tokens are never stored in the data folder (KONZEPT 4.2, D-024).
+type TokenStore struct {
+	lookupEnv func(string) (string, bool)
+	kc        Keychain
+
+	mu    sync.Mutex
+	cache map[string]string
 }
 
-func lookupToken(lookupEnv func(string) (string, bool), host string, useKeychain bool) string {
-	name := "REPOSHELF_TOKEN_" + envName(host)
-	names := []string{name}
-	if strings.EqualFold(host, "github.com") {
+// NewTokenStore returns a store; kc may be nil (no keychain).
+func NewTokenStore(lookupEnv func(string) (string, bool), kc Keychain) *TokenStore {
+	return &TokenStore{lookupEnv: lookupEnv, kc: kc, cache: map[string]string{}}
+}
+
+// EnvTokens returns the token lookup of a store with the system keychain
+// (or none).
+func EnvTokens(lookupEnv func(string) (string, bool), useKeychain bool) Tokens {
+	var kc Keychain
+	if useKeychain {
+		kc = SystemKeychain()
+	}
+	return NewTokenStore(lookupEnv, kc).Token
+}
+
+// Token returns the token for host ("" if none).
+func (s *TokenStore) Token(host string) string {
+	host = strings.ToLower(host)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if t, ok := s.cache[host]; ok {
+		return t
+	}
+	t, _ := s.lookup(host)
+	s.cache[host] = t
+	return t
+}
+
+// Source tells where host's token comes from.
+func (s *TokenStore) Source(host string) TokenSource {
+	host = strings.ToLower(host)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	t, src := s.lookup(host)
+	s.cache[host] = t
+	return src
+}
+
+// CanSave reports whether tokens can be saved in a keychain here.
+func (s *TokenStore) CanSave() bool { return s.kc != nil }
+
+// Save stores token for host in the keychain. A token from an environment
+// variable still wins over it.
+func (s *TokenStore) Save(host, token string) error {
+	host, token = strings.ToLower(strings.TrimSpace(host)), strings.TrimSpace(token)
+	if s.kc == nil {
+		return ErrNoKeychain
+	}
+	if !ValidToken(token) {
+		return ErrInvalidToken
+	}
+	if !validHost(host) {
+		return errors.New("ungültiger Host")
+	}
+	err := s.kc.Set(host, token)
+	s.forget(host)
+	return err
+}
+
+// Remove deletes host's token from the keychain.
+func (s *TokenStore) Remove(host string) error {
+	host = strings.ToLower(strings.TrimSpace(host))
+	if s.kc == nil {
+		return ErrNoKeychain
+	}
+	if !validHost(host) {
+		return errors.New("ungültiger Host")
+	}
+	err := s.kc.Delete(host)
+	s.forget(host)
+	return err
+}
+
+func (s *TokenStore) forget(host string) {
+	s.mu.Lock()
+	delete(s.cache, host)
+	s.mu.Unlock()
+}
+
+func (s *TokenStore) lookup(host string) (string, TokenSource) {
+	names := []string{"REPOSHELF_TOKEN_" + envName(host)}
+	if host == "github.com" {
 		names = append(names, "REPOSHELF_GITHUB_TOKEN", "GITHUB_TOKEN", "GH_TOKEN")
 	}
 	for _, n := range names {
-		if v, ok := lookupEnv(n); ok && strings.TrimSpace(v) != "" {
-			return strings.TrimSpace(v)
+		if v, ok := s.lookupEnv(n); ok && strings.TrimSpace(v) != "" {
+			return strings.TrimSpace(v), TokenSource{Kind: FromEnv, Name: n}
 		}
-		if f, ok := lookupEnv(n + "_FILE"); ok && f != "" {
+		if f, ok := s.lookupEnv(n + "_FILE"); ok && f != "" {
 			if b, err := os.ReadFile(f); err == nil && strings.TrimSpace(string(b)) != "" {
-				return strings.TrimSpace(string(b))
+				return strings.TrimSpace(string(b)), TokenSource{Kind: FromFile, Name: n + "_FILE"}
 			}
 		}
 	}
-	if useKeychain {
-		return keychain(host)
+	if s.kc != nil {
+		if t, err := s.kc.Get(host); err == nil && t != "" {
+			return t, TokenSource{Kind: FromKeychain}
+		}
 	}
-	return ""
+	return "", TokenSource{}
 }
+
+// validHost accepts host names with an optional port; the host ends up as
+// an argument of keychain tools.
+var hostChars = regexp.MustCompile(`^[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[0-9]{1,5})?$`)
+
+func validHost(h string) bool { return len(h) <= 253 && hostChars.MatchString(h) }
 
 // envName turns "gitea.local:3000" into "GITEA_LOCAL_3000".
 func envName(host string) string {
@@ -67,27 +186,4 @@ func envName(host string) string {
 		}
 		return '_'
 	}, host)
-}
-
-func keychain(host string) string {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "darwin":
-		cmd = exec.CommandContext(ctx, "/usr/bin/security", "find-generic-password", "-s", KeychainService, "-a", host, "-w")
-	case "linux":
-		p, err := exec.LookPath("secret-tool")
-		if err != nil {
-			return ""
-		}
-		cmd = exec.CommandContext(ctx, p, "lookup", "service", KeychainService, "account", host)
-	default:
-		return ""
-	}
-	out, err := cmd.Output()
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(out))
 }

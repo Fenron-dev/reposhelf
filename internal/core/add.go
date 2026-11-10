@@ -32,6 +32,9 @@ type Preview struct {
 	// default retention (T-1.13); -1 if unknown.
 	ReleaseBytes int64
 	ReleaseFiles int
+	// NoToken is set when the host does not show the repository and no
+	// token is set: it may be private (T-9.10).
+	NoToken bool
 }
 
 // Preview recognises a link and fetches metadata without writing anything.
@@ -74,6 +77,8 @@ func (l *Library) preview(ctx context.Context, link string, estimate bool) (Prev
 	} else {
 		pv.MetaError = err
 	}
+	pv.NoToken = (errors.Is(pv.MetaError, sources.ErrGone) || errors.Is(pv.MetaError, sources.ErrAuth)) &&
+		l.Sources.Tokens(pv.Parsed.Source.Host) == ""
 	return pv, nil
 }
 
@@ -103,6 +108,9 @@ func (l *Library) Add(ctx context.Context, req AddRequest) (*Repo, error) {
 	}
 	if pv.Existing != nil {
 		return nil, fmt.Errorf("%w: %s (%s)", ErrExists, pv.Existing.Key, pv.Existing.URL)
+	}
+	if pv.NoToken {
+		return nil, fmt.Errorf("%w: %s – bei einem privaten Repo zuerst unter Einstellungen → Zugänge einen Token für %s hinterlegen", ErrNotFound, pv.Parsed.Source.URL, pv.Parsed.Source.Host)
 	}
 	if errors.Is(pv.MetaError, sources.ErrGone) {
 		return nil, fmt.Errorf("%w: %s", ErrNotFound, pv.Parsed.Source.URL)

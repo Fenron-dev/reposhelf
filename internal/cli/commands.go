@@ -40,7 +40,7 @@ func openLibrary(ctx context.Context, dataFlag string, sys system) (*core.Librar
 	if exe, err := sys.executable(); err == nil {
 		exeDir = filepath.Dir(exe)
 	}
-	lib, err := core.Open(ctx, core.Options{DataDir: loc.Path, ExeDir: exeDir, LookupEnv: sys.lookupEnv, Git: sys.git})
+	lib, err := core.Open(ctx, core.Options{DataDir: loc.Path, ExeDir: exeDir, LookupEnv: sys.lookupEnv, Git: sys.git, Keychain: sys.keychain})
 	if err != nil {
 		fmt.Fprintln(sys.stderr, errText(err))
 		return nil, ExitError, false

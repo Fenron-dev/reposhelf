@@ -289,3 +289,8 @@ table.code tr:target { background: var(--accent-bg); }
 .runner { display: flex; flex-direction: column; gap: 8px; }
 pre.log { max-height: 70vh; overflow: auto; white-space: pre-wrap; }
 .capsule { border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 8px; }
+details.inline { display: inline-block; }
+details.inline > summary { list-style: none; display: inline-block; }
+details.inline > summary::-webkit-details-marker { display: none; }
+details.inline[open] > summary { display: none; }
+.token-row { align-items: flex-end; gap: 12px; } .token-row .grow { min-width: 240px; }

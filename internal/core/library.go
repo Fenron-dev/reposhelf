@@ -48,6 +48,8 @@ type Options struct {
 	Git *gitcli.Git
 	// NoKeychain disables the OS keychain lookup for tokens (tests).
 	NoKeychain bool
+	// Keychain replaces the OS keychain (tests).
+	Keychain sources.Keychain
 }
 
 // Library is an open data folder.
@@ -55,6 +57,7 @@ type Library struct {
 	Layout  layout.Layout
 	Git     *gitcli.Git
 	Sources *sources.Registry
+	Tokens  *sources.TokenStore
 	Store   *store.Store
 	Log     *slog.Logger
 
@@ -104,12 +107,18 @@ func Open(ctx context.Context, opts Options) (*Library, error) {
 	if err != nil {
 		return nil, err
 	}
+	kc := opts.Keychain
+	if kc == nil && !opts.NoKeychain {
+		kc = sources.SystemKeychain()
+	}
+	tokens := sources.NewTokenStore(opts.LookupEnv, kc)
 	l := &Library{
 		Layout: lay,
 		Git:    g,
+		Tokens: tokens,
 		Sources: &sources.Registry{
 			HTTP:     opts.HTTP,
-			Tokens:   sources.EnvTokens(opts.LookupEnv, !opts.NoKeychain),
+			Tokens:   tokens.Token,
 			BaseURLs: opts.SourceBaseURLs,
 			Kinds:    opts.SourceKinds,
 		},

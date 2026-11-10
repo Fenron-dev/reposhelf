@@ -72,11 +72,20 @@ geprüft, ob das Original Geschichte umgeschrieben hat; der alte Stand wird dann
 unter `refs/reposhelf/backup/<Zeit>/` gesichert. Beim Original gelöschte
 Branches bleiben erhalten.
 
-**Tokens für Hosts** (nie im Datenordner gespeichert):
-`REPOSHELF_GITHUB_TOKEN` (oder `GITHUB_TOKEN`), für andere Hosts
-`REPOSHELF_TOKEN_<HOST>`, z. B. `REPOSHELF_TOKEN_CODEBERG_ORG`. Docker-Secrets:
-gleicher Name mit `_FILE`. Auf dem Mac auch im Schlüsselbund:
-`security add-generic-password -s RepoShelf -a github.com -w <token>`.
+**Tokens für Hosts** – nötig für private Repos und Actions-Artefakte, sonst nur
+60 API-Anfragen pro Stunde. Nie im Datenordner gespeichert (D-024):
+
+- **Desktop:** Einstellungen → „Zugänge zu Git-Hosts“: Token einfügen,
+  „Prüfen und speichern“. RepoShelf fragt den Host, wem der Token gehört und ob
+  private Repos sichtbar sind, und legt ihn im Schlüsselbund ab (macOS-Schlüsselbund,
+  Windows-Anmeldeinformationsverwaltung, Linux Secret Service). Dort steht auch eine
+  Anleitung zum Anlegen eines GitHub-Tokens (fein eingestellt: Contents, Metadata,
+  Actions, Issues – jeweils lesen).
+- **Kommandozeile:** `reposhelf host-token set github.com` liest den Token von der
+  Eingabe; außerdem `host-token list`, `check`, `remove`.
+- **Docker/Server:** `REPOSHELF_GITHUB_TOKEN` (oder `GITHUB_TOKEN`), für andere Hosts
+  `REPOSHELF_TOKEN_<HOST>`, z. B. `REPOSHELF_TOKEN_CODEBERG_ORG`; Docker-Secrets mit
+  `_FILE`. Eine Umgebungsvariable hat Vorrang vor dem Schlüsselbund.
 
 **GitHub-Actions-Artefakte:** Viele Projekte veröffentlichen Builds nur als
 Actions-Artefakte (GitHub löscht sie nach einiger Zeit). Mit „GitHub-Actions-Artefakte“
