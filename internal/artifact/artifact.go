@@ -172,6 +172,54 @@ type Ecosystem struct {
 	Build     string `yaml:"build"`     // offline build command (capsule test)
 	Files     int    `yaml:"files"`
 	Size      int64  `yaml:"size"`
+	// ImageID and ImageFile name the saved toolchain image (docker save),
+	// so the capsule test does not depend on a registry (T-9.12).
+	ImageID   string `yaml:"image_id,omitempty"`
+	ImageFile string `yaml:"image_file,omitempty"`
+}
+
+// ToolchainDir holds saved toolchain images inside a capsule's file list;
+// they are loaded into Docker, not unpacked into the checkout.
+const ToolchainDir = ".reposhelf-capsule/toolchain/"
+
+// FindImage returns the stored file of a toolchain image any capsule below
+// capsulesRoot already saved: one image is stored once for all capsules.
+func FindImage(capsulesRoot, imageID string) (File, bool) {
+	var found File
+	ok := false
+	seen := map[string]bool{}
+	_ = filepath.WalkDir(capsulesRoot, func(p string, d fs.DirEntry, err error) error {
+		if err != nil || ok {
+			return nil
+		}
+		if d.IsDir() && d.Name() == "blobs" {
+			return fs.SkipDir
+		}
+		dir := filepath.Dir(p)
+		if !strings.HasSuffix(p, ".files.json") || seen[dir] {
+			return nil
+		}
+		seen[dir] = true
+		for _, c := range ReadCapsules(dir) {
+			for _, e := range c.Ecosystems {
+				if e.ImageID != imageID || e.ImageFile == "" {
+					continue
+				}
+				files, err := ReadFiles(c.Path)
+				if err != nil {
+					continue
+				}
+				for _, f := range files {
+					if f.Name == e.ImageFile {
+						found, ok = f, true
+						return fs.SkipAll
+					}
+				}
+			}
+		}
+		return nil
+	})
+	return found, ok
 }
 
 // Capsule is the manifest of one capsule (<version>.yaml).

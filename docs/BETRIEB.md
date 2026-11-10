@@ -156,7 +156,8 @@ Runner-Rolle in den Einstellungen einschalten (braucht Docker). Ziele kommen aus
 
 **Build-Kapseln** („Baubar halten“) sichern pro Version alle Abhängigkeiten
 (Go, Rust, Dart/Flutter, Node mit `package-lock.json`, Python, Docker-Basis-Images)
-in einem gemeinsamen, deduplizierten Speicher. Der **Kapsel-Test** baut ohne Netz
+in einem gemeinsamen, deduplizierten Speicher – dazu das Toolchain-Image (z. B.
+`golang:1.24`) per `docker save`, jedes Image nur einmal für alle Kapseln. Der **Kapsel-Test** baut ohne Netz
 aus der Kapsel und beweist so, dass sie vollständig ist. Für die neueste Version
 baubarer Repos wird automatisch eine Kapsel angelegt (mit Bestätigung, falls
 eingestellt). Builds von Agenten (MCP) warten immer auf deine Bestätigung, wenn

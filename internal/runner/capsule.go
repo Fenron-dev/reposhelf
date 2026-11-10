@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/Fenron-dev/reposhelf/internal/artifact"
 	"github.com/Fenron-dev/reposhelf/internal/core"
+	"github.com/Fenron-dev/reposhelf/internal/gitcli"
 	"github.com/Fenron-dev/reposhelf/internal/store"
 )
 
@@ -197,7 +199,17 @@ func (m *Manager) runCapsule(ctx context.Context, b *artifact.Build, log io.Writ
 			}
 		}
 		e.Fetch = strings.ReplaceAll(e.Fetch, "/src/", "")
-		c.Ecosystems = append(c.Ecosystems, artifact.Ecosystem{Name: e.Name, Toolchain: e.Toolchain, Image: e.Image, Fetch: e.Fetch, Build: e.Build, Files: count, Size: size})
+		ce := artifact.Ecosystem{Name: e.Name, Toolchain: e.Toolchain, Image: e.Image, Fetch: e.Fetch, Build: e.Build, Files: count, Size: size}
+		if e.Image != "" {
+			if f, id, err := m.saveToolchain(ctx, work, e.Image, log); err != nil {
+				fmt.Fprintf(log, "Warnung: Toolchain-Image %s nicht gesichert: %v\n", e.Image, err)
+			} else {
+				files = append(files, f)
+				ce.ImageID, ce.ImageFile = id, f.Name
+				c.Size += f.Size
+			}
+		}
+		c.Ecosystems = append(c.Ecosystems, ce)
 		c.Size += size
 		c.FileCount += count
 		fmt.Fprintf(log, "%d Dateien, %d Bytes gesichert\n", count, size)
@@ -211,6 +223,75 @@ func (m *Manager) runCapsule(ctx context.Context, b *artifact.Build, log io.Writ
 	}
 	fmt.Fprintf(log, "Kapsel %s gespeichert (%d Dateien, gemeinsamer Cache dedupliziert).\n", version, c.FileCount)
 	return nil
+}
+
+// imageIDs are Docker's content addresses; anything else is not passed on.
+var imageIDs = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
+
+// imageID returns the ID of a local image.
+func (m *Manager) imageID(ctx context.Context, ref string) (string, error) {
+	cmd := exec.CommandContext(ctx, m.Docker, "image", "inspect", "--format", "{{.Id}}", ref)
+	gitcli.HideWindow(cmd)
+	out, err := cmd.Output()
+	id := strings.TrimSpace(string(out))
+	if err != nil {
+		return "", err
+	}
+	if !imageIDs.MatchString(id) {
+		return "", fmt.Errorf("unexpected image id %q", id)
+	}
+	return id, nil
+}
+
+// saveToolchain stores the toolchain image of an ecosystem (T-9.12). An
+// image already saved by any capsule is not saved again.
+func (m *Manager) saveToolchain(ctx context.Context, work, image string, log io.Writer) (artifact.File, string, error) {
+	id, err := m.imageID(ctx, image)
+	if err != nil {
+		return artifact.File{}, "", err
+	}
+	if f, ok := artifact.FindImage(m.Lib.Layout.Path("capsules"), id); ok {
+		if _, err := os.Stat(artifact.BlobsOf(m.Lib.Layout.Root).Path(f.SHA256)); err == nil {
+			fmt.Fprintf(log, "Toolchain-Image %s ist schon gesichert (%d MB).\n", image, f.Size>>20)
+			return f, id, nil
+		}
+	}
+	name := artifact.ToolchainDir + strings.TrimPrefix(id, "sha256:")[:16] + ".tar"
+	tar := filepath.Join(work, filepath.FromSlash(name))
+	if err := os.MkdirAll(filepath.Dir(tar), 0o755); err != nil {
+		return artifact.File{}, "", err
+	}
+	if err := m.command(ctx, log, "", m.Docker, "save", "-o", tar, image); err != nil {
+		return artifact.File{}, "", err
+	}
+	f, _, err := artifact.BlobsOf(m.Lib.Layout.Root).Put(tar, name)
+	_ = os.Remove(tar)
+	if err != nil {
+		return artifact.File{}, "", err
+	}
+	fmt.Fprintf(log, "Toolchain-Image %s gesichert (%d MB).\n", image, f.Size>>20)
+	return f, id, nil
+}
+
+// loadToolchain makes sure the image of a capsule is in Docker, loading it
+// from the capsule when it is missing (no registry needed).
+func (m *Manager) loadToolchain(ctx context.Context, e artifact.Ecosystem, files []artifact.File, log io.Writer) (string, error) {
+	if e.ImageID == "" || !imageIDs.MatchString(e.ImageID) {
+		return e.Image, nil
+	}
+	if _, err := m.imageID(ctx, e.ImageID); err == nil {
+		return e.ImageID, nil
+	}
+	for _, f := range files {
+		if f.Name == e.ImageFile {
+			fmt.Fprintf(log, "Lade Toolchain-Image %s aus der Kapsel …\n", e.Image)
+			if err := m.command(ctx, log, "", m.Docker, "load", "-i", artifact.BlobsOf(m.Lib.Layout.Root).Path(f.SHA256)); err != nil {
+				return "", err
+			}
+			return e.ImageID, nil
+		}
+	}
+	return "", fmt.Errorf("toolchain image %s missing from capsule", e.Image)
 }
 
 // saveImages pulls the base images of a Dockerfile and saves them as tar
@@ -266,7 +347,13 @@ func (m *Manager) runCapsuleTest(ctx context.Context, b *artifact.Build, log io.
 	if err != nil {
 		return err
 	}
-	if err := artifact.BlobsOf(m.Lib.Layout.Root).Materialize(files, work); err != nil {
+	var unpack []artifact.File
+	for _, f := range files {
+		if !strings.HasPrefix(f.Name, artifact.ToolchainDir) {
+			unpack = append(unpack, f)
+		}
+	}
+	if err := artifact.BlobsOf(m.Lib.Layout.Root).Materialize(unpack, work); err != nil {
 		return err
 	}
 	fmt.Fprintf(log, "Kapsel %s ausgepackt (%d Dateien). Baue ohne Netz …\n", version, len(files))
@@ -276,7 +363,12 @@ func (m *Manager) runCapsuleTest(ctx context.Context, b *artifact.Build, log io.
 			continue
 		}
 		fmt.Fprintf(log, "== %s: %s ==\n", e.Name, e.Build)
-		args := append(m.containerArgs("reposhelf-captest-"+strings.ToLower(b.ID)+"-"+e.Name, work, false), e.Image, "sh", "-c", "set -e\n"+e.Build)
+		image, err := m.loadToolchain(ctx, e, files, log)
+		if err != nil {
+			testErr = fmt.Errorf("%s: %w", e.Name, err)
+			break
+		}
+		args := append(m.containerArgs("reposhelf-captest-"+strings.ToLower(b.ID)+"-"+e.Name, work, false), image, "sh", "-c", "set -e\n"+e.Build)
 		if err := m.command(ctx, log, "", m.Docker, args...); err != nil {
 			testErr = fmt.Errorf("%s: %w", e.Name, err)
 			break
