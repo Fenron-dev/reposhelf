@@ -232,6 +232,7 @@ type repoData struct {
 	HasBuilds   bool
 	NoteLinks   []string
 	Job         core.JobState
+	Models      []core.ModelRef
 }
 
 type crumb struct{ Name, URL string }
@@ -267,6 +268,7 @@ func (s *Server) baseRepoData(r *http.Request, repo *core.Repo) repoData {
 	d.CloneURL = githttp.CloneURL(s.CloneBase(r), repo.Entry.Key)
 	d.HasBuilds = s.Ext.Builds != nil
 	d.NoteLinks = s.Lib.NoteBacklinks(r.Context(), repo.R().ID)
+	d.Models = s.Lib.ModelsOf(r.Context(), repo)
 	d.Collections, _ = s.Lib.Collections(r.Context())
 	for _, bl := range repo.Backlinks {
 		if e, err := s.Lib.Store.Get(r.Context(), bl.From); err == nil {
@@ -716,7 +718,7 @@ func (s *Server) addSubmit(w http.ResponseWriter, r *http.Request) {
 	req := core.AddRequest{
 		URL: f.Get("url"), Kind: repometa.Kind(f.Get("kind")), Mode: repometa.SyncMode(f.Get("mode")),
 		Tags: splitList(f.Get("tags")), Collections: f["collection"], Buildable: f.Get("buildable") == "on",
-		Notes: f.Get("notes"), Actor: s.actor(r),
+		Notes: f.Get("notes"), Actor: s.actor(r), ConfirmLarge: f.Get("large_ok") == "on",
 	}
 	if v := f.Get("interval"); v != "" && req.Mode == repometa.SyncFollow {
 		d, err := repometa.ParseDuration(v)
@@ -1272,7 +1274,7 @@ func (s *Server) settingsSave(w http.ResponseWriter, r *http.Request) {
 			*dst = d
 		}
 	}
-	for key, dst := range map[string]*int{"actions_keep": &cfg.Retention.ActionsKeep, "max_asset_mb": &cfg.Retention.MaxAssetMB, "capsules_keep": &cfg.Retention.CapsulesKeep, "builds_keep": &cfg.Retention.BuildsKeep, "trash_days": &cfg.Retention.TrashDays, "max_parallel": &cfg.Runner.MaxParallel, "min_free_gb": &cfg.Runner.MinFreeGB} {
+	for key, dst := range map[string]*int{"actions_keep": &cfg.Retention.ActionsKeep, "max_asset_mb": &cfg.Retention.MaxAssetMB, "ask_above_mb": &cfg.Retention.AskAboveMB, "capsules_keep": &cfg.Retention.CapsulesKeep, "builds_keep": &cfg.Retention.BuildsKeep, "trash_days": &cfg.Retention.TrashDays, "max_parallel": &cfg.Runner.MaxParallel, "min_free_gb": &cfg.Runner.MinFreeGB} {
 		if n, err := strconv.Atoi(f.Get(key)); err == nil {
 			*dst = n
 		}

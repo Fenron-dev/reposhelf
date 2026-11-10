@@ -191,6 +191,7 @@ func runAdd(args []string, sys system) int {
 	issues := fset.Bool("issues", false, "")
 	wiki := fset.Bool("wiki", false, "")
 	actions := fset.Bool("actions", false, "")
+	large := fset.Bool("large", false, "")
 	pos, code, ok := parseArgs(fset, args, 1, -1, sys)
 	if !ok {
 		return code
@@ -205,7 +206,7 @@ func runAdd(args []string, sys system) int {
 	exit := ExitOK
 	for _, url := range pos {
 		req := core.AddRequest{URL: url, Kind: repometa.Kind(*kind), Mode: repometa.SyncMode(*mode),
-			Tags: splitList(*tags), Collections: splitList(*coll), Buildable: *buildable, Actor: "cli", Wait: true}
+			Tags: splitList(*tags), Collections: splitList(*coll), Buildable: *buildable, Actor: "cli", Wait: true, ConfirmLarge: *large}
 		if *interval != "" {
 			d, err := repometa.ParseDuration(*interval)
 			if err != nil {

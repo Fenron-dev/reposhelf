@@ -54,6 +54,8 @@ type Upstream struct {
 	// original (D-029).
 	Forwarded    *time.Time `json:"forwarded,omitempty"`
 	ForwardError string     `json:"forward_error,omitempty"`
+	// Models are Hugging Face model IDs the code refers to (T-9.11).
+	Models []string `json:"models,omitempty"`
 }
 
 // MetaChange keeps metadata as it was before a change upstream.

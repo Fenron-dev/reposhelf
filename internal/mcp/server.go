@@ -77,7 +77,7 @@ func New(lib *core.Library, o Options) *sdk.Server {
 		sdk.AddTool(s, &sdk.Tool{Name: "get_clone_url", Description: "Git-Adresse für git clone (über RepoShelf, funktioniert auch, wenn das Original weg ist).", Annotations: readOnly()}, h.cloneURL)
 	}
 	if has(auth.Write) {
-		sdk.AddTool(s, &sdk.Tool{Name: "add_repo", Description: "Repo per Link (GitHub, GitLab, Codeberg/Gitea, beliebige Git-URL) ins Archiv aufnehmen."}, h.addRepo)
+		sdk.AddTool(s, &sdk.Tool{Name: "add_repo", Description: "Repo per Link (GitHub, GitLab, Codeberg/Gitea, Hugging-Face-Modell, beliebige Git-URL) ins Archiv aufnehmen. Große Modelle (über der eingestellten Grenze) muss der Mensch in RepoShelf bestätigen."}, h.addRepo)
 		sdk.AddTool(s, &sdk.Tool{Name: "set_tags", Description: "Schlagwörter eines Repos ersetzen (hierarchisch mit /)."}, h.setTags)
 		sdk.AddTool(s, &sdk.Tool{Name: "add_relation", Description: "Beziehung zu einem anderen Repo eintragen (plugin_of, depends_on, successor_of, delivers_to, uses_code_from, related). Neue Beziehungen von Agenten sind Vorschläge, bis der Mensch sie bestätigt."}, h.addRelation)
 		sdk.AddTool(s, &sdk.Tool{Name: "write_notes", Description: "Notizen eines Repos ersetzen (Markdown, Wiki-Links [[Repo]] erlaubt)."}, h.writeNotes)

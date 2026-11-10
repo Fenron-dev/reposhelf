@@ -92,6 +92,8 @@
   {{else if .NoAccess}}<div class="alert alert-error small">{{.Parsed.Source.Host}} zeigt dieses Repo mit dem Token {{.TokenFrom}} nicht. Ist es privat, fehlt dem Token der Zugriff darauf: auf GitHub beim Token unter „Repository access“ das Repo freigeben (oder „All repositories“) und „Contents: Read-only“ setzen, dann unter <a href="/settings#zugaenge">Einstellungen → Zugänge</a> „Prüfen“.</div>
   {{else}}<div class="small muted">{{if .MetaError}}Keine Metadaten: {{.MetaError}}{{else}}Ohne API – nur Git.{{end}}</div>{{end}}
   {{end}}
+  {{if ge .ModelBytes 0}}<div class="small {{if .Large}}warn{{else}}muted{{end}}">Modell: etwa <strong>{{size .ModelBytes}}</strong> (Dateien in Git LFS){{if .Large}} – mehr als die Grenze für Nachfragen{{end}}</div>
+  {{if .Large}}<label class="check"><input type="checkbox" name="large_ok" required> Ja, {{size .ModelBytes}} herunterladen</label>{{end}}{{end}}
   {{if ge .ReleaseBytes 0}}<div class="small {{if gt .ReleaseBytes 524288000}}warn{{else}}muted{{end}}">Release-Dateien der neuesten Versionen: {{.ReleaseFiles}} Dateien, etwa {{size .ReleaseBytes}}{{if gt .ReleaseBytes 524288000}} – viel Platz; „Releases &amp; Dateien“ ggf. abwählen oder in den Einstellungen eine Höchstgröße setzen{{end}}</div>{{end}}
   <div class="small muted">Wird gespeichert unter <span class="mono">meta/{{.Parsed.Source.Key}}/repo.yaml</span></div>
 </div>
@@ -281,6 +283,7 @@
     <label>Neueste Releases behalten <input name="releases_keep" class="short" value="{{$c.Retention.ReleasesKeep}}" inputmode="numeric"></label>
     <label>Actions-Läufe mit Artefakten behalten <input name="actions_keep" class="short" value="{{$c.Retention.ActionsKeep}}" inputmode="numeric"></label>
     <label>Höchstgröße je Release-Datei (MB) <input name="max_asset_mb" class="short" value="{{$c.Retention.MaxAssetMB}}" inputmode="numeric"><span class="small muted">0 = keine Grenze</span></label>
+    <label>Modelle: nachfragen ab (MB) <input name="ask_above_mb" class="short" value="{{$c.Retention.AskAboveMB}}" inputmode="numeric"><span class="small muted">0 = nie nachfragen</span></label>
     <label>Snapshot alle <input name="snapshots_every" class="short" value="{{$c.Retention.SnapshotsEvery}}"><span class="small muted">0 = aus</span></label>
     <label>Snapshots behalten <input name="snapshots_keep_for" class="short" value="{{$c.Retention.SnapshotsKeepFor}}"></label>
     <label>Force-Push-Sicherungen behalten <input name="backups_keep_for" class="short" value="{{$c.Retention.ForcePushBackupsKeepFor}}"></label>

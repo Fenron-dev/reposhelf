@@ -25,6 +25,7 @@ Repos:
        --kind mirror|own   --mode follow|once|manual   --interval 6h
        --tags a,b   --collection x   --buildable   --no-releases   --issues   --wiki
        --actions           GitHub-Actions-Artefakte mitsichern (neueste Läufe, Anzahl: retention.actions_keep)
+       --large             großes Hugging-Face-Modell bestätigen (über retention.ask_above_mb)
   create <name>            Eigenes Projekt nur in RepoShelf anlegen (--owner, --description)
   fork <repo>              Beschreibbare Kopie eines Spiegels anlegen (--name)
   sync <repo>… | --all | --due   Abgleichen (mit Sicherung vor Force-Pushes)

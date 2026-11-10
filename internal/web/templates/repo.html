@@ -175,6 +175,16 @@
     </ul>
   </div>
 
+  {{if $d.Models}}<div class="card">
+    <h2 class="h3">Benötigte Modelle</h2>
+    <p class="small muted">Im Code gefunden (Hugging Face). Ohne sie startet das Programm oft nicht – sichern, solange es sie gibt.</p>
+    <ul class="rels">
+    {{range $d.Models}}<li><span class="mono">{{.ID}}</span>
+      {{if .RepoID}}<a class="small" href="/repo/{{.RepoID}}">✓ gesichert</a>
+      {{else if $d.CanWrite}}<a class="btn btn-small" href="/add?url={{.URL}}">Sichern</a>{{end}}</li>{{end}}
+    </ul>
+  </div>{{end}}
+
   <div class="card">
     <h2 class="h3">Aufbewahrung</h2>
     <dl class="kv small">

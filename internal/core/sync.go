@@ -259,6 +259,7 @@ func (l *Library) syncExtras(ctx context.Context, r *Repo, auth *gitcli.Auth, re
 		}
 	}
 	l.suggestRelations(ctx, r)
+	l.detectModels(ctx, r)
 	return notes
 }
 

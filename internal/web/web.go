@@ -325,7 +325,7 @@ func (s *Server) failErr(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, core.ErrNotFound):
 		code = http.StatusNotFound
-	case errors.Is(err, core.ErrInvalid), errors.Is(err, core.ErrExists), errors.Is(err, sources.ErrBadURL):
+	case errors.Is(err, core.ErrInvalid), errors.Is(err, core.ErrExists), errors.Is(err, sources.ErrBadURL), errors.Is(err, core.ErrTooLarge):
 		code = http.StatusBadRequest
 	case errors.Is(err, core.ErrForbidden), errors.Is(err, core.ErrReadOnly):
 		code = http.StatusForbidden
@@ -344,6 +344,8 @@ func ErrText(err error) string {
 		return "Das sieht nicht nach einem Repository-Link aus: " + err.Error()
 	case errors.Is(err, core.ErrInvalid):
 		return "Ungültige Angabe: " + err.Error()
+	case errors.Is(err, core.ErrTooLarge):
+		return "Sehr groß – " + strings.TrimPrefix(err.Error(), core.ErrTooLarge.Error()+": ")
 	case errors.Is(err, gitcli.ErrAuth), errors.Is(err, sources.ErrAuth):
 		return "Zugriff verweigert – für private Repos ein Token hinterlegen: " + err.Error()
 	case errors.Is(err, sources.ErrRateLimited):

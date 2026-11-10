@@ -94,6 +94,15 @@ die Artefakte der neuesten Läufe – wie viele, stellst du global, je Sammlung 
 Repo ein (`retention.actions_keep`, Standard 3). Ältere Läufe schlägt die Lösch-Prüfung
 vor. Braucht ein GitHub-Token.
 
+**Modelle (Hugging Face):** Viele KI-Werkzeuge laden beim Start Modelle von
+Hugging Face. Ein Modell sicherst du wie ein Repo: Link `https://huggingface.co/<org>/<modell>`
+bei „+ Repo hinzufügen“ (Dateien über Git LFS). Der Dialog zeigt die Größe; über
+`retention.ask_above_mb` (Standard 1024 MB, Einstellungen) musst du bestätigen (D-025),
+Agenten können das nicht. Beim Abgleich durchsucht RepoShelf den Code eines Projekts nach
+`from_pretrained(…)`, `hf_hub_download(…)` usw. und zeigt auf der Repo-Seite „Benötigte
+Modelle“ mit einem Knopf zum Sichern. Für gesperrte Modelle (Zustimmung nötig) einen
+Token für `huggingface.co` unter „Zugänge“ hinterlegen.
+
 **Achtung Speicher:** „Releases mitsichern“ lädt die Dateien der neuesten
 Releases (Standard: 5) – bei Projekten mit vielen Plattform-Builds können das
 schnell Hunderte MB sein. Einstellbar global, je Sammlung und je Repo.

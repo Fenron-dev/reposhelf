@@ -55,6 +55,9 @@ type Metadata struct {
 	Stars         int              `json:"stars"`
 	CreatedAt     *time.Time       `json:"created_at,omitempty"`
 	PushedAt      *time.Time       `json:"pushed_at,omitempty"`
+	// Size is the total size of the files of the default revision, if the
+	// host reports it (Hugging Face models, T-9.11).
+	Size int64 `json:"size,omitempty"`
 }
 
 // Release is a version with description and files.
@@ -183,6 +186,10 @@ func (r *Registry) API(host string) (API, error) {
 		c.base = r.base(host, "https://"+host+"/api/v4")
 		c.authHeader = "Bearer "
 		a = &gitlab{c: c, host: host}
+	case KindHuggingFace:
+		c.base = r.base(host, "https://"+host+"/api")
+		c.authHeader = "Bearer "
+		a = &huggingface{c: c, host: host}
 	default:
 		return nil, ErrNoAPI
 	}
