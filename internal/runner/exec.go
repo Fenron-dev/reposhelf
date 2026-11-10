@@ -25,6 +25,7 @@ import (
 	"go.yaml.in/yaml/v3"
 
 	"github.com/Fenron-dev/reposhelf/internal/artifact"
+	"github.com/Fenron-dev/reposhelf/internal/gitcli"
 )
 
 // containerArgs are the common docker run options: limits from the
@@ -99,6 +100,7 @@ func (m *Manager) runDocker(ctx context.Context, b *artifact.Build, log io.Write
 // command runs an executable and streams its output into the log.
 func (m *Manager) command(ctx context.Context, log io.Writer, dir, name string, args ...string) error {
 	cmd := exec.CommandContext(ctx, name, args...)
+	gitcli.HideWindow(cmd)
 	cmd.Dir = dir
 	pr, pw := io.Pipe()
 	cmd.Stdout, cmd.Stderr = pw, pw
