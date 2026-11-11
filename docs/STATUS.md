@@ -13,8 +13,8 @@
 ## Aktueller Stand
 
 - **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.5.2` (T-9.11–T-9.20, R-001–R-010) zum Test bei Dennis
-- **Letzte Änderung:** 2026-11-11 · Eigene Prüfung: R-001–R-008 behoben, Issues in der Suche (T-9.20)
-- **Nächster Schritt:** Dennis testet `v0.5.2` (alles seit v0.2.0 gemeinsam); keine offenen Aufgaben
+- **Letzte Änderung:** 2026-11-11 · Prüfbericht `docs/PRUEFBERICHT-2026-11.md`: 17 Befunde (R-011–R-027), 18 Funktionsvorschläge (F-019)
+- **Nächster Schritt:** R-011, R-013, R-014 (hoch) beheben – wartet auf Dennis' Auftrag; Dennis testet `v0.5.2`; F-019 entscheiden
 
 ## Übergabe-Notiz
 
@@ -44,7 +44,7 @@ Apple-Entwicklerkonto). Artefakt-Download von GitHub Actions gegen das echte Git
 die zwei neuesten Läufe, ZIPs gültig, Prüfsummen stimmen) und per Test gegen eine
 nachgebildete API (`internal/runner/github_test.go`).
 
-**Offene Fragen:** keine (F-006, F-009, F-011 → D-028–D-030; F-015–F-018 → D-024–D-027).
+**Offene Fragen:** F-019 (Funktionsvorschläge aus dem Prüfbericht).
 
 **2026-11-10 · Claude Code (T-9.8/T-9.9, Rückmeldung zu v0.1.7 unter Windows):**
 Jeder Git-/Docker-/act-Aufruf startet ohne Konsolenfenster (`gitcli.HideWindow`).
@@ -101,6 +101,12 @@ Datenordner selbst ist als Quelle gesperrt. macOS-Papierkorb über `/usr/bin/tra
 Prüf-Ordner `reposhelf-trash-probe` liegt seit dem Test in Dennis' Papierkorb.
 Prüflauf `builds` baut jetzt auch eine Python-Kapsel mit Windows-Paketen (seit v0.5.2 grün).
 
+**2026-11-11 · Claude Code (Prüfung):** Sicherheits- und Qualitätsprüfung auf Dennis'
+Wunsch, ohne Codeänderung. Bericht: `docs/PRUEFBERICHT-2026-11.md`; Befunde R-011–R-027
+(drei „hoch“: lokales Vertrauen/DNS-Rebinding, Geheimnisse im Build, `act`), Vorschläge
+V-1–V-18 als F-019. `govulncheck` lief lokal (`go run golang.org/x/vuln/cmd/govulncheck@latest ./...`):
+nur die Go-Version selbst betroffen. Befunde sind `offen` – Beheben erst nach Auftrag.
+
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
   (T-1.13), der Hinzufügen-Dialog zeigt die erwartete Größe.
@@ -134,6 +140,7 @@ Entscheidung: Status `entschieden`, Eintrag in `docs/ENTSCHEIDUNGEN.md`, Verweis
 | F-016 | Laufzeit-Daten (T-9.11): Ab welcher Größe fragt RepoShelf vor dem Herunterladen nach? | Je Eintrag ab 1 GB nachfragen; globale Obergrenze wie `retention.max_asset_mb` | entschieden | **Ab 1 GB je Eintrag** → D-025 |
 | F-017 | Python-Pakete (z. B. PyTorch) für welche Plattformen sichern? | Nur die gewählten Plattformen je Repo (Standard: die eigene + linux/amd64 für Unraid); CUDA-Variante nur auf Wunsch | entschieden | **Je Repo wählbar** (Standard: eigene + linux/amd64) → D-026 |
 | F-018 | Modelle aktualisieren oder einfrieren? | Wie Repos: festgehaltene Revision bleibt; neue Revisionen werden zusätzlich gesichert, ältere schlägt die Lösch-Prüfung vor | entschieden | **Wie Repos** → D-027 |
+| F-019 | Welche der Funktionsvorschläge V-1 bis V-18 aus `docs/PRUEFBERICHT-2026-11.md` sollen umgesetzt werden (und in welcher Reihenfolge)? | Zuerst V-1 (Integritätsprüfung), V-2 (Benachrichtigungen), V-4 (README-Bilder mitsichern), V-5 (Repo wiederbeleben) | offen | |
 
 ---
 
@@ -155,6 +162,23 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | R-008 | macOS: Papierkorb per Umbenennen ohne „Zurücklegen“; `/usr/bin/trash` (ab macOS 15) nutzen | `internal/systrash/trash_darwin.go` | Hinweis | erledigt `9364dc0` | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
 | R-009 | Kapsel: Der Build-Container (root) legt `.reposhelf-capsule/` in der Arbeitskopie an; das Toolchain-Image konnte danach dort nicht abgelegt werden (Python, Prüflauf v0.5.1) | `internal/runner/capsule.go` saveToolchain | mittel | erledigt `51de8ce` | Prüflauf `smoke.yml` · 2026-11-11 | T-9.12 |
 | R-010 | Nach jedem Push schreibt `refreshStats` `repo.yaml` neu, obwohl sich nur Statistik (upstream.json) ändert – eine gleichzeitige Handänderung geht verloren | `internal/core/sync.go` refreshStats | gering | erledigt `51de8ce` | Claude Code · 2026-11-11 | Invariante 6 |
+| R-011 | Lokales Vertrauen ohne Prüfung des Host-Kopfs: per DNS-Rebinding handelt eine fremde Webseite als lokaler Verwalter (alles lesen, Tokens anlegen, lokale Ordner übernehmen, Builds starten) | `internal/server/server.go` isLocal/resolve; `internal/web/web.go` sameOrigin | hoch | offen | Claude Code · 2026-11-11 | Prüfbericht |
+| R-012 | REST-API prüft weder Herkunft noch Inhaltstyp: fremde Seiten können für den lokal vertrauten Nutzer Repos aufnehmen und Abgleiche starten (CSRF) | `internal/api/api.go` POST /api/repos, /api/sync | mittel | offen | Claude Code · 2026-11-11 | Prüfbericht |
+| R-013 | Das Build-Ziel im (fremden) Repo bestimmt, welche `REPOSHELF_SECRET_*` in den Container gehen – Geheimnisse an fremden Code mit Netzzugang | `internal/runner/exec.go:83` | hoch | offen | Claude Code · 2026-11-11 | Prüfbericht |
+| R-014 | `act` bindet standardmäßig den Docker-Anschluss ein, Workflows dürfen Container-Optionen/Laufwerke setzen: fremder Workflow kann den Host-Docker steuern (D-008); Annahme gegen act 0.2.97 bestätigen | `internal/runner/exec.go` runAct | hoch | offen | Claude Code · 2026-11-11 | Prüfbericht |
+| R-015 | Artefakt-Muster folgen Verweisen, die der Build-Container anlegt: Dateien des Hosts landen in den Artefakten | `internal/runner/exec.go` collect | mittel | offen | Claude Code · 2026-11-11 | Prüfbericht |
+| R-016 | Submodule aus `.gitmodules` werden ungefragt und rekursiv als Spiegel aufgenommen (bis 20 je Abgleich): fremde Daten lösen Downloads aus, auch ins Heimnetz; Platte kann volllaufen | `internal/core/extras.go` syncSubmodules | mittel | offen | Claude Code · 2026-11-11 | Prüfbericht |
+| R-017 | Go 1.27.3 hat GO-2026-6859 (Absturz des HTTP/1-Servers), behoben in 1.27.4; `govulncheck` fehlt in der CI | `go.mod`, `.github/workflows/ci.yml` | mittel | offen | Claude Code · 2026-11-11 | Prüfbericht |
+| R-018 | Kein Schutz gegen Durchprobieren von Tokens bzw. des frei gewählten Admin-Tokens | `internal/server/server.go` login/resolve | gering | offen | Claude Code · 2026-11-11 | Prüfbericht |
+| R-019 | Weiterleitung nach Anmeldung: `next=/\\evil.example` besteht die Prüfung (Browser lesen `/\\` wie `//`) | `internal/server/server.go` login | gering | offen | Claude Code · 2026-11-11 | Prüfbericht |
+| R-020 | Sitzungen: abgelaufene werden nie entfernt; Cookie hinter HTTPS-Proxy ohne „Secure“ | `internal/server/server.go` | gering | offen | Claude Code · 2026-11-11 | Prüfbericht |
+| R-021 | Kopplung: 40-Bit-Code mit mitgeschicktem HMAC-Nachweis ist durchprobierbar (Umleiten im LAN); signierte Anfragen ohne Einmalnummer wiederholbar | `internal/peer/peer.go` | gering | offen | Claude Code · 2026-11-11 | Prüfbericht |
+| R-022 | Geheimnisse als `-e NAME=wert` in der Prozessliste; Image-Namen aus Repo-Dateien ungeprüft an docker (führendes `-`) | `internal/runner/exec.go`, `capsule.go` | gering | offen | Claude Code · 2026-11-11 | Prüfbericht |
+| R-023 | Datenschutz: README-Bilder werden von fremden Servern geladen (IP-Adresse geht an Dritte; Bilder fehlen offline) | `internal/web/web.go` CSP img-src | gering | offen | Claude Code · 2026-11-11 | Prüfbericht |
+| R-024 | Git-Härtung fehlt: `fetch.fsckObjects`, `GIT_ALLOW_PROTOCOL`, Einfluss der globalen Git-Konfiguration; „dubious ownership“ auf FAT/exFAT prüfen (portabel) | `internal/gitcli/gitcli.go` | Hinweis | offen | Claude Code · 2026-11-11 | Prüfbericht |
+| R-025 | Dateinamen aus Repos ungequotet in `Content-Disposition` | `internal/web/handlers.go` repoRaw, ServeFileSafe | Hinweis | offen | Claude Code · 2026-11-11 | Prüfbericht |
+| R-026 | `activity.jsonl` wächst unbegrenzt und wird je Abruf ganz gelesen | `internal/core/events.go` RecentActivity | gering | offen | Claude Code · 2026-11-11 | Prüfbericht |
+| R-027 | Laufzeit-Image-Bau ohne Ressourcengrenze; ZIP-Import mit `.git` holt per `git fetch` aus fremdem Ordner | `internal/runner/image.go`, `internal/core/zipimport.go` | Hinweis | offen | Claude Code · 2026-11-11 | Prüfbericht |
 
 ---
 
@@ -307,6 +331,8 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 ## Verlauf
 
 Neueste oben. Eine Zeile pro Sitzung.
+
+- 2026-11-11 · Claude Code · Prüfung des Projekts (Sicherheit, Probleme, Optimierungen, fehlende Funktionen): `docs/PRUEFBERICHT-2026-11.md`, Befunde R-011–R-027, Vorschläge in F-019; kein Code geändert
 
 - 2026-11-11 · Claude Code · Prüflauf v0.5.1: Python-Kapsel scheiterte am root-eigenen Kapselordner (R-009); dabei R-010 (Push schrieb repo.yaml neu) gefunden; beides behoben; Release `v0.5.2`, Prüflauf grün (Python-Kapsel mit echten Windows-Paketen)
 
