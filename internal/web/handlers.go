@@ -237,6 +237,7 @@ type repoData struct {
 	NoteLinks   []string
 	Job         core.JobState
 	Models      []core.ModelRef
+	HF          *core.HFUsage
 }
 
 type crumb struct{ Name, URL string }
@@ -273,6 +274,9 @@ func (s *Server) baseRepoData(r *http.Request, repo *core.Repo) repoData {
 	d.HasBuilds = s.Ext.Builds != nil
 	d.NoteLinks = s.Lib.NoteBacklinks(r.Context(), repo.R().ID)
 	d.Models = s.Lib.ModelsOf(r.Context(), repo)
+	if u, ok := s.Lib.HFUsageOf(repo); ok {
+		d.HF = &u
+	}
 	d.Collections, _ = s.Lib.Collections(r.Context())
 	for _, bl := range repo.Backlinks {
 		if e, err := s.Lib.Store.Get(r.Context(), bl.From); err == nil {

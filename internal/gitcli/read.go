@@ -286,3 +286,70 @@ func (g *Git) Grep(ctx context.Context, repo, rev, pattern string, fixed, ignore
 	}
 	return hits, nil
 }
+
+// TreeFile is a file of a whole tree (recursive listing).
+type TreeFile struct {
+	Path string
+	Blob string
+	Mode string // 100644, 100755, 120000 (symlink), 160000 (submodule)
+	Size int64
+}
+
+// TreeFiles lists every file of rev, recursively.
+func (g *Git) TreeFiles(ctx context.Context, repo, rev string) ([]TreeFile, error) {
+	if err := checkRev(rev); err != nil {
+		return nil, err
+	}
+	out, err := g.Run(ctx, repo, nil, "ls-tree", "-r", "-l", "-z", "--end-of-options", rev)
+	if err != nil {
+		return nil, err
+	}
+	var list []TreeFile
+	for _, rec := range bytes.Split(out, []byte{0}) {
+		meta, name, ok := strings.Cut(string(rec), "\t")
+		if !ok {
+			continue
+		}
+		f := strings.Fields(meta)
+		if len(f) < 4 {
+			continue
+		}
+		size, _ := strconv.ParseInt(f[3], 10, 64)
+		list = append(list, TreeFile{Path: name, Blob: f[2], Mode: f[0], Size: size})
+	}
+	return list, nil
+}
+
+// ReadBlob returns a blob by its ID, up to limit bytes.
+func (g *Git) ReadBlob(ctx context.Context, repo, blob string, limit int64) ([]byte, error) {
+	if !blobIDRe.MatchString(blob) {
+		return nil, fmt.Errorf("%w: %q", ErrBadRev, blob)
+	}
+	out, err := g.Run(ctx, repo, nil, "cat-file", "-s", blob)
+	if err != nil {
+		return nil, err
+	}
+	if size, _ := strconv.ParseInt(strings.TrimSpace(string(out)), 10, 64); limit > 0 && size > limit {
+		return nil, fmt.Errorf("%s (%d bytes): %w", blob, size, ErrTooLarge)
+	}
+	return g.Run(ctx, repo, nil, "cat-file", "blob", blob)
+}
+
+var blobIDRe = regexp.MustCompile(`^[0-9a-f]{40}([0-9a-f]{24})?$`)
+
+// ParseLFSPointer returns the object of an LFS pointer file, ok false if
+// content is not one.
+func ParseLFSPointer(content []byte) (oid string, size int64, ok bool) {
+	if len(content) > 1024 || !bytes.HasPrefix(content, []byte("version https://git-lfs.github.com/spec/")) {
+		return "", 0, false
+	}
+	for _, line := range strings.Split(string(content), "\n") {
+		if v, found := strings.CutPrefix(line, "oid sha256:"); found {
+			oid = strings.TrimSpace(v)
+		}
+		if v, found := strings.CutPrefix(line, "size "); found {
+			size, _ = strconv.ParseInt(strings.TrimSpace(v), 10, 64)
+		}
+	}
+	return oid, size, ValidOID(oid)
+}

@@ -106,6 +106,12 @@ func (l *Library) Sync(ctx context.Context, ref, actor string) (SyncReport, erro
 		r.Upstream.DeletedUpstream = rep.Mirror.Deleted
 		rep.Notes = append(rep.Notes, l.syncExtras(ctx, r, auth, &rep)...)
 		l.finishImport(ctx, r)
+		l.progress(id, "Für Programme bereitstellen", -1)
+		if missing, err := l.exportHF(ctx, r); err != nil {
+			rep.Notes = append(rep.Notes, "Modell-Ordner: "+err.Error())
+		} else if missing > 0 {
+			rep.Notes = append(rep.Notes, fmt.Sprintf("Modell-Ordner: %d große Dateien fehlen noch (Git LFS)", missing))
+		}
 	} else {
 		msg := rep.Err.Error()
 		cr.Sync.LastError = &msg

@@ -103,6 +103,13 @@ Agenten können das nicht. Beim Abgleich durchsucht RepoShelf den Code eines Pro
 Modelle“ mit einem Knopf zum Sichern. Für gesperrte Modelle (Zustimmung nötig) einen
 Token für `huggingface.co` unter „Zugänge“ hinterlegen.
 
+**Modelle für Programme:** Jedes gesicherte Hugging-Face-Modell liegt zusätzlich im
+Cache-Format unter `<Datenordner>/runtime/huggingface` – als schreibgeschützte Verweise
+(Hardlinks) auf das Archiv, ohne zweiten Speicherplatz. Programme starten offline mit
+`HF_HOME=<Datenordner>/runtime/huggingface HF_HUB_OFFLINE=1`; die Repo-Seite zeigt die
+Zeile zum Kopieren. Der Ordner wird bei jedem Abgleich erneuert und kann jederzeit
+gelöscht werden.
+
 **Schon geladene Modelle übernehmen:** Statt eines Links einen Ordner angeben
 (`C:\Modelle\kokoro`, `\\nas\freigabe\modell`, `/Users/…`, `~/…`; D-033). Ordner aus
 dem Hugging-Face-Cache (`…/hub/models--org--name`) erkennt RepoShelf selbst; sonst die

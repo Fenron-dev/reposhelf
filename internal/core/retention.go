@@ -394,6 +394,13 @@ func (l *Library) trashItem(ctx context.Context, it CleanupItem, actor string) e
 		if err := l.Store.Delete(ctx, r.R().ID); err != nil {
 			return err
 		}
+		// The model folder for programs is derived (rebuilt after a
+		// restore); its links would keep the trashed files' space in use.
+		if d := l.HFModelDir(r); d != "" {
+			if err := removeTree(d); err != nil {
+				return err
+			}
+		}
 		st := l.readCleanupState()
 		st.Marked = slices.DeleteFunc(st.Marked, func(s string) bool { return s == r.R().ID })
 		if err := l.writeCleanupState(st); err != nil {
@@ -562,7 +569,7 @@ func (l *Library) Purge(ctx context.Context, ids []string, actor string) (int, e
 				}
 			}
 		}
-		if err := os.RemoveAll(dir); err != nil {
+		if err := removeTree(dir); err != nil {
 			return n, err
 		}
 		l.Record(Activity{Actor: actorOr(actor), Action: "purge", RepoID: te.RepoID, Detail: te.Label})

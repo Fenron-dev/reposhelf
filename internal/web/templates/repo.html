@@ -182,6 +182,14 @@
     </ul>
   </div>
 
+  {{with $d.HF}}<div class="card stack">
+    <h2 class="h3">Für Programme</h2>
+    {{if .Ready}}<p class="small">Programme mit <span class="mono">huggingface_hub</span> (transformers, TTS-Werkzeuge …) finden das Modell ohne Internet, wenn du sie so startest:</p>
+    <div class="copy-field"><input id="hf-env" class="mono" readonly value="HF_HOME=&quot;{{.Home}}&quot; HF_HUB_OFFLINE=1"><button class="btn btn-small" type="button" data-copy="#hf-env">Kopieren</button></div>
+    <p class="small muted">Windows (PowerShell): <span class="mono">$env:HF_HOME="{{.Home}}"; $env:HF_HUB_OFFLINE=1</span>. Modell-ID im Programm: <span class="mono">{{.ModelID}}</span>. Die Dateien sind schreibgeschützte Verweise auf das Archiv – kein zweiter Speicherplatz.</p>
+    {{else}}<p class="small muted">Wird nach dem nächsten erfolgreichen Abgleich bereitgestellt.</p>{{end}}
+  </div>{{end}}
+
   {{if $d.Models}}<div class="card">
     <h2 class="h3">Benötigte Modelle</h2>
     <p class="small muted">Im Code gefunden (Hugging Face). Ohne sie startet das Programm oft nicht – sichern, solange es sie gibt.</p>
