@@ -54,8 +54,14 @@ const (
 // sendTimeout bounds sending changes in a request.
 const sendTimeout = 30 * time.Second
 
-// issueMu serialises changes to issues and the outbox of all repositories.
-var issueMu sync.Mutex
+// issueLocks serialise changes to the issues and the outbox of one
+// repository; sending to the host only blocks that repository (R-006).
+var issueLocks sync.Map // repository ID → *sync.Mutex
+
+func issueLock(id string) *sync.Mutex {
+	m, _ := issueLocks.LoadOrStore(id, &sync.Mutex{})
+	return m.(*sync.Mutex)
+}
 
 // IssueRef names an issue: local (L3) or mirrored (#12).
 type IssueRef struct {
@@ -124,10 +130,10 @@ func (l *Library) CreateIssue(ctx context.Context, ref, title, body string, labe
 	if err != nil {
 		return 0, err
 	}
-	issueMu.Lock()
+	issueLock(r.R().ID).Lock()
 	dir := l.localIssuesDir(r)
 	if err := os.MkdirAll(dir, dirPerm); err != nil {
-		issueMu.Unlock()
+		issueLock(r.R().ID).Unlock()
 		return 0, err
 	}
 	n := 1
@@ -141,7 +147,7 @@ func (l *Library) CreateIssue(ctx context.Context, ref, title, body string, labe
 	if err == nil && l.canSendIssues(r) {
 		err = l.queue(r, IssueOp{Kind: OpCreate, Issue: IssueRef{Local: true, Number: n}.String(), Author: actor})
 	}
-	issueMu.Unlock()
+	issueLock(r.R().ID).Unlock()
 	if err != nil {
 		return 0, err
 	}
@@ -193,17 +199,17 @@ func (l *Library) changeIssue(ctx context.Context, ref string, is IssueRef, acto
 		return err
 	}
 	send := l.canSendIssues(r)
-	issueMu.Lock()
+	issueLock(r.R().ID).Lock()
 	var title string
 	if is.Local {
 		dir := l.localIssuesDir(r)
 		f, body, rerr := readIssueFile(filepath.Join(dir, fmt.Sprintf("%d.md", is.Number)))
 		if errors.Is(rerr, os.ErrNotExist) {
-			issueMu.Unlock()
+			issueLock(r.R().ID).Unlock()
 			return fmt.Errorf("%w: lokales Issue %s", ErrNotFound, is)
 		}
 		if rerr != nil {
-			issueMu.Unlock()
+			issueLock(r.R().ID).Unlock()
 			return rerr
 		}
 		change(&f, &body)
@@ -214,12 +220,12 @@ func (l *Library) changeIssue(ctx context.Context, ref string, is IssueRef, acto
 		send = send && (f.Remote > 0 || l.hasPendingCreate(r, is))
 	} else {
 		if !send {
-			issueMu.Unlock()
+			issueLock(r.R().ID).Unlock()
 			return fmt.Errorf("%w: gespiegelte Issues sind schreibgeschützt (nur bei eigenen Projekten und Forks änderbar)", ErrReadOnly)
 		}
 		f, _, rerr := readIssueFile(filepath.Join(l.issuesDir(r), fmt.Sprintf("%d.md", is.Number)))
 		if rerr != nil {
-			issueMu.Unlock()
+			issueLock(r.R().ID).Unlock()
 			return fmt.Errorf("%w: Issue %s", ErrNotFound, is)
 		}
 		title = f.Title
@@ -228,7 +234,7 @@ func (l *Library) changeIssue(ctx context.Context, ref string, is IssueRef, acto
 		op.Issue, op.Author = is.String(), actor
 		err = l.queue(r, op)
 	}
-	issueMu.Unlock()
+	issueLock(r.R().ID).Unlock()
 	if err != nil {
 		return err
 	}
@@ -237,20 +243,50 @@ func (l *Library) changeIssue(ctx context.Context, ref string, is IssueRef, acto
 	return nil
 }
 
-// afterIssueChange sends at once when the repository's switch is on.
+// afterIssueChange sends at once when the repository's switch is on and
+// updates the search index.
 func (l *Library) afterIssueChange(ctx context.Context, r *Repo) {
 	if r.R().Sync.IssuesUpstream && l.canSendIssues(r) {
 		ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), sendTimeout)
 		defer cancel()
 		_, _, _ = l.SendIssues(ctx, r.R().ID, "issues-upstream")
 	}
+	l.refreshEntry(ctx, r)
 	l.events.publish(Event{Kind: "repo", RepoID: r.R().ID})
+}
+
+// refreshEntry updates the index entry (issues are searchable, T-9.20).
+func (l *Library) refreshEntry(ctx context.Context, r *Repo) {
+	r.Entry = l.entry(ctx, r, true)
+	if err := l.Store.Upsert(ctx, r.Entry); err != nil {
+		l.Log.Warn("index after issue change", "repo", r.R().ID, "err", err)
+	}
+}
+
+// maxIssueText bounds the issue text per repository in the index.
+const maxIssueText = 512 << 10
+
+// issueText joins titles and texts of all issues for the search index.
+func (l *Library) issueText(r *Repo) string {
+	var b strings.Builder
+	for _, dir := range []string{l.issuesDir(r), l.localIssuesDir(r)} {
+		for _, is := range readIssues(dir) {
+			if b.Len() > maxIssueText {
+				return b.String()
+			}
+			b.WriteString(is.Title)
+			b.WriteString("\n")
+			b.WriteString(is.Body)
+			b.WriteString("\n")
+		}
+	}
+	return b.String()
 }
 
 // PendingIssues returns the changes waiting to be sent.
 func (l *Library) PendingIssues(r *Repo) []IssueOp {
-	issueMu.Lock()
-	defer issueMu.Unlock()
+	issueLock(r.R().ID).Lock()
+	defer issueLock(r.R().ID).Unlock()
 	return l.readOutbox(r)
 }
 
@@ -266,7 +302,7 @@ func (l *Library) SendIssues(ctx context.Context, ref, actor string) (sent, fail
 	}
 	w, _ := l.Sources.Writer(r.R().Source.Host)
 	src := r.R().Source
-	issueMu.Lock()
+	issueLock(r.R().ID).Lock()
 	ops := l.readOutbox(r)
 	var keep []IssueOp
 	blocked := map[string]bool{}
@@ -285,7 +321,7 @@ func (l *Library) SendIssues(ctx context.Context, ref, actor string) (sent, fail
 		sent++
 	}
 	werr := l.writeOutbox(r, keep)
-	issueMu.Unlock()
+	issueLock(r.R().ID).Unlock()
 	if werr != nil {
 		return sent, failed, werr
 	}
@@ -299,6 +335,7 @@ func (l *Library) SendIssues(ctx context.Context, ref, actor string) (sent, fail
 			}
 		}
 		unlock()
+		l.refreshEntry(ctx, r)
 	}
 	l.events.publish(Event{Kind: "repo", RepoID: r.R().ID})
 	return sent, failed, nil

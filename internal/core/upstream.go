@@ -58,6 +58,8 @@ type Upstream struct {
 	Models []string `json:"models,omitempty"`
 	// Import is a local folder taken over, checked after the first sync.
 	Import *ImportState `json:"import,omitempty"`
+	// ExportNote explains why no model folder for programs exists.
+	ExportNote string `json:"export_note,omitempty"`
 }
 
 // MetaChange keeps metadata as it was before a change upstream.

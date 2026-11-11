@@ -814,14 +814,12 @@ func (s *Server) importFolder(w http.ResponseWriter, r *http.Request) {
 		s.failErr(w, r, err)
 		return
 	}
-	msg, key := "Ordner übernommen.", "ok"
-	switch {
-	case err != nil:
-		msg, key = "Übernommen, aber: "+ErrText(err), "fehler"
-	case repo.Upstream.Import != nil:
-		msg = "Ordner übernommen – fehlende Dateien kommen beim ersten Abgleich, danach wird geprüft."
-	case req.Move:
-		msg = "Ordner geprüft übernommen; das Original liegt im Papierkorb des Systems."
+	msg, key := "Übernahme läuft im Hintergrund – danach wird jede Datei geprüft.", "ok"
+	if req.Move {
+		msg += " Erst dann kommt das Original in den Papierkorb des Systems."
+	}
+	if err != nil {
+		msg, key = "Angelegt, aber: "+ErrText(err), "fehler"
 	}
 	redirect(w, r, withMsg("/repo/"+repo.R().ID, key, msg))
 }

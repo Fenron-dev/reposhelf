@@ -346,9 +346,10 @@ Quelle: Fallstrick-Kapitel im VaultApp-Konzept (LW-Manager).
 ### 6.5 Issues
 
 - **Fremde Repos:** aus, pro Repo zuschaltbar.
-- **Eigene Projekte:** an. Phase 9: GitHub-Issues spiegeln (lesend, mit
-  Kommentaren, Labels). Lokale, eigene Issues direkt in RepoShelf sind eine
-  offene Frage (F-006).
+- **Eigene Projekte:** an. GitHub-Issues werden gespiegelt (mit Kommentaren,
+  Labels). Lokale Issues (L1, L2 …) entstehen direkt in RepoShelf (D-028); bei
+  eigenen Projekten und Forks lassen sich auch gespiegelte bearbeiten, gesendet
+  wird nur mit Schalter je Repo oder per Knopf (D-031).
 - Ablage als Markdown-Dateien mit YAML-Frontmatter (durchsuchbar, lesbar ohne App).
 
 ### 6.6 Schlagwörter und Sammlungen
@@ -388,10 +389,11 @@ Quelle: Fallstrick-Kapitel im VaultApp-Konzept (LW-Manager).
 
 ### 6.9 Suche
 
-- Volltext (SQLite FTS5) über Namen, Beschreibungen, README, Notizen, Issues.
+- Volltext (SQLite FTS5) über Namen, Beschreibungen, README, Notizen, Issues
+  (Issues seit T-9.20).
 - Filter: Art, Schlagwort, Sammlung, Status, Lizenz, Sprache, „baubar halten“.
 - Befehlspalette `⌘K` (OracleVault-Idee).
-- Code-Volltextsuche über alle Repos: später (F-007, z. B. zoekt).
+- Code-Volltextsuche über alle Repos mit `git grep` (D-021).
 
 ### 6.10 Aufbewahrung und Papierkorb
 
@@ -421,8 +423,14 @@ Kapsel erstellt:
 | Python | `requirements*.txt` / `pyproject.toml` | `pip download` |
 | Docker | `Dockerfile` | Basis-Images per `docker save` |
 
-- Dazu: Toolchain-Version (z. B. `rust-toolchain.toml`, Go-Version, Flutter-Version),
-  Build-Befehl, optional das fertige Build-Ergebnis.
+- Dazu: Toolchain-Version (z. B. `rust-toolchain.toml`, Go-Version, Flutter-Version)
+  und das Toolchain-Image selbst (`docker save`, T-9.12), Build-Befehl, optional das
+  fertige Build-Ergebnis. Python-Pakete zusätzlich für gewählte Plattformen,
+  PyTorch ohne CUDA in der CPU-Fassung (D-026).
+- **Laufzeit-Daten:** Modelle von Hugging Face werden wie Repos gespiegelt (Git
+  LFS, Nachfrage ab 1 GB, D-025, D-027), lokale Modell-Ordner lassen sich übernehmen
+  (D-032, D-033) und stehen Programmen als `HF_HOME`-Ordner zur Verfügung (T-9.11).
+  Ein fertiges Laufzeit-Image eines Projekts ist ein eigenes Build-Ziel (T-9.19).
 - **Gemeinsamer, inhaltsadressierter Cache** (`capsules/blobs/sha256/…`): ein
   Paket, das zehn Projekte nutzen, liegt nur einmal auf der Platte.
 - **Kapsel-Test:** periodischer Offline-Build aus der Kapsel auf einem Runner
@@ -472,6 +480,9 @@ Werkzeuge (Entwurf):
 | `set_tags` / `add_relation` / `write_notes` | Organisation | schreiben |
 | `sync_repo` | Abgleich anstoßen | schreiben |
 | `start_build` / `get_build` | Build anstoßen, Status/Log/Artefakte | bauen |
+| `search_code` | Code aller Repos durchsuchen (`git grep`) | lesen |
+| `list_issues` | lokale und gespiegelte Issues | lesen |
+| `create_issue` / `comment_issue` / `set_issue_state` | Issues bearbeiten (D-028, D-031) | schreiben |
 
 - **Rechte pro Client** (Token): `lesen`, `schreiben`, `bauen`. Löschen,
   Aufbewahrungsregeln und Papierkorb sind über MCP **nicht** erreichbar.
@@ -481,11 +492,14 @@ Werkzeuge (Entwurf):
 
 ### 6.14 Git über HTTP
 
-- `git clone/fetch` über Smart-HTTP (`git http-backend`) für alle Repos.
+- `git clone/fetch` über Smart-HTTP für alle Repos (eigene Umsetzung ohne
+  `git http-backend`, das minimalen Git-Paketen fehlt); große Dateien über die
+  Git-LFS-Batch-API (T-9.18).
 - `git push` nur für `own` und `fork` (Spiegel sind schreibgeschützt).
 - Authentifizierung per Token; im Heimnetz optional anonym lesend.
-- Eigene Projekte: RepoShelf kann zusätzlich Remote neben GitHub sein; Option
-  „bei Push nach GitHub weiterreichen“ später (F-009).
+- Eigene Projekte: RepoShelf kann zusätzlich Remote neben GitHub sein; Pushes
+  werden nur mit Schalter je Repo an das Original weitergereicht, nie erzwungen
+  (D-029).
 
 ### 6.15 Abgleich zwischen Instanzen
 

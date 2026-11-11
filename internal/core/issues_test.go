@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Fenron-dev/reposhelf/internal/store"
 	"github.com/Fenron-dev/reposhelf/internal/testutil"
 )
 
@@ -31,6 +32,9 @@ func TestLocalIssues(t *testing.T) {
 	n2, _ := l.CreateIssue(ctx, id, "Neue Funktion\nmit Umbruch", "", nil, "mcp:claude")
 	if n2 != 2 {
 		t.Errorf("second number = %d", n2)
+	}
+	if got, _ := l.Store.List(ctx, store.Query{Text: "Export kaputt"}); len(got) != 1 || got[0].ID != id {
+		t.Errorf("issue not searchable: %+v", got)
 	}
 	if _, err := l.CreateIssue(ctx, id, "  ", "x", nil, "web"); !errors.Is(err, ErrInvalid) {
 		t.Errorf("empty title = %v", err)

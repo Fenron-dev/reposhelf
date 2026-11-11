@@ -12,9 +12,9 @@
 
 ## Aktueller Stand
 
-- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.5.0` (T-9.11–T-9.19) zum Test bei Dennis
-- **Letzte Änderung:** 2026-11-11 · Laufzeit-Image als Build-Ziel (T-9.19); damit alle Aufgaben erledigt
-- **Nächster Schritt:** Dennis testet `v0.5.0` (alles seit v0.2.0 gemeinsam); keine offenen Aufgaben
+- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.5.1` (T-9.11–T-9.20, R-001–R-008) zum Test bei Dennis
+- **Letzte Änderung:** 2026-11-11 · Eigene Prüfung: R-001–R-008 behoben, Issues in der Suche (T-9.20)
+- **Nächster Schritt:** Dennis testet `v0.5.1` (alles seit v0.2.0 gemeinsam); keine offenen Aufgaben
 
 ## Übergabe-Notiz
 
@@ -93,6 +93,14 @@ ein echter `pip download` für fremde Plattformen läuft erst beim nächsten Kap
 `<owner>-<name>-<version>.tar.gz`; `LoadImage` für den Knopf „In Docker laden“). Der Bau
 läuft ohne Speichergrenze (docker build kennt `--memory` mit BuildKit nicht).
 
+**2026-11-11 · Claude Code (Review, T-9.20):** Eigene Prüfung der Arbeiten T-9.16–T-9.18
+ergab R-001–R-008 (alle behoben, `9364dc0`). Wichtig: Ordner-Übernahme läuft jetzt im
+Abgleich-Job (`seedImport` am Anfang von `Sync`), nicht mehr im Web-Request; der
+Datenordner selbst ist als Quelle gesperrt. macOS-Papierkorb über `/usr/bin/trash`
+(den Ordner `~/.Trash` darf ein Programm ohne Sonderrecht nicht lesen). Ein kleiner
+Prüf-Ordner `reposhelf-trash-probe` liegt seit dem Test in Dennis' Papierkorb.
+Prüflauf `builds` baut jetzt auch eine Python-Kapsel mit Windows-Paketen.
+
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
   (T-1.13), der Hinzufügen-Dialog zeigt die erwartete Größe.
@@ -137,7 +145,14 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 | ID | Befund | Fundstelle | Schwere | Status | Gefunden von / Datum | Bezug |
 |---|---|---|---|---|---|---|
-| – | (noch keine) | | | | | |
+| R-001 | Ordner-Übernahme prüft nicht, ob der Ordner den Datenordner enthält oder darin liegt: das Archiv würde in sich selbst kopiert, mit „Verschieben“ käme der Datenordner in den Papierkorb | `internal/core/importdir.go` InspectFolder | hoch | erledigt `9364dc0` | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
+| R-002 | Ordner-Übernahme läuft im Web-Request: große Modelle blockieren minutenlang ohne Fortschritt (widerspricht T-9.9) | `internal/core/importdir.go` ImportFolder, `internal/web/handlers.go` importFolder | mittel | erledigt `9364dc0` | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
+| R-003 | Vorschau durchläuft beliebig große Ordner (z. B. `C:\`) bei jeder Eingabe | `internal/core/importdir.go` folderFiles | mittel | erledigt `9364dc0` | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
+| R-004 | Modell-Ordner für Programme scheitert auf Datenträgern ohne Hardlinks (exFAT/FAT – portabler USB-Betrieb) bei jedem Abgleich | `internal/core/hfhome.go` exportHF | mittel | erledigt `9364dc0` | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
+| R-005 | Ausstehende Änderungen an einem schon gesendeten lokalen Issue (L3 → #12) werden nirgends angezeigt | `internal/core/extras.go` Issues | gering | erledigt `9364dc0` | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
+| R-006 | SendIssues hält eine globale Sperre während der Netzaufrufe: Issue-Änderungen aller Repos warten | `internal/core/issues.go` issueMu | gering | erledigt `9364dc0` | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
+| R-007 | PutLFS ersetzt ein vorhandenes Objekt per Rename; unter Windows scheitert das am schreibgeschützten Ziel | `internal/gitcli/commitfiles.go` PutLFS | gering | erledigt `9364dc0` | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
+| R-008 | macOS: Papierkorb per Umbenennen ohne „Zurücklegen“; `/usr/bin/trash` (ab macOS 15) nutzen | `internal/systrash/trash_darwin.go` | Hinweis | erledigt `9364dc0` | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
 
 ---
 
@@ -283,12 +298,15 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.17 | Lokale Ordner übernehmen (Modelle): Pfad im Hinzufügen-Feld, HF-Cache erkennen oder Modell-ID abfragen, vorhandene Dateien statt Download, Kopieren/Verschieben (Original in System-Papierkorb) | erledigt | Claude Code | 2026-11-11 | D-032, D-033; `697b589` – Pfad im Hinzufügen-Feld/`add <ordner>`, HF-Cache-Erkennung, LFS-Vorbefüllung, Prüfung nach erstem Abgleich, Papierkorb über `internal/systrash` |
 | T-9.18 | LFS-Dateien über Git-HTTP ausliefern (LFS-Batch-API), damit `git clone` über RepoShelf Modelle und große Dateien vollständig bekommt | erledigt | Claude Code | 2026-11-11 | `5a509bc` – LFS-Batch-API unter `…/info/lfs/` (Download, Upload für eigene Repos, locks/verify); Prüflauf klont ein HF-Modell über RepoShelf |
 | T-9.19 | Optional: Laufzeit-Image je Repo (fertige Umgebung per `docker save`, z. B. für Dienste auf Unraid) | erledigt | Claude Code | 2026-11-11 | aus T-9.11 abgetrennt; `64316c4` – Build-Ziel `image` (docker build + save → `.tar.gz` im Archiv), „In Docker laden“ |
+| T-9.20 | Issues (gespiegelte und lokale) in die Volltextsuche aufnehmen (KONZEPT 6.9) | erledigt | Claude Code | 2026-11-11 | Abgleich Konzept ↔ Stand; `ddf1416` – FTS-Spalte `issues` (Index-Schema 2, wird neu aufgebaut); KONZEPT.md an D-021–D-033 angeglichen |
 
 ---
 
 ## Verlauf
 
 Neueste oben. Eine Zeile pro Sitzung.
+
+- 2026-11-11 · Claude Code · Eigene Prüfung: R-001–R-008 (u. a. Datenordner als Quelle gesperrt, Übernahme im Hintergrund, exFAT) behoben; T-9.20 Issues in der Volltextsuche; KONZEPT angeglichen; Release `v0.5.1`
 
 - 2026-11-11 · Claude Code · T-9.19 Laufzeit-Image (Build-Ziel `image`, Laden in Docker); alle Aufgaben erledigt; Release `v0.5.0`, Prüflauf grün (echtes Image gebaut, in Docker geladen, gestartet)
 

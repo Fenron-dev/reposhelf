@@ -284,6 +284,9 @@ func PutLFS(bare, oid string, size int64, src io.Reader) error {
 		return fmt.Errorf("%w: content does not match %s", ErrLFSMismatch, oid)
 	}
 	dst := LFSObjectPath(bare, oid)
+	if _, err := os.Stat(dst); err == nil {
+		return nil // same name, same content; the existing one may be read-only (R-007)
+	}
 	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
 		return err
 	}

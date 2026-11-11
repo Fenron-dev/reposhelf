@@ -29,7 +29,7 @@ import (
 
 // SchemaVersion of the index tables. Raise it on every change of schemaSQL;
 // existing indexes are then rebuilt from the files.
-const SchemaVersion = 1
+const SchemaVersion = 2 // 2: issues in the full-text index (T-9.20)
 
 // ErrNotFound is returned when an entry does not exist in the index.
 var ErrNotFound = errors.New("not found in index")
@@ -86,7 +86,7 @@ CREATE TABLE edges (
 );
 CREATE INDEX edges_to ON edges(to_ref);
 CREATE VIRTUAL TABLE fts USING fts5(
-	repo_id UNINDEXED, name, description, topics, tags, readme, notes,
+	repo_id UNINDEXED, name, description, topics, tags, readme, notes, issues,
 	tokenize = 'unicode61 remove_diacritics 2'
 );
 `
@@ -288,9 +288,9 @@ func insert(ctx context.Context, tx *sql.Tx, e *Entry) error {
 			return err
 		}
 	}
-	_, err = tx.ExecContext(ctx, `INSERT INTO fts(repo_id, name, description, topics, tags, readme, notes) VALUES (?,?,?,?,?,?,?)`,
+	_, err = tx.ExecContext(ctx, `INSERT INTO fts(repo_id, name, description, topics, tags, readme, notes, issues) VALUES (?,?,?,?,?,?,?,?)`,
 		e.ID, e.Owner+" "+e.Name, e.Description, strings.Join(e.Topics, " "),
-		strings.ReplaceAll(strings.Join(e.Tags, " "), "/", " "), e.Readme, e.Notes)
+		strings.ReplaceAll(strings.Join(e.Tags, " "), "/", " "), e.Readme, e.Notes, e.Issues)
 	return err
 }
 

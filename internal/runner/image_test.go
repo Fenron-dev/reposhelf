@@ -43,7 +43,7 @@ func TestRuntimeImage(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "webtool")
 	os.MkdirAll(dir, 0o755)
 	os.WriteFile(filepath.Join(dir, "Dockerfile"), []byte("FROM alpine:3.22\nCMD [\"echo\", \"hi\"]\n"), 0o644)
-	repo, err := lib.ImportFolder(ctx, core.ImportRequest{Path: dir, Actor: "web"})
+	repo, err := lib.ImportFolder(ctx, core.ImportRequest{Path: dir, Actor: "web", Wait: true})
 	if err != nil {
 		t.Fatal(err)
 	}

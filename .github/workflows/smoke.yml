@@ -230,6 +230,14 @@ jobs:
           YAML
           git add -A && git commit -qm probe && git tag v1.0
           git push -q "$RS/git/local/projekte/probe.git" main --tags
+          # Python project with packages for Windows too (D-026)
+          /tmp/rs create pyprobe --data /tmp/data
+          mkdir /tmp/pyprobe && cd /tmp/pyprobe && git init -q -b main
+          echo "markupsafe" > requirements.txt
+          git add -A && git commit -qm pyprobe && git tag v1.0
+          git push -q "$RS/git/local/projekte/pyprobe.git" main --tags
+          sed -i 's/^buildable:$/buildable:\n  platforms: [windows\/amd64]/' /tmp/data/meta/local/projekte/pyprobe/repo.yaml
+          grep -A3 '^buildable:' /tmp/data/meta/local/projekte/pyprobe/repo.yaml
           # Runtime image project (T-9.19)
           /tmp/rs create webtool --data /tmp/data
           mkdir /tmp/webtool && cd /tmp/webtool && git init -q -b main
@@ -255,6 +263,11 @@ jobs:
           build local/projekte/probe capsule v1.0 v1.0
           build local/projekte/probe capsule-test v1.0 v1.0
           build local/projekte/probe "act:ci/hello"
+          build local/projekte/pyprobe capsule v1.0 v1.0
+          files=$(find /tmp/data/capsules -name '*.files.json' -path '*pyprobe*')
+          grep -o 'wheels-windows-amd64/[^"]*' $files | head -5
+          grep -q 'wheels-windows-amd64/[^"]*win_amd64.whl' $files
+          grep -q 'wheels-windows-amd64/VERSIONS.txt' $files
           build local/projekte/webtool image "" 1.0
           img=projekte-webtool-1.0.tar.gz
           curl -fs "$RS/builds/$id/artifact?name=$img" | gunzip | tar -t | grep -q manifest.json

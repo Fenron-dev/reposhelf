@@ -63,7 +63,7 @@ func TestImportLocalModel(t *testing.T) {
 	if err != nil || info.Files != 3 || info.ModelID != "" || !info.CanMove {
 		t.Fatalf("inspect = %+v, %v", info, err)
 	}
-	r, err := l.ImportFolder(ctx, ImportRequest{Path: src, Actor: "web"})
+	r, err := l.ImportFolder(ctx, ImportRequest{Path: src, Actor: "web", Wait: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func TestImportLocalModel(t *testing.T) {
 	// Move: second folder, same content (stored once), original to trash.
 	src2 := filepath.Join(t.TempDir(), "kokoro")
 	writeModel(t, src2)
-	r2, err := l.ImportFolder(ctx, ImportRequest{Path: src2, Move: true, Actor: "web"})
+	r2, err := l.ImportFolder(ctx, ImportRequest{Path: src2, Move: true, Actor: "web", Wait: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,6 +101,22 @@ func TestImportLocalModel(t *testing.T) {
 	files, _ := folderFiles(src) // the first original is still there
 	if missing, err := l.verifyImport(ctx, r2, files); err != nil || missing != 0 {
 		t.Errorf("verify = %d, %v", missing, err)
+	}
+
+	// A huge folder (e.g. C:\) is refused early (R-003).
+	old := maxFolderFiles
+	maxFolderFiles = 2
+	if _, err := l.InspectFolder(src); err == nil || !strings.Contains(err.Error(), "mehr als 2 Dateien") {
+		t.Errorf("huge folder = %v", err)
+	}
+	maxFolderFiles = old
+
+	// The data folder itself, or a folder around it, is refused (R-001).
+	if _, err := l.InspectFolder(l.Layout.Root); err == nil {
+		t.Error("data folder accepted")
+	}
+	if _, err := l.InspectFolder(filepath.Dir(l.Layout.Root)); err == nil {
+		t.Error("folder containing the data folder accepted")
 	}
 
 	// The check after a model's first sync: an extra file keeps the
@@ -153,6 +169,9 @@ func TestHFCacheFolder(t *testing.T) {
 	// what is missing (no network here: the sync is not started).
 	r, err := l.ImportFolder(context.Background(), ImportRequest{Path: snap, Actor: "web"})
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l.seedImport(context.Background(), r); err != nil { // the sync's first step
 		t.Fatal(err)
 	}
 	if !gitcli.HasLFS(r.Paths.Mirror, oid) || r.Upstream.Import == nil || r.Entry.Key != "huggingface.co/hexgrad/Kokoro-82M" {

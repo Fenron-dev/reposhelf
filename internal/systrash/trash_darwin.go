@@ -3,8 +3,11 @@
 package systrash
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"syscall"
 	"time"
@@ -47,11 +50,27 @@ func trashDir(path string) (string, error) {
 }
 
 func available(path string) bool {
+	if _, err := os.Stat(trashTool); err == nil {
+		return true
+	}
 	_, err := trashDir(path)
 	return err == nil
 }
 
+// trashTool is the system's trash command (macOS 15 and later): Finder's
+// trash with "Zurücklegen", also on other volumes (R-008).
+const trashTool = "/usr/bin/trash"
+
 func move(path string) error {
+	if _, err := os.Stat(trashTool); err == nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		defer cancel()
+		_ = exec.CommandContext(ctx, trashTool, path).Run()
+		if _, err := os.Lstat(path); errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		// Not moved (older tool, odd volume): try ourselves below.
+	}
 	t, err := trashDir(path)
 	if err != nil {
 		return err

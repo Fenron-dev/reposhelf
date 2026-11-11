@@ -198,6 +198,7 @@ func (l *Library) entry(ctx context.Context, r *Repo, withReadme bool) store.Ent
 	if b, err := os.ReadFile(filepath.Join(r.Paths.Meta, layout.NotesFile)); err == nil {
 		e.Notes = string(b)
 	}
+	e.Issues = l.issueText(r)
 	if withReadme && l.Git.HasCommits(ctx, r.Paths.Mirror) {
 		if _, b, err := l.Git.Readme(ctx, r.Paths.Mirror, "HEAD", readmeLimit); err == nil {
 			e.Readme = string(b)

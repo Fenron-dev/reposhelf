@@ -132,17 +132,21 @@ func (l *Library) Issues(ctx context.Context, ref string) ([]IssueSummary, error
 		have[mirrored[i].Number] = true
 	}
 	out := mirrored
+	// A local issue sent to the original shows as the mirrored one; its
+	// waiting changes go with it (R-005).
+	alias := map[string]string{}
 	for _, is := range readIssues(l.localIssuesDir(r)) {
-		// A local issue sent to the original shows as the mirrored one.
 		if is.Remote == 0 || !have[is.Remote] {
 			out = append(out, is)
+		} else {
+			alias[IssueRef{Local: true, Number: is.Number}.String()] = IssueRef{Number: is.Remote}.String()
 		}
 	}
 	pending := l.PendingIssues(r)
 	for i := range out {
 		ref := IssueRef{Local: out[i].Local, Number: out[i].Number}.String()
 		for _, op := range pending {
-			if op.Issue == ref {
+			if op.Issue == ref || alias[op.Issue] == ref {
 				out[i].Pending = append(out[i].Pending, op)
 			}
 		}
