@@ -26,6 +26,9 @@ Repos:
        --tags a,b   --collection x   --buildable   --no-releases   --issues   --wiki
        --actions           GitHub-Actions-Artefakte mitsichern (neueste Läufe, Anzahl: retention.actions_keep)
        --large             großes Hugging-Face-Modell bestätigen (über retention.ask_above_mb)
+  add <ordner>             Lokalen Ordner übernehmen (z. B. bereits geladenes Modell):
+       --model org/name    mit Hugging-Face-Modell verknüpfen (sonst aus dem HF-Cache erkannt
+                           oder rein lokal)   --move  Original danach in den Papierkorb
   create <name>            Eigenes Projekt nur in RepoShelf anlegen (--owner, --description)
   fork <repo>              Beschreibbare Kopie eines Spiegels anlegen (--name)
   sync <repo>… | --all | --due   Abgleichen (mit Sicherung vor Force-Pushes)

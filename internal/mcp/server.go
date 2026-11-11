@@ -446,6 +446,9 @@ type OKOut struct {
 }
 
 func (h *handlers) addRepo(ctx context.Context, _ *sdk.CallToolRequest, in AddIn) (*sdk.CallToolResult, OKOut, error) {
+	if core.IsLocalPath(in.URL) {
+		return nil, OKOut{}, fmt.Errorf("%w: lokale Ordner übernimmt nur der Mensch in RepoShelf", core.ErrForbidden)
+	}
 	kind := repometa.Kind(in.Kind)
 	if kind == "" {
 		kind = repometa.KindMirror

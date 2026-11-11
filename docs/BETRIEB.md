@@ -103,6 +103,16 @@ Agenten können das nicht. Beim Abgleich durchsucht RepoShelf den Code eines Pro
 Modelle“ mit einem Knopf zum Sichern. Für gesperrte Modelle (Zustimmung nötig) einen
 Token für `huggingface.co` unter „Zugänge“ hinterlegen.
 
+**Schon geladene Modelle übernehmen:** Statt eines Links einen Ordner angeben
+(`C:\Modelle\kokoro`, `\\nas\freigabe\modell`, `/Users/…`, `~/…`; D-033). Ordner aus
+dem Hugging-Face-Cache (`…/hub/models--org--name`) erkennt RepoShelf selbst; sonst die
+Modell-ID (`org/name`) eintragen oder leer lassen (rein lokales Modell unter
+`local/modelle/…`). Mit ID werden die vorhandenen Dateien übernommen und nur Fehlendes
+geladen; nach dem ersten Abgleich prüft RepoShelf jede Datei. „Kopieren“ lässt den
+Ordner unverändert, „Verschieben“ legt ihn nach der Prüfung in den Papierkorb des
+Systems (D-032). Nur am Rechner selbst, nicht übers Netz oder per MCP. CLI:
+`reposhelf add <ordner> [--model org/name] [--move]`.
+
 **Achtung Speicher:** „Releases mitsichern“ lädt die Dateien der neuesten
 Releases (Standard: 5) – bei Projekten mit vielen Plattform-Builds können das
 schnell Hunderte MB sein. Einstellbar global, je Sammlung und je Repo.

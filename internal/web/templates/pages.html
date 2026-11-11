@@ -2,8 +2,8 @@
 <div class="dialog-page">
 <form method="post" action="/add" class="card dialog stack" id="add-form">
   <h1>Repo hinzufügen</h1>
-  <label for="url">Link zum Repository</label>
-  <input id="url" name="url" type="url" required value="{{$d.URL}}" placeholder="https://github.com/owner/name" autofocus
+  <label for="url">Link zum Repository oder lokaler Ordner</label>
+  <input id="url" name="url" type="text" required value="{{$d.URL}}" placeholder="https://github.com/owner/name oder C:\Modelle\kokoro" autofocus spellcheck="false" autocomplete="off"
          hx-get="/add/preview" hx-trigger="input changed delay:600ms, load" hx-target="#preview" hx-include="this" hx-params="url" hx-indicator="#preview-spin">
   <div id="preview" aria-live="polite">{{template "add-preview" $d}}</div>
   <span id="preview-spin" class="htmx-indicator small muted">Prüfe Link …</span>
@@ -79,6 +79,20 @@
 
 {{define "add-preview"}}
 {{if .Error}}<div class="alert alert-error small" role="alert">{{.Error}}</div>
+{{else if .Folder}}{{with .Folder}}
+<div class="preview card-inset stack">
+  <div><span class="status status-ok">● Lokaler Ordner</span> <span class="mono">{{.Root}}</span></div>
+  <div class="small muted">{{.Files}} Dateien, {{size .Size}}{{if ne .Dir .Root}} · aus <span class="mono">{{.Dir}}</span>{{end}}</div>
+  <label>Modell-ID auf Hugging Face <input name="model_id" class="mono" value="{{.ModelID}}" placeholder="org/name – leer: nur lokal" spellcheck="false"></label>
+  <p class="small muted">{{if .ModelID}}Aus dem Hugging-Face-Cache erkannt. {{end}}Mit ID wird das Modell mit dem Original verknüpft: vorhandene Dateien werden übernommen, nur Fehlendes wird geladen. Ohne ID wird es ein rein lokales Modell.</p>
+  <fieldset class="options"><legend>Original-Ordner</legend>
+    <label class="option"><input type="radio" name="folder_mode" value="copy" checked> <span><strong>Kopieren</strong><small>Der Ordner bleibt, wie er ist.</small></span></label>
+    {{if .CanMove}}<label class="option"><input type="radio" name="folder_mode" value="move"> <span><strong>Verschieben</strong><small>Nach geprüfter Übernahme kommt das Original in den Papierkorb des Systems – wiederherstellbar.</small></span></label>
+    {{else}}<p class="small muted">Verschieben geht hier nicht (kein Papierkorb für diesen Ort).</p>{{end}}
+  </fieldset>
+  <p class="small muted">Von den Angaben weiter unten gelten bei Ordnern nur die Schlagwörter.</p>
+</div>
+{{end}}
 {{else if .Preview}}{{with .Preview}}
 <div class="preview card-inset">
   {{if .Existing}}<div class="alert alert-error small">Schon vorhanden: <a href="/repo/{{.Existing.ID}}">{{.Existing.Key}}</a></div>{{end}}

@@ -56,6 +56,8 @@ type Upstream struct {
 	ForwardError string     `json:"forward_error,omitempty"`
 	// Models are Hugging Face model IDs the code refers to (T-9.11).
 	Models []string `json:"models,omitempty"`
+	// Import is a local folder taken over, checked after the first sync.
+	Import *ImportState `json:"import,omitempty"`
 }
 
 // MetaChange keeps metadata as it was before a change upstream.

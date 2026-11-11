@@ -119,6 +119,9 @@ type AddRequest struct {
 	// ConfirmLarge confirms downloading a model above the size limit
 	// (D-025). Agents cannot set it: a person decides.
 	ConfirmLarge bool
+	// seed fills the new repository before its first sync (files of a
+	// local folder, T-9.17).
+	seed func(*Repo) error
 }
 
 // ErrTooLarge is returned when a large download needs a confirmation.
@@ -191,6 +194,11 @@ func (l *Library) Add(ctx context.Context, req AddRequest) (*Repo, error) {
 		return nil, err
 	}
 	l.Record(Activity{Actor: actorOr(req.Actor), Action: "add", RepoID: r.ID, Detail: r.Source.URL})
+	if req.seed != nil {
+		if err := req.seed(repo); err != nil {
+			return repo, fmt.Errorf("ordner übernehmen: %w", err)
+		}
+	}
 	if req.Wait {
 		if _, err := l.Sync(ctx, r.ID, actorOr(req.Actor)); err != nil {
 			return repo, err

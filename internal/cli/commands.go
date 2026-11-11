@@ -192,6 +192,8 @@ func runAdd(args []string, sys system) int {
 	wiki := fset.Bool("wiki", false, "")
 	actions := fset.Bool("actions", false, "")
 	large := fset.Bool("large", false, "")
+	model := fset.String("model", "", "")
+	move := fset.Bool("move", false, "")
 	pos, code, ok := parseArgs(fset, args, 1, -1, sys)
 	if !ok {
 		return code
@@ -205,6 +207,22 @@ func runAdd(args []string, sys system) int {
 	defer lib.Close()
 	exit := ExitOK
 	for _, url := range pos {
+		if core.IsLocalPath(url) {
+			fmt.Fprintf(sys.stdout, msgAdding, url)
+			r, err := lib.ImportFolder(ctx, core.ImportRequest{Path: url, ModelID: *model, Move: *move, Tags: splitList(*tags), Actor: "cli", Wait: true})
+			if err != nil {
+				fmt.Fprintln(sys.stderr, errText(err))
+				exit = ExitError
+				if r == nil {
+					continue
+				}
+			}
+			if r, _ = lib.Get(ctx, r.R().ID); r.Upstream.Import != nil && r.Upstream.Import.Note != "" {
+				fmt.Fprintln(sys.stdout, r.Upstream.Import.Note)
+			}
+			fmt.Fprintf(sys.stdout, msgAdded, r.Entry.Key, statusLabel(r.Status()), humanSize(r.Upstream.Stats.SizeBytes))
+			continue
+		}
 		req := core.AddRequest{URL: url, Kind: repometa.Kind(*kind), Mode: repometa.SyncMode(*mode),
 			Tags: splitList(*tags), Collections: splitList(*coll), Buildable: *buildable, Actor: "cli", Wait: true, ConfirmLarge: *large}
 		if *interval != "" {

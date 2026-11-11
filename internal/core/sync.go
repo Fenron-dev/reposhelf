@@ -105,6 +105,7 @@ func (l *Library) Sync(ctx context.Context, ref, actor string) (SyncReport, erro
 		}
 		r.Upstream.DeletedUpstream = rep.Mirror.Deleted
 		rep.Notes = append(rep.Notes, l.syncExtras(ctx, r, auth, &rep)...)
+		l.finishImport(ctx, r)
 	} else {
 		msg := rep.Err.Error()
 		cr.Sync.LastError = &msg
