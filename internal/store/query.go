@@ -43,6 +43,8 @@ type Entry struct {
 
 	// Only for the full-text index; not returned by queries.
 	Readme, Notes string
+	// Issues is the text of the repository's issues (search only, T-9.20).
+	Issues string
 }
 
 // Edge is a relation from one repository to another (KONZEPT 6.7).

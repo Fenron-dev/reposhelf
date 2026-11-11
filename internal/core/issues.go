@@ -243,14 +243,44 @@ func (l *Library) changeIssue(ctx context.Context, ref string, is IssueRef, acto
 	return nil
 }
 
-// afterIssueChange sends at once when the repository's switch is on.
+// afterIssueChange sends at once when the repository's switch is on and
+// updates the search index.
 func (l *Library) afterIssueChange(ctx context.Context, r *Repo) {
 	if r.R().Sync.IssuesUpstream && l.canSendIssues(r) {
 		ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), sendTimeout)
 		defer cancel()
 		_, _, _ = l.SendIssues(ctx, r.R().ID, "issues-upstream")
 	}
+	l.refreshEntry(ctx, r)
 	l.events.publish(Event{Kind: "repo", RepoID: r.R().ID})
+}
+
+// refreshEntry updates the index entry (issues are searchable, T-9.20).
+func (l *Library) refreshEntry(ctx context.Context, r *Repo) {
+	r.Entry = l.entry(ctx, r, true)
+	if err := l.Store.Upsert(ctx, r.Entry); err != nil {
+		l.Log.Warn("index after issue change", "repo", r.R().ID, "err", err)
+	}
+}
+
+// maxIssueText bounds the issue text per repository in the index.
+const maxIssueText = 512 << 10
+
+// issueText joins titles and texts of all issues for the search index.
+func (l *Library) issueText(r *Repo) string {
+	var b strings.Builder
+	for _, dir := range []string{l.issuesDir(r), l.localIssuesDir(r)} {
+		for _, is := range readIssues(dir) {
+			if b.Len() > maxIssueText {
+				return b.String()
+			}
+			b.WriteString(is.Title)
+			b.WriteString("\n")
+			b.WriteString(is.Body)
+			b.WriteString("\n")
+		}
+	}
+	return b.String()
 }
 
 // PendingIssues returns the changes waiting to be sent.
@@ -305,6 +335,7 @@ func (l *Library) SendIssues(ctx context.Context, ref, actor string) (sent, fail
 			}
 		}
 		unlock()
+		l.refreshEntry(ctx, r)
 	}
 	l.events.publish(Event{Kind: "repo", RepoID: r.R().ID})
 	return sent, failed, nil

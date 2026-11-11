@@ -44,6 +44,7 @@ func TestReplaceListGet(t *testing.T) {
 	fero.Collections = []string{"fundus"}
 	fero.Description = "Medien beschaffen und ordnen"
 	fero.Readme = "Fero lädt Bücher herunter"
+	fero.Issues = "Absturz beim Zwischenspeichern"
 	fero.Relations = []Edge{{To: "github.com/Fenron-dev/Fundus2", Type: "delivers_to", State: "confirmed"}}
 	fundus := entry("01BBBBBBBBBBBBBBBBBBBBBBBB", "Fenron-dev", "Fundus2")
 	fundus.Tags = []string{"medien"}
@@ -93,8 +94,9 @@ func TestReplaceListGet(t *testing.T) {
 	check(Query{License: "none"}, "Fero", "tool")
 	check(Query{License: "MIT"}, "Fundus2")
 	check(Query{Text: "bücher"}, "Fero")
-	check(Query{Text: "buch"}, "Fero")     // prefix, diacritics removed
-	check(Query{Text: "beschaff"}, "Fero") // tag words are searchable
+	check(Query{Text: "buch"}, "Fero")              // prefix, diacritics removed
+	check(Query{Text: "beschaff"}, "Fero")          // tag words are searchable
+	check(Query{Text: "zwischenspeichern"}, "Fero") // issue text (T-9.20)
 	check(Query{Text: `fero") (`}, "Fero")
 	check(Query{Text: "NEAR( *"})
 
@@ -180,7 +182,9 @@ func TestOutdatedIndexIsRecreated(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := db.Exec(`UPDATE info SET value = '0' WHERE key = 'schema'`); err != nil {
+	// An index of version 1 (no issue column) is rebuilt, not migrated:
+	// it is derived from the files (invariant 6).
+	if _, err := db.Exec(`UPDATE info SET value = '1' WHERE key = 'schema'`); err != nil {
 		t.Fatal(err)
 	}
 	db.Close()
