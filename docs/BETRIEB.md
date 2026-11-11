@@ -205,6 +205,12 @@ baubarer Repos wird automatisch eine Kapsel angelegt (mit Bestätigung, falls
 eingestellt). Builds von Agenten (MCP) warten immer auf deine Bestätigung, wenn
 „Jeden Build bestätigen“ an ist.
 
+**Python-Pakete für andere Rechner (D-026):** In den Repo-Einstellungen unter „Baubar
+halten“ wählst du, für welche Plattformen die Pakete zusätzlich gesichert werden (Linux,
+Windows, macOS; vorgeschlagen: dieser Rechner und Linux). Ohne „CUDA-Varianten“ wird
+PyTorch in der viel kleineren CPU-Fassung gesichert. Jede Plattform bekommt eine genaue
+Versionsliste (`VERSIONS.txt`); fehlt ein Paket für eine Plattform, steht das im Log.
+
 ## 7. Abgleich zwischen Instanzen
 
 „Abgleich“ in der Seitenleiste. Auf Instanz A „Kopplungscode anzeigen“, auf

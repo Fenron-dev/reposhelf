@@ -15,6 +15,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"sort"
 	"strconv"
@@ -237,7 +238,9 @@ type repoData struct {
 	NoteLinks   []string
 	Job         core.JobState
 	Models      []core.ModelRef
-	HF          *core.HFUsage
+	// Platforms offers the Python package platforms (D-026).
+	Platforms []platformOpt
+	HF        *core.HFUsage
 }
 
 type crumb struct{ Name, URL string }
@@ -274,6 +277,7 @@ func (s *Server) baseRepoData(r *http.Request, repo *core.Repo) repoData {
 	d.HasBuilds = s.Ext.Builds != nil
 	d.NoteLinks = s.Lib.NoteBacklinks(r.Context(), repo.R().ID)
 	d.Models = s.Lib.ModelsOf(r.Context(), repo)
+	d.Platforms = platformOpts(repo.R().Buildable.Platforms)
 	if u, ok := s.Lib.HFUsageOf(repo); ok {
 		d.HF = &u
 	}
@@ -614,6 +618,10 @@ func (s *Server) repoSettings(w http.ResponseWriter, r *http.Request) {
 		Buildable:      f.Get("buildable") == "on",
 		PushUpstream:   f.Get("push_upstream") == "on",
 		IssuesUpstream: f.Get("issues_upstream") == "on",
+		CUDA:           f.Get("cuda") == "on",
+	}
+	if f.Get("platforms_sent") != "" {
+		set.Platforms = append([]string{}, f["platform"]...) // none chosen: empty, not "keep"
 	}
 	if v := f.Get("interval"); v != "" && set.Mode == repometa.SyncFollow {
 		d, err := repometa.ParseDuration(v)
@@ -1452,3 +1460,24 @@ func ServeFileSafe(w http.ResponseWriter, r *http.Request, root, rel string) {
 }
 
 var _ = layout.DirRepos
+
+type platformOpt struct {
+	Value, Label string
+	Checked      bool
+}
+
+var platformLabels = map[string]string{"linux/amd64": "Linux (x86, z. B. Unraid)", "linux/arm64": "Linux (ARM)",
+	"windows/amd64": "Windows", "darwin/arm64": "macOS (Apple-Chip)", "darwin/amd64": "macOS (Intel)"}
+
+// platformOpts lists the platforms; with none chosen yet, this computer's
+// and linux/amd64 are proposed (D-026).
+func platformOpts(chosen []string) []platformOpt {
+	if len(chosen) == 0 {
+		chosen = []string{"linux/amd64", runtime.GOOS + "/" + runtime.GOARCH}
+	}
+	var out []platformOpt
+	for _, p := range repometa.PythonPlatforms {
+		out = append(out, platformOpt{Value: p, Label: platformLabels[p], Checked: slices.Contains(chosen, p)})
+	}
+	return out
+}

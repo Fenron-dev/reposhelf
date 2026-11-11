@@ -162,6 +162,15 @@ func TestForms(t *testing.T) {
 	if r, _ := e.lib.Get(context.Background(), id); !r.R().Include.Actions || *r.R().Retention.ActionsKeep != 2 {
 		t.Errorf("actions settings not saved: %+v", r.R().Retention)
 	}
+	e.post("/repo/"+id+"/settings", url.Values{"kind": {"mirror"}, "mode": {"follow"}, "interval": {"12h"}, "buildable": {"on"},
+		"platforms_sent": {"1"}, "platform": {"windows/amd64", "linux/amd64"}, "cuda": {"on"}}, 303)
+	if r, _ := e.lib.Get(context.Background(), id); len(r.R().Buildable.Platforms) != 2 || !r.R().Buildable.CUDA {
+		t.Errorf("python platforms not saved: %+v", r.R().Buildable)
+	}
+	e.post("/repo/"+id+"/settings", url.Values{"kind": {"mirror"}, "mode": {"follow"}, "interval": {"12h"}, "platforms_sent": {"1"}}, 303)
+	if r, _ := e.lib.Get(context.Background(), id); len(r.R().Buildable.Platforms) != 0 {
+		t.Errorf("platforms not cleared: %+v", r.R().Buildable)
+	}
 	e.get("/repo/"+id+"?tab=versions", 200)
 	e.post("/collections/_new", url.Values{"name": {"Fundus Ökosystem"}, "color": {"#44aa99"}}, 303)
 	e.post("/repo/"+id+"/collections", url.Values{"collection": {"fundus-oekosystem"}}, 303)

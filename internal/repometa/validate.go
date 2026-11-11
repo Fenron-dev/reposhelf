@@ -94,6 +94,11 @@ func (r *Repo) Validate() error {
 	v.relations(r)
 	v.retention(r.Retention)
 
+	for _, p := range r.Buildable.Platforms {
+		if !slices.Contains(PythonPlatforms, p) {
+			v.addf("buildable.platforms", "unknown platform %q (allowed: %s)", p, strings.Join(PythonPlatforms, ", "))
+		}
+	}
 	if r.Buildable.CapsulesKeep != nil && *r.Buildable.CapsulesKeep < 0 {
 		v.add("buildable.capsules_keep", "must not be negative")
 	}

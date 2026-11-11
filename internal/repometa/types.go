@@ -183,7 +183,15 @@ type Buildable struct {
 	Enabled bool `yaml:"enabled"`
 	// CapsulesKeep: null = inherit.
 	CapsulesKeep *int `yaml:"capsules_keep"`
+	// Platforms the Python packages are kept for besides the build
+	// container's own (D-026), e.g. windows/amd64, darwin/arm64.
+	Platforms []string `yaml:"platforms,omitempty,flow"`
+	// CUDA keeps GPU builds of PyTorch & Co. (large); off: CPU builds.
+	CUDA bool `yaml:"cuda,omitempty"`
 }
+
+// PythonPlatforms are the platforms Python packages can be kept for.
+var PythonPlatforms = []string{"linux/amd64", "linux/arm64", "windows/amd64", "darwin/arm64", "darwin/amd64"}
 
 // License is the detected license of the repository.
 type License struct {

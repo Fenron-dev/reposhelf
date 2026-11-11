@@ -342,6 +342,11 @@
     <label class="check"><input type="checkbox" name="wiki" {{if $r.Include.Wiki}}checked{{end}}> Wiki</label>
     <label class="check"><input type="checkbox" name="actions" {{if $r.Include.Actions}}checked{{end}}> GitHub-Actions-Artefakte</label>
     <label class="check"><input type="checkbox" name="buildable" {{if $r.Buildable.Enabled}}checked{{end}}> Baubar halten (Build-Kapseln)</label>
+    <div class="small stack" style="margin-left: 26px">
+      <span class="muted">Python-Pakete zusätzlich sichern für:</span><input type="hidden" name="platforms_sent" value="1">
+      <div class="row-wrap">{{range .Platforms}}<label class="check"><input type="checkbox" name="platform" value="{{.Value}}" {{if .Checked}}checked{{end}}> {{.Label}}</label>{{end}}</div>
+      <label class="check"><input type="checkbox" name="cuda" {{if $r.Buildable.CUDA}}checked{{end}}> CUDA-Varianten (Grafikkarte; PyTorch dann mehrere GB)</label>
+    </div>
   </fieldset>
   <fieldset><legend>Status festlegen</legend>
     <select name="override" aria-label="Status">
