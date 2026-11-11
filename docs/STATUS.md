@@ -153,6 +153,8 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | R-006 | SendIssues hält eine globale Sperre während der Netzaufrufe: Issue-Änderungen aller Repos warten | `internal/core/issues.go` issueMu | gering | erledigt `9364dc0` | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
 | R-007 | PutLFS ersetzt ein vorhandenes Objekt per Rename; unter Windows scheitert das am schreibgeschützten Ziel | `internal/gitcli/commitfiles.go` PutLFS | gering | erledigt `9364dc0` | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
 | R-008 | macOS: Papierkorb per Umbenennen ohne „Zurücklegen“; `/usr/bin/trash` (ab macOS 15) nutzen | `internal/systrash/trash_darwin.go` | Hinweis | erledigt `9364dc0` | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
+| R-009 | Kapsel: Der Build-Container (root) legt `.reposhelf-capsule/` in der Arbeitskopie an; das Toolchain-Image konnte danach dort nicht abgelegt werden (Python, Prüflauf v0.5.1) | `internal/runner/capsule.go` saveToolchain | mittel | in Arbeit (Claude Code) | Prüflauf `smoke.yml` · 2026-11-11 | T-9.12 |
+| R-010 | Nach jedem Push schreibt `refreshStats` `repo.yaml` neu, obwohl sich nur Statistik (upstream.json) ändert – eine gleichzeitige Handänderung geht verloren | `internal/core/sync.go` refreshStats | gering | in Arbeit (Claude Code) | Claude Code · 2026-11-11 | Invariante 6 |
 
 ---
 

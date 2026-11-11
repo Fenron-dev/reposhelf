@@ -236,8 +236,11 @@ jobs:
           echo "markupsafe" > requirements.txt
           git add -A && git commit -qm pyprobe && git tag v1.0
           git push -q "$RS/git/local/projekte/pyprobe.git" main --tags
-          sed -i 's/^buildable:$/buildable:\n  platforms: [windows\/amd64]/' /tmp/data/meta/local/projekte/pyprobe/repo.yaml
-          grep -A3 '^buildable:' /tmp/data/meta/local/projekte/pyprobe/repo.yaml
+          sleep 3   # the push refreshes repo.yaml in the background
+          pid=$(curl -fsS "$RS/api/repos?q=pyprobe" | jq -r '.[0].ID')
+          curl -fsS -o /dev/null -H "Origin: $RS" --data "kind=own&mode=manual&buildable=on&platforms_sent=1&platform=windows%2Famd64" "$RS/repo/$pid/settings"
+          grep -A4 '^buildable:' /tmp/data/meta/local/projekte/pyprobe/repo.yaml
+          grep -q 'windows/amd64' /tmp/data/meta/local/projekte/pyprobe/repo.yaml
           # Runtime image project (T-9.19)
           /tmp/rs create webtool --data /tmp/data
           mkdir /tmp/webtool && cd /tmp/webtool && git init -q -b main

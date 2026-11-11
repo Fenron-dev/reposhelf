@@ -264,10 +264,9 @@ func (m *Manager) saveToolchain(ctx context.Context, work, image string, log io.
 		}
 	}
 	name := artifact.ToolchainDir + strings.TrimPrefix(id, "sha256:")[:16] + ".tar"
-	tar := filepath.Join(work, filepath.FromSlash(name))
-	if err := os.MkdirAll(filepath.Dir(tar), 0o755); err != nil {
-		return artifact.File{}, "", err
-	}
+	// Next to the checkout, not inside: the build container (root) may own
+	// the capsule folder in the checkout (R-009).
+	tar := filepath.Join(filepath.Dir(work), "toolchain-"+strings.TrimPrefix(id, "sha256:")[:16]+".tar")
 	if err := m.command(ctx, log, "", m.Docker, "save", "-o", tar, image); err != nil {
 		return artifact.File{}, "", err
 	}

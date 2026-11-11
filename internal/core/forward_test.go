@@ -4,6 +4,7 @@ package core
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -51,9 +52,18 @@ func TestForwardPush(t *testing.T) {
 		return strings.TrimSpace(string(out))
 	}
 
-	// Off by default: nothing leaves RepoShelf.
+	// Off by default: nothing leaves RepoShelf. repo.yaml is not rewritten
+	// after a push (a hand edit made meanwhile survives, R-010).
 	c1 := push("eins")
+	yamlBefore, _ := os.ReadFile(r.Paths.RepoFile)
+	stBefore, _ := os.Stat(r.Paths.RepoFile)
 	l.RefreshAfterPush(ctx, id, "git:me")
+	if after, _ := os.ReadFile(r.Paths.RepoFile); string(after) != string(yamlBefore) {
+		t.Error("repo.yaml changed by a push")
+	}
+	if st, _ := os.Stat(r.Paths.RepoFile); !st.ModTime().Equal(stBefore.ModTime()) {
+		t.Error("repo.yaml rewritten by a push")
+	}
 	if head() == c1 {
 		t.Fatal("push forwarded although switched off")
 	}
