@@ -69,6 +69,19 @@ func TestIssuesToOriginal(t *testing.T) {
 	if len(list) != 2 {
 		t.Errorf("issues after send = %+v", list)
 	}
+	// A new change to L<n> waits under #2 where it is visible (R-005).
+	if err := l.CommentIssue(ctx, id, IssueRef{Local: true, Number: n}, "Nachtrag", "web"); err != nil {
+		t.Fatal(err)
+	}
+	list, _ = l.Issues(ctx, id)
+	for _, is := range list {
+		if is.Number == 2 && !is.Local && len(is.Pending) != 1 {
+			t.Errorf("#2 pending = %+v", is.Pending)
+		}
+	}
+	if _, _, err := l.SendIssues(ctx, id, "web"); err != nil || len(f.Issues["me/tool"][1].Comments) != 1 {
+		t.Errorf("Nachtrag not sent: %v %+v", err, f.Issues["me/tool"][1])
+	}
 
 	// Switch on: changes go out at once.
 	s := Settings{Kind: repometa.KindOwn, Mode: repometa.SyncManual, Include: inc, IssuesUpstream: true}

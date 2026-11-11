@@ -104,8 +104,9 @@ func (l *Library) exportHF(ctx context.Context, r *Repo) (int, error) {
 				if err := os.Chmod(obj, 0o444); err != nil {
 					return 0, err
 				}
-				if err := os.Link(obj, dst); err != nil {
-					return 0, fmt.Errorf("%s: %w", rel, err)
+				if err := linkFile(obj, dst); err != nil {
+					_ = removeTree(tmp)
+					return 0, err
 				}
 				continue
 			}
@@ -166,12 +167,30 @@ func removeTree(p string) error {
 	return err
 }
 
+// ErrNoLinks: the data folder's file system has no hard links (exFAT,
+// FAT – a USB stick); the model folder would need a second copy (R-004).
+var ErrNoLinks = errors.New("der Datenträger kann keine Verweise (Hardlinks, z. B. exFAT) – Modell-Ordner für Programme nicht angelegt; das Modell lässt sich weiter klonen")
+
+// linkFile hard-links; "not supported" becomes ErrNoLinks.
+var linkFile = func(src, dst string) error {
+	err := os.Link(src, dst)
+	if err == nil {
+		return nil
+	}
+	var le *os.LinkError
+	if errors.As(err, &le) && (errors.Is(le.Err, errors.ErrUnsupported) || isNoLinkErr(le.Err)) {
+		return ErrNoLinks
+	}
+	return err
+}
+
 // HFUsage describes how a program finds a model kept here.
 type HFUsage struct {
 	Home    string // HF_HOME
 	Dir     string // the model's folder
 	Ready   bool   // a snapshot exists
 	ModelID string
+	Note    string // why there is none (e.g. no hard links)
 }
 
 // HFUsageOf returns how to use a mirrored model, ok false for other repos.
@@ -181,5 +200,6 @@ func (l *Library) HFUsageOf(r *Repo) (HFUsage, bool) {
 		return HFUsage{}, false
 	}
 	_, err := os.Stat(filepath.Join(dir, "refs", "main"))
-	return HFUsage{Home: l.HFHome(), Dir: dir, Ready: err == nil, ModelID: r.R().Source.Owner + "/" + r.R().Source.Name}, true
+	return HFUsage{Home: l.HFHome(), Dir: dir, Ready: err == nil, ModelID: r.R().Source.Owner + "/" + r.R().Source.Name,
+		Note: r.Upstream.ExportNote}, true
 }

@@ -56,7 +56,17 @@ func (l *Library) Sync(ctx context.Context, ref, actor string) (SyncReport, erro
 	ctx, cancel := context.WithTimeout(ctx, syncTimeout)
 	defer cancel()
 
+	if im := r.Upstream.Import; im != nil && !im.Seeded {
+		if err := l.seedImport(ctx, r); err != nil {
+			im.Note, im.Done = "Übernahme fehlgeschlagen: "+err.Error(), true
+			_ = writeUpstream(r.Paths.Meta, r.Upstream)
+			return rep, fmt.Errorf("ordner übernehmen: %w", err)
+		}
+	}
 	if r.R().Source.Host == repometa.LocalHost {
+		if im := r.Upstream.Import; im != nil && !im.Done {
+			l.finishImport(ctx, r)
+		}
 		l.refreshStats(ctx, r)
 		rep.Status = StatusLocal
 		return rep, nil
@@ -107,9 +117,11 @@ func (l *Library) Sync(ctx context.Context, ref, actor string) (SyncReport, erro
 		rep.Notes = append(rep.Notes, l.syncExtras(ctx, r, auth, &rep)...)
 		l.finishImport(ctx, r)
 		l.progress(id, "Für Programme bereitstellen", -1)
-		if missing, err := l.exportHF(ctx, r); err != nil {
+		if missing, err := l.exportHF(ctx, r); errors.Is(err, ErrNoLinks) {
+			r.Upstream.ExportNote = err.Error()
+		} else if err != nil {
 			rep.Notes = append(rep.Notes, "Modell-Ordner: "+err.Error())
-		} else if missing > 0 {
+		} else if r.Upstream.ExportNote = ""; missing > 0 {
 			rep.Notes = append(rep.Notes, fmt.Sprintf("Modell-Ordner: %d große Dateien fehlen noch (Git LFS)", missing))
 		}
 	} else {

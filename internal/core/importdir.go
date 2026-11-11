@@ -30,6 +30,10 @@ import (
 // becomes a local model repository. "Verschieben" puts the original into
 // the system trash once every file is verifiably in RepoShelf.
 
+// maxFolderFiles bounds a folder to take over: a model has tens to
+// thousands of files; "C:\\" or a home folder is a typing mistake (R-003).
+var maxFolderFiles = 20000
+
 // lfsMinSize: smaller files are ordinary git blobs (Hugging Face itself
 // stores files from 10 MB in LFS; smaller binaries stay small enough).
 const lfsMinSize = 1 << 20
@@ -112,6 +116,9 @@ func (l *Library) InspectFolder(input string) (FolderInfo, error) {
 	if !st.IsDir() {
 		return FolderInfo{}, fmt.Errorf("%w: %s ist kein Ordner", ErrInvalid, p)
 	}
+	if err := l.notDataFolder(p); err != nil {
+		return FolderInfo{}, err
+	}
 	info := FolderInfo{Path: p, Root: p, Dir: p}
 	// Hugging Face cache: models--org--name, its snapshots/ or one snapshot.
 	for _, dir := range []string{p, filepath.Dir(p), filepath.Dir(filepath.Dir(p))} {
@@ -134,6 +141,27 @@ func (l *Library) InspectFolder(input string) (FolderInfo, error) {
 	}
 	info.CanMove = trashAvailable(info.Root)
 	return info, nil
+}
+
+// notDataFolder refuses folders that are, contain or lie inside the data
+// folder: the archive would be copied into itself, and "Verschieben"
+// would put it into the trash (R-001).
+func (l *Library) notDataFolder(p string) error {
+	resolve := func(s string) string {
+		if r, err := filepath.EvalSymlinks(s); err == nil {
+			return r
+		}
+		return s
+	}
+	data, dir := resolve(l.Layout.Root), resolve(p)
+	inside := func(child, parent string) bool {
+		rel, err := filepath.Rel(parent, child)
+		return err == nil && (rel == "." || filepath.IsLocal(rel))
+	}
+	if inside(dir, data) || inside(data, dir) {
+		return fmt.Errorf("%w: %s enthält den RepoShelf-Datenordner oder liegt darin", ErrInvalid, p)
+	}
+	return nil
 }
 
 // hfSnapshot picks the snapshot of a Hugging Face cache folder: the one
@@ -213,6 +241,9 @@ func folderFiles(dir string) ([]folderFile, error) {
 		if err != nil || !st.Mode().IsRegular() {
 			return nil
 		}
+		if len(out) >= maxFolderFiles {
+			return fmt.Errorf("%w: mehr als %d Dateien – bitte den Ordner des Modells selbst wählen", ErrInvalid, maxFolderFiles)
+		}
 		rel, _ := filepath.Rel(dir, p)
 		out = append(out, folderFile{rel: filepath.ToSlash(rel), abs: abs, size: st.Size(), exec: st.Mode().Perm()&0o111 != 0})
 		return nil
@@ -233,7 +264,9 @@ type ImportRequest struct {
 	Wait  bool
 }
 
-// ImportFolder takes over a local folder (D-032, D-033).
+// ImportFolder takes over a local folder (D-032, D-033). The repository
+// is created at once; copying, checking and moving run in its first sync
+// (background job with progress, or right away with Wait).
 func (l *Library) ImportFolder(ctx context.Context, req ImportRequest) (*Repo, error) {
 	info, err := l.InspectFolder(req.Path)
 	if err != nil {
@@ -250,70 +283,65 @@ func (l *Library) ImportFolder(ctx context.Context, req ImportRequest) (*Repo, e
 	if id != "" && !modelIDRe.MatchString(id) {
 		return nil, fmt.Errorf("%w: Modell-ID %q (erwartet org/name)", ErrInvalid, id)
 	}
-	files, err := folderFiles(info.Dir)
-	if err != nil {
-		return nil, err
-	}
+	state := &ImportState{From: info.Root, Dir: info.Dir, Move: req.Move}
+	var r *Repo
 	if id != "" {
-		return l.importHubModel(ctx, req, info, id, files)
+		r, err = l.Add(ctx, AddRequest{URL: "https://" + sources.HuggingFaceHost + "/" + id, Tags: req.Tags, Actor: req.Actor,
+			ConfirmLarge: true, Wait: req.Wait, seed: func(r *Repo) error {
+				r.Upstream.Import = state
+				return writeUpstream(r.Paths.Meta, r.Upstream)
+			}})
+	} else {
+		r, err = l.CreateLocal(ctx, localModelsOwner, sanitizeName(filepath.Base(info.Root)), "Modell aus "+info.Root, append(req.Tags, "modell"), req.Actor)
+		if err == nil {
+			r, err = l.Update(ctx, r.R().ID, func(rr *repometa.Repo) error { rr.Include.LFS = true; return nil })
+		}
+		if err == nil {
+			r.Upstream.Import = state
+			err = writeUpstream(r.Paths.Meta, r.Upstream)
+		}
+		if err == nil {
+			if req.Wait {
+				_, err = l.Sync(ctx, r.R().ID, actorOr(req.Actor))
+			} else {
+				l.Enqueue(r.R().ID, r.Entry.Key, actorOr(req.Actor))
+			}
+		}
 	}
-	return l.importLocalModel(ctx, req, info, files)
+	if r != nil {
+		l.Record(Activity{Actor: actorOr(req.Actor), Action: "import-folder", RepoID: r.R().ID, Detail: info.Root})
+		if got, gerr := l.Get(ctx, r.R().ID); gerr == nil {
+			r = got
+		}
+	}
+	return r, err
 }
 
-// importHubModel mirrors the model from the Hub with the local files as
-// a head start.
-func (l *Library) importHubModel(ctx context.Context, req ImportRequest, info FolderInfo, id string, files []folderFile) (*Repo, error) {
-	r, err := l.Add(ctx, AddRequest{URL: "https://" + sources.HuggingFaceHost + "/" + id, Tags: req.Tags, Actor: req.Actor,
-		ConfirmLarge: true, Wait: req.Wait, seed: func(r *Repo) error {
-			for _, f := range files {
-				if f.size >= lfsMinSize {
-					if _, _, err := gitcli.StoreLFS(r.Paths.Mirror, f.abs, req.Move); err != nil {
-						return fmt.Errorf("%s: %w", f.rel, err)
-					}
+// seedImport is the first part of a folder taken over, run by the sync:
+// a Hub model gets the local files into its LFS store (the fetch then only
+// loads what is missing); a local model becomes one commit.
+func (l *Library) seedImport(ctx context.Context, r *Repo) error {
+	im := r.Upstream.Import
+	files, err := folderFiles(im.Dir)
+	if err != nil {
+		return err
+	}
+	if r.R().Source.Host == repometa.LocalHost {
+		if err := l.commitFolder(ctx, r, files, im.Move, "Übernommen aus "+im.From); err != nil {
+			return err
+		}
+	} else {
+		for i, f := range files {
+			l.progress(r.R().ID, fmt.Sprintf("Ordner übernehmen %d/%d", i+1, len(files)), (i*100)/len(files))
+			if f.size >= lfsMinSize {
+				if _, _, err := gitcli.StoreLFS(r.Paths.Mirror, f.abs, im.Move); err != nil {
+					return fmt.Errorf("%s: %w", f.rel, err)
 				}
 			}
-			r.Upstream.Import = &ImportState{From: info.Root, Dir: info.Dir, Move: req.Move}
-			return writeUpstream(r.Paths.Meta, r.Upstream)
-		}})
-	if err != nil {
-		return r, err
-	}
-	l.Record(Activity{Actor: actorOr(req.Actor), Action: "import-folder", RepoID: r.R().ID, Detail: info.Root})
-	return r, nil
-}
-
-// importLocalModel turns the folder into a repository that only exists
-// here: large files as LFS objects, the rest as blobs, one commit.
-func (l *Library) importLocalModel(ctx context.Context, req ImportRequest, info FolderInfo, files []folderFile) (*Repo, error) {
-	name := sanitizeName(filepath.Base(info.Root))
-	r, err := l.CreateLocal(ctx, localModelsOwner, name, "Modell aus "+info.Root, append(req.Tags, "modell"), req.Actor)
-	if err != nil {
-		return nil, err
-	}
-	_, err = l.Update(ctx, r.R().ID, func(rr *repometa.Repo) error { rr.Include.LFS = true; return nil })
-	if err == nil {
-		err = l.commitFolder(ctx, r, files, req.Move, "Übernommen aus "+info.Root)
-	}
-	if err == nil {
-		r, err = l.Get(ctx, r.R().ID)
-	}
-	if err != nil {
-		return r, err
-	}
-	l.Record(Activity{Actor: actorOr(req.Actor), Action: "import-folder", RepoID: r.R().ID, Detail: info.Root})
-	l.refreshStats(ctx, r)
-	if req.Move {
-		missing, err := l.verifyImport(ctx, r, files)
-		if err == nil && missing == 0 {
-			err = l.trashOriginal(r, info.Root, req.Actor)
-		} else if err == nil {
-			err = fmt.Errorf("%d Dateien fehlen in RepoShelf – das Original bleibt liegen", missing)
-		}
-		if err != nil {
-			return r, err
 		}
 	}
-	return r, nil
+	im.Seeded = true
+	return writeUpstream(r.Paths.Meta, r.Upstream)
 }
 
 func (l *Library) commitFolder(ctx context.Context, r *Repo, files []folderFile, link bool, message string) error {
@@ -414,6 +442,8 @@ type ImportState struct {
 	From string `json:"from"` // folder to move to the trash
 	Dir  string `json:"dir"`  // files taken over
 	Move bool   `json:"move"`
+	// Seeded: the files are in RepoShelf (checking and moving may follow).
+	Seeded bool `json:"seeded,omitempty"`
 	// Note is the result shown on the repository page.
 	Note string `json:"note,omitempty"`
 	Done bool   `json:"done,omitempty"`

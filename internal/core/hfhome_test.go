@@ -4,6 +4,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,7 +21,7 @@ func TestExportHF(t *testing.T) {
 	l, _ := openLib(t, testutil.NewForge(t))
 	src := filepath.Join(t.TempDir(), "kokoro")
 	writeModel(t, src)
-	r, err := l.ImportFolder(ctx, ImportRequest{Path: src, Actor: "web"})
+	r, err := l.ImportFolder(ctx, ImportRequest{Path: src, Actor: "web", Wait: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,5 +70,17 @@ func TestExportHF(t *testing.T) {
 	}
 	if err := removeTree(dir); err != nil {
 		t.Errorf("remove read-only export: %v", err)
+	}
+
+	// A file system without hard links (exFAT USB stick): a clear
+	// message, nothing half written (R-004).
+	old := linkFile
+	linkFile = func(string, string) error { return ErrNoLinks }
+	defer func() { linkFile = old }()
+	if _, err := l.exportHF(ctx, r); !errors.Is(err, ErrNoLinks) {
+		t.Errorf("no links = %v", err)
+	}
+	if entries, _ := os.ReadDir(filepath.Join(dir, "snapshots")); len(entries) != 0 {
+		t.Errorf("leftovers: %v", entries)
 	}
 }

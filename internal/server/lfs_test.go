@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 
@@ -89,6 +90,10 @@ func TestLFSOverHTTP(t *testing.T) {
 	}
 	if c := put(oid, content); c != http.StatusOK || !gitcli.HasLFS(own.Paths.Mirror, oid) {
 		t.Errorf("upload = %d", c)
+	}
+	os.Chmod(gitcli.LFSObjectPath(own.Paths.Mirror, oid), 0o444)
+	if c := put(oid, content); c != http.StatusOK { // again, onto a read-only object (R-007)
+		t.Errorf("second upload = %d", c)
 	}
 	if c := put("../../etc", content); c == http.StatusOK {
 		t.Error("bad oid accepted")
