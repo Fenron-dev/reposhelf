@@ -256,3 +256,42 @@ func SHA256(r io.Reader) (string, error) {
 	}
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
+
+// PutLFS stores an uploaded LFS object: the content must hash to oid
+// (and have the given size, if not negative), else nothing is kept.
+func PutLFS(bare, oid string, size int64, src io.Reader) error {
+	if !oidRe.MatchString(oid) {
+		return fmt.Errorf("invalid oid %q", oid)
+	}
+	dir := filepath.Join(bare, "lfs")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(dir, "incoming-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+	h := sha256.New()
+	n, err := io.Copy(io.MultiWriter(tmp, h), src)
+	if cerr := tmp.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		return err
+	}
+	if got := hex.EncodeToString(h.Sum(nil)); got != oid || (size >= 0 && n != size) {
+		return fmt.Errorf("%w: content does not match %s", ErrLFSMismatch, oid)
+	}
+	dst := LFSObjectPath(bare, oid)
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		return err
+	}
+	return os.Rename(tmp.Name(), dst)
+}
+
+// ErrLFSMismatch is returned when uploaded content is not what it claims.
+var ErrLFSMismatch = errors.New("lfs object mismatch")
+
+// ValidOID reports whether s is an LFS object ID (hex SHA-256).
+func ValidOID(s string) bool { return oidRe.MatchString(s) }

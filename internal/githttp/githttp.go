@@ -45,25 +45,23 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	if strings.HasPrefix(tail, "/info/lfs/") {
+		h.lfs(w, r, key, repo, tail)
+		return
+	}
 	push := tail == "/git-receive-pack" || r.URL.Query().Get("service") == "git-receive-pack"
 	if !push && tail != "/git-upload-pack" && tail != "/info/refs" {
 		http.NotFound(w, r)
 		return
 	}
-	id, authed := h.Identity(r)
 	need := auth.Read
 	if push {
 		need = auth.Write
 	}
-	if !id.Has(need) {
-		if !authed {
-			w.Header().Set("WWW-Authenticate", `Basic realm="RepoShelf"`)
-			http.Error(w, "Anmeldung nötig: Token als Passwort angeben", http.StatusUnauthorized)
-			return
-		}
-		http.Error(w, "Dieses Token hat dafür keine Berechtigung", http.StatusForbidden)
+	if !h.allowed(w, r, need) {
 		return
 	}
+	id, _ := h.Identity(r)
 	if push && repo.R().Kind == repometa.KindMirror {
 		http.Error(w, "Spiegel sind schreibgeschützt. Lege mit „Fork“ eine beschreibbare Kopie an.", http.StatusForbidden)
 		return
@@ -90,6 +88,21 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// The dumb protocol is not offered; every git since 1.6.6 speaks smart HTTP.
 		http.Error(w, "Nur Smart-HTTP wird unterstützt", http.StatusNotFound)
 	}
+}
+
+// allowed checks the right; it answers 401/403 itself when missing.
+func (h *Handler) allowed(w http.ResponseWriter, r *http.Request, need string) bool {
+	id, authed := h.Identity(r)
+	if id.Has(need) {
+		return true
+	}
+	if !authed {
+		w.Header().Set("WWW-Authenticate", `Basic realm="RepoShelf"`)
+		http.Error(w, "Anmeldung nötig: Token als Passwort angeben", http.StatusUnauthorized)
+		return false
+	}
+	http.Error(w, "Dieses Token hat dafür keine Berechtigung", http.StatusForbidden)
+	return false
 }
 
 // advertise answers GET info/refs (smart HTTP discovery). It calls

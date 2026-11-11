@@ -103,6 +103,13 @@ Agenten können das nicht. Beim Abgleich durchsucht RepoShelf den Code eines Pro
 Modelle“ mit einem Knopf zum Sichern. Für gesperrte Modelle (Zustimmung nötig) einen
 Token für `huggingface.co` unter „Zugänge“ hinterlegen.
 
+**Modelle für Programme:** Jedes gesicherte Hugging-Face-Modell liegt zusätzlich im
+Cache-Format unter `<Datenordner>/runtime/huggingface` – als schreibgeschützte Verweise
+(Hardlinks) auf das Archiv, ohne zweiten Speicherplatz. Programme starten offline mit
+`HF_HOME=<Datenordner>/runtime/huggingface HF_HUB_OFFLINE=1`; die Repo-Seite zeigt die
+Zeile zum Kopieren. Der Ordner wird bei jedem Abgleich erneuert und kann jederzeit
+gelöscht werden.
+
 **Schon geladene Modelle übernehmen:** Statt eines Links einen Ordner angeben
 (`C:\Modelle\kokoro`, `\\nas\freigabe\modell`, `/Users/…`, `~/…`; D-033). Ordner aus
 dem Hugging-Face-Cache (`…/hub/models--org--name`) erkennt RepoShelf selbst; sonst die
@@ -154,7 +161,8 @@ Angeheftete Versionen und die Git-Geschichte selbst sind nie betroffen.
 ## 5. Agenten und Git
 
 - **Git:** `git clone http://<server>:7373/git/<host>/<owner>/<name>.git`
-  Benutzername beliebig, Passwort = Token. Pushen nur in eigene Projekte und
+  Benutzername beliebig, Passwort = Token. Große Dateien (Git LFS, z. B. Modelle)
+  kommen mit, wenn `git-lfs` installiert ist (RepoShelf bietet die LFS-Batch-API). Pushen nur in eigene Projekte und
   Forks; Spiegel sind schreibgeschützt. Auf Wunsch reicht RepoShelf Pushes an das
   Original weiter (Repo-Einstellungen → „Pushes“; Standard aus, D-029): Branches und
   Tags, nie erzwungen, nie gelöscht. Hat das Original neuere Stände, steht der Fehler
@@ -196,6 +204,12 @@ aus der Kapsel und beweist so, dass sie vollständig ist. Für die neueste Versi
 baubarer Repos wird automatisch eine Kapsel angelegt (mit Bestätigung, falls
 eingestellt). Builds von Agenten (MCP) warten immer auf deine Bestätigung, wenn
 „Jeden Build bestätigen“ an ist.
+
+**Python-Pakete für andere Rechner (D-026):** In den Repo-Einstellungen unter „Baubar
+halten“ wählst du, für welche Plattformen die Pakete zusätzlich gesichert werden (Linux,
+Windows, macOS; vorgeschlagen: dieser Rechner und Linux). Ohne „CUDA-Varianten“ wird
+PyTorch in der viel kleineren CPU-Fassung gesichert. Jede Plattform bekommt eine genaue
+Versionsliste (`VERSIONS.txt`); fehlt ein Paket für eine Plattform, steht das im Log.
 
 ## 7. Abgleich zwischen Instanzen
 

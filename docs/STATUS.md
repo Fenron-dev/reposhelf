@@ -12,9 +12,9 @@
 
 ## Aktueller Stand
 
-- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.3.1` (T-9.11 Schritt 1, T-9.12–T-9.14, T-9.16, T-9.17) zum Test bei Dennis
-- **Letzte Änderung:** 2026-11-11 · Issues eigener Repos lokal bearbeiten und senden, lokale Modell-Ordner übernehmen
-- **Nächster Schritt:** Dennis testet `v0.3.1`; offen: T-9.11 (HF_HOME-Ordner, Python-Pakete), T-9.18 (LFS über Git-HTTP)
+- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.4.0` (T-9.11–T-9.18) zum Test bei Dennis
+- **Letzte Änderung:** 2026-11-11 · LFS über Git-HTTP, Modelle als HF_HOME-Ordner, Python-Pakete je Plattform
+- **Nächster Schritt:** Dennis testet `v0.4.0`; offen nur noch T-9.19 (optional)
 
 ## Übergabe-Notiz
 
@@ -80,6 +80,13 @@ Ordner-Übernahme in `internal/core/importdir.go` (Git ohne Arbeitskopie:
 `internal/gitcli/commitfiles.go`), Papierkorb `internal/systrash` (Tests ersetzen ihn über
 `trashMove`). Lokal kein git-lfs: `TestHFCacheFolder` läuft nur in CI ganz. Windows-
 Papierkorb im Prüflauf belegt (`smoke.yml`, Schritt „Take over a folder …“).
+
+**2026-11-11 · Claude Code (T-9.18, T-9.11 Rest):** LFS über Git-HTTP in
+`internal/githttp/lfs.go` (Objekte in `lfs/objects` des Spiegels). Modell-Ordner für
+Programme: `internal/core/hfhome.go`, nach jedem Abgleich; LFS-Objekte werden dabei
+schreibgeschützt (0444), Papierkorb-Leeren nutzt deshalb `removeTree`. Python-Plattformen:
+`pythonPlatforms` in `internal/runner/capsule.go` – nur per Unit-Test (Befehle) geprüft,
+ein echter `pip download` für fremde Plattformen läuft erst beim nächsten Kapselbau.
 
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
@@ -262,20 +269,23 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.8 | Windows: kein Konsolenfenster bei Git- und Docker-Aufrufen | erledigt | Claude Code | 2026-11-10 | Rückmeldung Dennis zu v0.1.7; e196256 |
 | T-9.9 | Seitenwechsel beschleunigen; lange Arbeiten im Hintergrund mit Fortschrittsbalken | erledigt | Claude Code | 2026-11-10 | Rückmeldung Dennis zu v0.1.7; d59ea17; Test `TestPageGitCost` |
 | T-9.10 | Host-Tokens am Desktop: Windows-Anmeldeinformationsverwaltung lesen (Konzept 4.2 nennt den System-Schlüsselbund, bisher nur macOS/Linux) und Token in der Oberfläche eingeben, prüfen (Rechte anzeigen) und im Schlüsselbund ablegen – nie im Datenordner | erledigt | Claude Code | 2026-11-10 | D-024; `48c4c28` – Einstellungen „Zugänge zu Git-Hosts“, `reposhelf host-token`, Schlüsselbund macOS/Windows/Linux; „Mit GitHub anmelden“ folgt, wenn die OAuth-App angelegt ist |
-| T-9.11 | Laufzeit-Daten sichern: Modelle (Hugging Face als eigenes gespiegeltes Repo mit LFS, gemeinsamer Speicher, Bereitstellung als `HF_HOME`-Ordner für den Offline-Betrieb), Verweis „braucht“ vom Tool auf das Modell, Vorschläge aus dem Code (`from_pretrained`, `hf_hub_download`); Python-Pakete mit genauer Versionsliste für gewählte Plattformen; optional Laufzeit-Image (`docker save`) | in Arbeit | Claude Code | 2026-11-10 | Schritt 1 erledigt (`60f8718`): Hugging-Face-Modelle sichern (LFS, Größe, Nachfrage ab `retention.ask_above_mb`, D-025), benötigte Modelle aus dem Code erkennen. Offen: Bereitstellung als `HF_HOME`-Ordner (Offline-Betrieb, ohne Doppelablage), Python-Pakete je Plattform (D-026), optional Laufzeit-Image |
+| T-9.11 | Laufzeit-Daten sichern: Modelle (Hugging Face als eigenes gespiegeltes Repo mit LFS, gemeinsamer Speicher, Bereitstellung als `HF_HOME`-Ordner für den Offline-Betrieb), Verweis „braucht“ vom Tool auf das Modell, Vorschläge aus dem Code (`from_pretrained`, `hf_hub_download`); Python-Pakete mit genauer Versionsliste für gewählte Plattformen; optional Laufzeit-Image (`docker save`) | erledigt | Claude Code | 2026-11-11 | Schritt 1 `60f8718` (HF-Modelle, Nachfrage D-025, Erkennung im Code); `a6025c7` HF_HOME-Ordner `runtime/huggingface` (Hardlinks, schreibgeschützt); `e0232f7` Python-Pakete je Plattform + CPU-PyTorch (D-026). Optionales Laufzeit-Image → T-9.19 |
 | T-9.12 | Build-Kapsel: Toolchain-Image (z. B. `golang:1.24`, `node:20`) mit `docker save` in den gemeinsamen Speicher, damit der Kapsel-Test nicht vom Docker Hub abhängt | erledigt | Claude Code | 2026-11-10 | `a96a9d0` – Toolchain-Image per `docker save` in den gemeinsamen Speicher (einmal je Image-ID), Kapsel-Test lädt es bei Bedarf |
 | T-9.13 | Lokale Issues: anlegen, kommentieren, schließen, wieder öffnen – Oberfläche, CLI, MCP (Recht schreiben); gespiegelte Issues bleiben schreibgeschützt | erledigt | Claude Code | 2026-11-10 | D-028; `e4bc0de` – Reiter „Issues“ immer da, `reposhelf issue`, MCP `list_issues`/`create_issue`/`comment_issue`/`set_issue_state` |
 | T-9.14 | Pushes auf eigene Projekte/Forks an das Original weiterreichen, je Repo einschaltbar (Standard aus), ohne Force-Push | erledigt | Claude Code | 2026-11-10 | D-029; `8c60f60` – `sync.push_upstream` (SCHEMA ergänzt), nie erzwungen, Fehler am Repo |
 | T-9.15 | Projektordner ohne Leerzeichen am Ende | erledigt | Claude Code | 2026-11-10 | D-030 – Ordner heißt jetzt `Portable RepoShelf` (am Sitzungsende umbenannt; `.claude/launch.json` angepasst) |
 | T-9.16 | Issues eigener Projekte/Forks lokal bearbeiten (auch gespiegelte), Schalter je Repo „Issues an das Original senden“, ausstehende Änderungen markieren und per Knopf senden (GitHub, Gitea/Forgejo) | erledigt | Claude Code | 2026-11-11 | D-031; `86df0dd` – `sync.issues_upstream`, `issues/outbox.yaml`, `reposhelf issue send`; GitHub + Gitea/Forgejo (GitLab noch nicht) |
 | T-9.17 | Lokale Ordner übernehmen (Modelle): Pfad im Hinzufügen-Feld, HF-Cache erkennen oder Modell-ID abfragen, vorhandene Dateien statt Download, Kopieren/Verschieben (Original in System-Papierkorb) | erledigt | Claude Code | 2026-11-11 | D-032, D-033; `697b589` – Pfad im Hinzufügen-Feld/`add <ordner>`, HF-Cache-Erkennung, LFS-Vorbefüllung, Prüfung nach erstem Abgleich, Papierkorb über `internal/systrash` |
-| T-9.18 | LFS-Dateien über Git-HTTP ausliefern (LFS-Batch-API), damit `git clone` über RepoShelf Modelle und große Dateien vollständig bekommt | offen | | 2026-11-11 | Befund bei T-9.17: bisher kommen beim Klonen über RepoShelf nur LFS-Zeiger an |
+| T-9.18 | LFS-Dateien über Git-HTTP ausliefern (LFS-Batch-API), damit `git clone` über RepoShelf Modelle und große Dateien vollständig bekommt | erledigt | Claude Code | 2026-11-11 | `5a509bc` – LFS-Batch-API unter `…/info/lfs/` (Download, Upload für eigene Repos, locks/verify); Prüflauf klont ein HF-Modell über RepoShelf |
+| T-9.19 | Optional: Laufzeit-Image je Repo (fertige Umgebung per `docker save`, z. B. für Dienste auf Unraid) | offen | | 2026-11-11 | aus T-9.11 abgetrennt (KI-Werkzeuge mit Weboberfläche) |
 
 ---
 
 ## Verlauf
 
 Neueste oben. Eine Zeile pro Sitzung.
+
+- 2026-11-11 · Claude Code · T-9.18 LFS über Git-HTTP; T-9.11 fertig (HF_HOME-Ordner, Python-Pakete je Plattform, CPU-PyTorch); T-9.19 (Laufzeit-Image) als optional abgetrennt; Release `v0.4.0`
 
 - 2026-11-11 · Claude Code · Prüflauf v0.3.0: Windows-Papierkorb griff nicht (Pfad mit Leerzeichen als PowerShell-Code-Text zerlegt, auch Einschleusung möglich) → Pfad per Umgebungsvariable; Release `v0.3.1`, Prüflauf grün
 

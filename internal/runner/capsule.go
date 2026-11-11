@@ -12,12 +12,14 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
 	"github.com/Fenron-dev/reposhelf/internal/artifact"
 	"github.com/Fenron-dev/reposhelf/internal/core"
 	"github.com/Fenron-dev/reposhelf/internal/gitcli"
+	"github.com/Fenron-dev/reposhelf/internal/repometa"
 	"github.com/Fenron-dev/reposhelf/internal/store"
 )
 
@@ -154,6 +156,11 @@ func (m *Manager) runCapsule(ctx context.Context, b *artifact.Build, log io.Writ
 	ecos := detect(work)
 	if len(ecos) == 0 {
 		return errors.New("kein unterstütztes Ökosystem gefunden (Go, Rust, Dart/Flutter, Node mit package-lock.json, Python, Dockerfile)")
+	}
+	for i := range ecos {
+		if ecos[i].Name == "python" {
+			pythonPlatforms(&ecos[i], repo.R().Buildable)
+		}
 	}
 	version := b.Version
 	if version == "" {
@@ -445,3 +452,57 @@ func (m *Manager) AutoCapsules(ctx context.Context) {
 }
 
 var _ = core.ErrNotFound
+
+// ---- Python packages for other platforms (D-026, T-9.11) ----
+
+// pipPlatforms maps a platform to pip's wheel tags. macOS tags name the
+// oldest supported version; pip also accepts wheels for older ones.
+var pipPlatforms = map[string][]string{
+	"linux/amd64":   {"manylinux2014_x86_64", "manylinux_2_28_x86_64"},
+	"linux/arm64":   {"manylinux2014_aarch64", "manylinux_2_28_aarch64"},
+	"windows/amd64": {"win_amd64"},
+	"darwin/arm64":  {"macosx_14_0_arm64"},
+	"darwin/amd64":  {"macosx_14_0_x86_64"},
+}
+
+// cpuIndex has the CPU builds of PyTorch (a fraction of the CUDA size).
+const cpuIndex = "https://download.pytorch.org/whl/cpu"
+
+// containerPlatform is where the capsule's container runs (Docker uses the
+// runner's architecture); its packages are the ordinary wheels folder.
+var containerPlatform = "linux/" + runtime.GOARCH
+
+// pythonPlatforms extends the Python download: the exact version list is
+// always written; wheels for every chosen platform go to wheels-<os>-<arch>.
+// A platform without wheels for some package is noted, not fatal.
+func pythonPlatforms(e *eco, b repometa.Buildable) {
+	index := ""
+	if !b.CUDA {
+		index = " --extra-index-url " + cpuIndex
+	}
+	wheels := "/src/" + capsuleDir + "/wheels"
+	src := strings.TrimPrefix(e.Fetch, "pip download -d "+wheels) // " -r requirements.txt" or " ."
+	var sb strings.Builder
+	sb.WriteString("pip download -d " + wheels + index + src + "\n")
+	sb.WriteString("ls " + wheels + " > " + wheels + "/VERSIONS.txt\n")
+	sb.WriteString(`PYV=$(python -c 'import sys; print(f"{sys.version_info[0]}.{sys.version_info[1]}")')` + "\n")
+	for _, p := range b.Platforms {
+		tags, ok := pipPlatforms[p]
+		if !ok || p == containerPlatform {
+			continue
+		}
+		dir := wheels + "-" + strings.ReplaceAll(p, "/", "-")
+		args := ""
+		for _, t := range tags {
+			args += " --platform " + t
+		}
+		pIndex := index
+		if !strings.HasPrefix(p, "linux/") && !strings.HasPrefix(p, "windows/") {
+			pIndex = "" // macOS builds of PyTorch are CPU-only on PyPI anyway
+		}
+		fmt.Fprintf(&sb, "if pip download -d %s --only-binary=:all: --python-version \"$PYV\"%s%s%s; then ls %s > %s/VERSIONS.txt; "+
+			"else echo \"Hinweis: nicht alle Pakete gibt es fertig für %s\"; fi\n", dir, args, pIndex, src, dir, dir, p)
+		e.Keep = append(e.Keep, capsuleDir+"/wheels-"+strings.ReplaceAll(p, "/", "-"))
+	}
+	e.Fetch = sb.String()
+}

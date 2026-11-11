@@ -115,6 +115,8 @@ created: 2026-11-08T10:00:00Z
 | `retention.force_push_backups.keep_for` | Dauer | nein | `null` (erben) | > 0 |
 | `buildable.enabled` | ja/nein | nein | `false` | |
 | `buildable.capsules_keep` | Zahl | nein | `null` (erben) | ≥ 0 |
+| `buildable.platforms` | Liste | nein | `[]` | Python-Pakete zusätzlich für diese Plattformen sichern (D-026): `linux/amd64`, `linux/arm64`, `windows/amd64`, `darwin/arm64`, `darwin/amd64` |
+| `buildable.cuda` | ja/nein | nein | `false` | CUDA-Varianten (z. B. PyTorch für Grafikkarten); aus = CPU-Varianten |
 | `license.spdx` | Text | nein | `null` | SPDX-Kennung; `null` = nicht erkannt → Warnung in der Oberfläche |
 | `license.checked` | Datum | nein | `null` | `YYYY-MM-DD` |
 | `created` | Zeitpunkt | ja | – | RFC 3339 |

@@ -414,6 +414,9 @@ type Settings struct {
 	Buildable      bool
 	PushUpstream   bool
 	IssuesUpstream bool
+	// Platforms and CUDA for Python packages (D-026); nil keeps them.
+	Platforms      []string
+	CUDA           bool
 	StatusOverride *repometa.UpstreamStatus
 	Retention      repometa.Retention
 }
@@ -438,6 +441,10 @@ func (l *Library) UpdateSettings(ctx context.Context, ref string, s Settings, ac
 		}
 		r.Include = s.Include
 		r.Buildable.Enabled = s.Buildable
+		if s.Platforms != nil {
+			r.Buildable.Platforms = s.Platforms
+			r.Buildable.CUDA = s.CUDA
+		}
 		r.StatusOverride = s.StatusOverride
 		r.Retention = s.Retention
 		return r.Validate()
