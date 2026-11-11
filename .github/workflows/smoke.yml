@@ -94,6 +94,16 @@ jobs:
           cmdkey //list:RepoShelf:$h | grep -qi "RepoShelf:$h"
           ./reposhelf.exe host-token remove $h
           if ./reposhelf.exe host-token check $h; then echo "token still there"; exit 1; fi
+      - name: Take over a folder and move it to the recycle bin (T-9.17)
+        run: |
+          set -e
+          cd reposhelf-*-windows-amd64
+          mkdir -p "$RUNNER_TEMP/Mein Modell/voices"
+          echo '{"dim": 1}' > "$RUNNER_TEMP/Mein Modell/config.json"
+          head -c 2000000 /dev/urandom > "$RUNNER_TEMP/Mein Modell/voices/a.pt"
+          ./reposhelf.exe add "$(cygpath -w "$RUNNER_TEMP/Mein Modell")" --move
+          ./reposhelf.exe list | grep -q "Mein-Modell"
+          if [ -e "$RUNNER_TEMP/Mein Modell" ]; then echo "original still there"; exit 1; fi
       - name: CLI server and clone
         run: |
           set -e
