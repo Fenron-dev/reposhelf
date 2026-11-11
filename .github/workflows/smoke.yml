@@ -52,6 +52,20 @@ jobs:
           code=$(curl -s -o /dev/null -w "%{http_code}" -H "X-Forwarded-For: 1.2.3.4" http://127.0.0.1:7373/settings)
           echo "settings without token: $code"; [ "$code" = 303 ] || [ "$code" = 403 ]
           docker exec rs reposhelf doctor
+      - name: Model with LFS, cloned through RepoShelf (T-9.11, T-9.18)
+        run: |
+          set -e
+          curl -fsS -H "Authorization: Bearer smoke-token" -H "Content-Type: application/json" \
+            -d '{"url":"https://huggingface.co/hf-internal-testing/tiny-random-bert"}' http://127.0.0.1:7373/api/repos
+          for i in $(seq 1 60); do
+            st=$(curl -fsS -H "Authorization: Bearer smoke-token" http://127.0.0.1:7373/api/repos | jq -r '.[] | select(.Key=="huggingface.co/hf-internal-testing/tiny-random-bert") | .Status')
+            echo "status: $st"; [ "$st" = ok ] && break; sleep 3
+          done
+          [ "$st" = ok ]
+          git lfs install --skip-repo
+          git clone http://x:smoke-token@127.0.0.1:7373/git/huggingface.co/hf-internal-testing/tiny-random-bert.git model
+          size=$(stat -c %s model/tf_model.h5)
+          echo "tf_model.h5: $size bytes"; [ "$size" -gt 1000000 ]
       - name: Logs
         if: always()
         run: docker logs rs || true

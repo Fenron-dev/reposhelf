@@ -154,7 +154,8 @@ Angeheftete Versionen und die Git-Geschichte selbst sind nie betroffen.
 ## 5. Agenten und Git
 
 - **Git:** `git clone http://<server>:7373/git/<host>/<owner>/<name>.git`
-  Benutzername beliebig, Passwort = Token. Pushen nur in eigene Projekte und
+  Benutzername beliebig, Passwort = Token. Große Dateien (Git LFS, z. B. Modelle)
+  kommen mit, wenn `git-lfs` installiert ist (RepoShelf bietet die LFS-Batch-API). Pushen nur in eigene Projekte und
   Forks; Spiegel sind schreibgeschützt. Auf Wunsch reicht RepoShelf Pushes an das
   Original weiter (Repo-Einstellungen → „Pushes“; Standard aus, D-029): Branches und
   Tags, nie erzwungen, nie gelöscht. Hat das Original neuere Stände, steht der Fehler
