@@ -12,9 +12,9 @@
 
 ## Aktueller Stand
 
-- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.4.0` (T-9.11–T-9.18) zum Test bei Dennis
-- **Letzte Änderung:** 2026-11-11 · LFS über Git-HTTP, Modelle als HF_HOME-Ordner, Python-Pakete je Plattform
-- **Nächster Schritt:** Dennis testet `v0.4.0`; offen nur noch T-9.19 (optional)
+- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.5.0` (T-9.11–T-9.19) zum Test bei Dennis
+- **Letzte Änderung:** 2026-11-11 · Laufzeit-Image als Build-Ziel (T-9.19); damit alle Aufgaben erledigt
+- **Nächster Schritt:** Dennis testet `v0.5.0` (alles seit v0.2.0 gemeinsam); keine offenen Aufgaben
 
 ## Übergabe-Notiz
 
@@ -87,6 +87,11 @@ Programme: `internal/core/hfhome.go`, nach jedem Abgleich; LFS-Objekte werden da
 schreibgeschützt (0444), Papierkorb-Leeren nutzt deshalb `removeTree`. Python-Plattformen:
 `pythonPlatforms` in `internal/runner/capsule.go` – nur per Unit-Test (Befehle) geprüft,
 ein echter `pip download` für fremde Plattformen läuft erst beim nächsten Kapselbau.
+
+**2026-11-11 · Claude Code (T-9.19):** Laufzeit-Image in `internal/runner/image.go`
+(Ziel `image`, nur wenn ein `Dockerfile` im Projekt liegt; Artefakt
+`<owner>-<name>-<version>.tar.gz`; `LoadImage` für den Knopf „In Docker laden“). Der Bau
+läuft ohne Speichergrenze (docker build kennt `--memory` mit BuildKit nicht).
 
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
@@ -277,13 +282,15 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.16 | Issues eigener Projekte/Forks lokal bearbeiten (auch gespiegelte), Schalter je Repo „Issues an das Original senden“, ausstehende Änderungen markieren und per Knopf senden (GitHub, Gitea/Forgejo) | erledigt | Claude Code | 2026-11-11 | D-031; `86df0dd` – `sync.issues_upstream`, `issues/outbox.yaml`, `reposhelf issue send`; GitHub + Gitea/Forgejo (GitLab noch nicht) |
 | T-9.17 | Lokale Ordner übernehmen (Modelle): Pfad im Hinzufügen-Feld, HF-Cache erkennen oder Modell-ID abfragen, vorhandene Dateien statt Download, Kopieren/Verschieben (Original in System-Papierkorb) | erledigt | Claude Code | 2026-11-11 | D-032, D-033; `697b589` – Pfad im Hinzufügen-Feld/`add <ordner>`, HF-Cache-Erkennung, LFS-Vorbefüllung, Prüfung nach erstem Abgleich, Papierkorb über `internal/systrash` |
 | T-9.18 | LFS-Dateien über Git-HTTP ausliefern (LFS-Batch-API), damit `git clone` über RepoShelf Modelle und große Dateien vollständig bekommt | erledigt | Claude Code | 2026-11-11 | `5a509bc` – LFS-Batch-API unter `…/info/lfs/` (Download, Upload für eigene Repos, locks/verify); Prüflauf klont ein HF-Modell über RepoShelf |
-| T-9.19 | Optional: Laufzeit-Image je Repo (fertige Umgebung per `docker save`, z. B. für Dienste auf Unraid) | offen | | 2026-11-11 | aus T-9.11 abgetrennt (KI-Werkzeuge mit Weboberfläche) |
+| T-9.19 | Optional: Laufzeit-Image je Repo (fertige Umgebung per `docker save`, z. B. für Dienste auf Unraid) | erledigt | Claude Code | 2026-11-11 | aus T-9.11 abgetrennt; `64316c4` – Build-Ziel `image` (docker build + save → `.tar.gz` im Archiv), „In Docker laden“ |
 
 ---
 
 ## Verlauf
 
 Neueste oben. Eine Zeile pro Sitzung.
+
+- 2026-11-11 · Claude Code · T-9.19 Laufzeit-Image (Build-Ziel `image`, Laden in Docker); alle Aufgaben erledigt; Release `v0.5.0`
 
 - 2026-11-11 · Claude Code · T-9.18 LFS über Git-HTTP; T-9.11 fertig (HF_HOME-Ordner, Python-Pakete je Plattform, CPU-PyTorch); T-9.19 (Laufzeit-Image) als optional abgetrennt; Release `v0.4.0`, Prüflauf grün (HF-Modell per `git-lfs` über RepoShelf geklont, Modell-Ordner im Container geprüft)
 

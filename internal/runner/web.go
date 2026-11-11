@@ -135,6 +135,19 @@ func (m *Manager) Routes(s *web.Server, mux *http.ServeMux) {
 		}
 		web.Redirect(w, r, "/builds/"+r.PathValue("id"))
 	}))
+	// Load a runtime image into this instance's Docker (T-9.19).
+	mux.Handle("POST /builds/{id}/load", s.Need(auth.Build, func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		id := r.PathValue("id")
+		out, err := m.LoadImage(r.Context(), id, r.Form.Get("name"))
+		if err != nil {
+			s.Fail(w, r, wrap(err))
+			return
+		}
+		tok, _ := s.Identity(r)
+		m.Lib.Record(core.Activity{Actor: "web:" + tok.Name, Action: "image-load", Detail: out})
+		web.Redirect(w, r, web.WithMsg("/builds/"+id, "ok", "In Docker geladen: "+out))
+	}))
 }
 
 func wrap(err error) error {

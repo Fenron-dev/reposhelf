@@ -230,6 +230,12 @@ jobs:
           YAML
           git add -A && git commit -qm probe && git tag v1.0
           git push -q "$RS/git/local/projekte/probe.git" main --tags
+          # Runtime image project (T-9.19)
+          /tmp/rs create webtool --data /tmp/data
+          mkdir /tmp/webtool && cd /tmp/webtool && git init -q -b main
+          printf 'FROM alpine:3.22\nRUN echo built > /built.txt\nCMD ["cat", "/built.txt"]\n' > Dockerfile
+          git add -A && git commit -qm webtool
+          git push -q "$RS/git/local/projekte/webtool.git" main
       - name: Real builds
         run: |
           set -e
@@ -249,6 +255,12 @@ jobs:
           build local/projekte/probe capsule v1.0 v1.0
           build local/projekte/probe capsule-test v1.0 v1.0
           build local/projekte/probe "act:ci/hello"
+          build local/projekte/webtool image "" 1.0
+          img=projekte-webtool-1.0.tar.gz
+          curl -fs "$RS/builds/$id/artifact?name=$img" | gunzip | tar -t | grep -q manifest.json
+          ! docker image inspect reposhelf/projekte-webtool:1.0 >/dev/null 2>&1   # removed from the runner
+          curl -fs -o /dev/null -H "Origin: $RS" --data-urlencode "name=$img" $RS/builds/$id/load
+          docker run --rm reposhelf/projekte-webtool:1.0 | grep -q built
       - name: GitHub Actions as external runner
         env:
           REPOSHELF_GITHUB_TOKEN: ${{ github.token }}

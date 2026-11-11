@@ -87,7 +87,7 @@ func New(lib *core.Library, o Options) *sdk.Server {
 		sdk.AddTool(s, &sdk.Tool{Name: "sync_repo", Description: "Abgleich mit dem Original anstoßen (läuft im Hintergrund, Geschichte wird vorher gesichert)."}, h.syncRepo)
 	}
 	if has(auth.Build) && o.Builds != nil {
-		sdk.AddTool(s, &sdk.Tool{Name: "start_build", Description: "Build eines Repos auf einem Runner anstoßen."}, h.startBuild)
+		sdk.AddTool(s, &sdk.Tool{Name: "start_build", Description: "Build eines Repos auf einem Runner anstoßen. Ziele: aus reposhelf-build.yaml, act:<workflow>/<job>, capsule, capsule-test und – bei einem Dockerfile – image (fertiges Laufzeit-Image ins Archiv)."}, h.startBuild)
 		sdk.AddTool(s, &sdk.Tool{Name: "get_build", Description: "Status, Log und Artefakte eines Builds.", Annotations: readOnly()}, h.getBuild)
 	}
 	return s

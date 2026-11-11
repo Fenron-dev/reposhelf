@@ -453,6 +453,9 @@ func (m *Manager) TargetNames(ctx context.Context, ref string) []string {
 	for _, t := range ts {
 		out = append(out, t.Name)
 	}
+	if m.hasDockerfile(ctx, repo.Paths.Mirror, "HEAD") {
+		out = append(out, TargetImage)
+	}
 	return out
 }
 

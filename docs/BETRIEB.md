@@ -196,6 +196,13 @@ Runner-Rolle in den Einstellungen einschalten (braucht Docker). Ziele kommen aus
 - GitHub Actions als externer Runner (Workflows mit `workflow_dispatch`, Artefakte
   werden ins Archiv geholt; braucht `REPOSHELF_GITHUB_TOKEN`).
 
+**Laufzeit-Image** (Ziel `image`, bei Projekten mit `Dockerfile`): Der Runner baut das
+fertige Image und legt es als `…tar.gz` ins Archiv (danach ist es im Docker des Runners
+wieder entfernt). Auf der Build-Seite lädt „In Docker laden“ es in den Docker dieser
+Instanz – auf Unraid erscheint es dann unter „Docker → Add Container“ als
+`reposhelf/<owner>-<name>:<version>`. Woanders: Datei herunterladen, `docker load -i <datei>`.
+Aufbewahrung wie andere Build-Ergebnisse (`retention.builds_keep`).
+
 **Build-Kapseln** („Baubar halten“) sichern pro Version alle Abhängigkeiten
 (Go, Rust, Dart/Flutter, Node mit `package-lock.json`, Python, Docker-Basis-Images)
 in einem gemeinsamen, deduplizierten Speicher – dazu das Toolchain-Image (z. B.

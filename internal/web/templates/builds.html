@@ -89,7 +89,9 @@
 {{if $b.Artifacts}}
 <div class="card">
   <h2 class="h3">Artefakte (im Archiv)</h2>
-  <ul>{{range $b.Artifacts}}<li><a href="/builds/{{$b.ID}}/artifact?name={{queryEsc .Name}}">{{.Name}}</a> <span class="small muted mono">{{size .Size}} · sha256 {{short .SHA256}}</span></li>{{end}}</ul>
+  <ul>{{range $b.Artifacts}}<li><a href="/builds/{{$b.ID}}/artifact?name={{queryEsc .Name}}">{{.Name}}</a> <span class="small muted mono">{{size .Size}} · sha256 {{short .SHA256}}</span>
+    {{if and (eq $b.Kind "image") $d.CanBuild}}<form method="post" action="/builds/{{$b.ID}}/load" class="inline"><input type="hidden" name="name" value="{{.Name}}"><button class="btn btn-small" type="submit">In Docker laden</button></form>{{end}}</li>{{end}}</ul>
+  {{if eq $b.Kind "image"}}<p class="small muted">Laufzeit-Image: komplette Umgebung des Projekts. Woanders laden mit <span class="mono">docker load -i &lt;datei&gt;</span>; danach z. B. auf Unraid unter „Docker → Add Container“ das Image <span class="mono">reposhelf/…</span> wählen.</p>{{end}}
 </div>
 {{end}}
 <div class="card">
