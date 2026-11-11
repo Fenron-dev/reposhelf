@@ -301,6 +301,7 @@ func (l *Library) importLocalModel(ctx context.Context, req ImportRequest, info 
 		return r, err
 	}
 	l.Record(Activity{Actor: actorOr(req.Actor), Action: "import-folder", RepoID: r.R().ID, Detail: info.Root})
+	l.refreshStats(ctx, r)
 	if req.Move {
 		missing, err := l.verifyImport(ctx, r, files)
 		if err == nil && missing == 0 {
@@ -312,7 +313,6 @@ func (l *Library) importLocalModel(ctx context.Context, req ImportRequest, info 
 			return r, err
 		}
 	}
-	l.refreshStats(ctx, r)
 	return r, nil
 }
 
