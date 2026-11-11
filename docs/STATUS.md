@@ -12,9 +12,9 @@
 
 ## Aktueller Stand
 
-- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.3.0` (T-9.11 Schritt 1, T-9.12–T-9.14, T-9.16, T-9.17) zum Test bei Dennis
+- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.3.1` (T-9.11 Schritt 1, T-9.12–T-9.14, T-9.16, T-9.17) zum Test bei Dennis
 - **Letzte Änderung:** 2026-11-11 · Issues eigener Repos lokal bearbeiten und senden, lokale Modell-Ordner übernehmen
-- **Nächster Schritt:** Dennis testet `v0.3.0`; offen: T-9.11 (HF_HOME-Ordner, Python-Pakete), T-9.18 (LFS über Git-HTTP)
+- **Nächster Schritt:** Dennis testet `v0.3.1`; offen: T-9.11 (HF_HOME-Ordner, Python-Pakete), T-9.18 (LFS über Git-HTTP)
 
 ## Übergabe-Notiz
 
@@ -79,7 +79,7 @@ gesendetes lokales Issue bekommt `remote: <n>` und wird dann als gespiegeltes an
 Ordner-Übernahme in `internal/core/importdir.go` (Git ohne Arbeitskopie:
 `internal/gitcli/commitfiles.go`), Papierkorb `internal/systrash` (Tests ersetzen ihn über
 `trashMove`). Lokal kein git-lfs: `TestHFCacheFolder` läuft nur in CI ganz. Windows-
-Papierkorb (PowerShell) nur im Prüflauf belegbar – noch ohne eigenen Smoke-Schritt.
+Papierkorb im Prüflauf belegt (`smoke.yml`, Schritt „Take over a folder …“).
 
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
@@ -276,6 +276,8 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 ## Verlauf
 
 Neueste oben. Eine Zeile pro Sitzung.
+
+- 2026-11-11 · Claude Code · Prüflauf v0.3.0: Windows-Papierkorb griff nicht (Pfad mit Leerzeichen als PowerShell-Code-Text zerlegt, auch Einschleusung möglich) → Pfad per Umgebungsvariable; Release `v0.3.1`, Prüflauf grün
 
 - 2026-11-11 · Claude Code · T-9.16 Issues eigener Repos lokal bearbeiten/senden (D-031), T-9.17 lokale Modell-Ordner übernehmen (D-032, D-033); neu T-9.18 (LFS über Git-HTTP); Release `v0.3.0`
 
