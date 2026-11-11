@@ -321,9 +321,9 @@ func (l *Library) refreshStats(ctx context.Context, r *Repo) {
 	if err := writeUpstream(r.Paths.Meta, r.Upstream); err != nil {
 		l.Log.Warn("write upstream", "err", err)
 	}
-	if err := l.save(ctx, r); err != nil {
-		l.Log.Warn("save after stats", "err", err)
-	}
+	// Statistics live in upstream.json: repo.yaml stays untouched, so a
+	// hand edit made meanwhile is not overwritten (R-010).
+	l.refreshEntry(ctx, r)
 }
 
 // RefreshAfterPush updates statistics after a push via Git HTTP.

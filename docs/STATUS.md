@@ -12,9 +12,9 @@
 
 ## Aktueller Stand
 
-- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.5.1` (T-9.11–T-9.20, R-001–R-008) zum Test bei Dennis
+- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.5.2` (T-9.11–T-9.20, R-001–R-010) zum Test bei Dennis
 - **Letzte Änderung:** 2026-11-11 · Eigene Prüfung: R-001–R-008 behoben, Issues in der Suche (T-9.20)
-- **Nächster Schritt:** Dennis testet `v0.5.1` (alles seit v0.2.0 gemeinsam); keine offenen Aufgaben
+- **Nächster Schritt:** Dennis testet `v0.5.2` (alles seit v0.2.0 gemeinsam); keine offenen Aufgaben
 
 ## Übergabe-Notiz
 
@@ -153,6 +153,8 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | R-006 | SendIssues hält eine globale Sperre während der Netzaufrufe: Issue-Änderungen aller Repos warten | `internal/core/issues.go` issueMu | gering | erledigt `9364dc0` | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
 | R-007 | PutLFS ersetzt ein vorhandenes Objekt per Rename; unter Windows scheitert das am schreibgeschützten Ziel | `internal/gitcli/commitfiles.go` PutLFS | gering | erledigt `9364dc0` | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
 | R-008 | macOS: Papierkorb per Umbenennen ohne „Zurücklegen“; `/usr/bin/trash` (ab macOS 15) nutzen | `internal/systrash/trash_darwin.go` | Hinweis | erledigt `9364dc0` | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
+| R-009 | Kapsel: Der Build-Container (root) legt `.reposhelf-capsule/` in der Arbeitskopie an; das Toolchain-Image konnte danach dort nicht abgelegt werden (Python, Prüflauf v0.5.1) | `internal/runner/capsule.go` saveToolchain | mittel | erledigt `51de8ce` | Prüflauf `smoke.yml` · 2026-11-11 | T-9.12 |
+| R-010 | Nach jedem Push schreibt `refreshStats` `repo.yaml` neu, obwohl sich nur Statistik (upstream.json) ändert – eine gleichzeitige Handänderung geht verloren | `internal/core/sync.go` refreshStats | gering | erledigt `51de8ce` | Claude Code · 2026-11-11 | Invariante 6 |
 
 ---
 
@@ -305,6 +307,8 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 ## Verlauf
 
 Neueste oben. Eine Zeile pro Sitzung.
+
+- 2026-11-11 · Claude Code · Prüflauf v0.5.1: Python-Kapsel scheiterte am root-eigenen Kapselordner (R-009); dabei R-010 (Push schrieb repo.yaml neu) gefunden; beides behoben; Release `v0.5.2`
 
 - 2026-11-11 · Claude Code · Eigene Prüfung: R-001–R-008 (u. a. Datenordner als Quelle gesperrt, Übernahme im Hintergrund, exFAT) behoben; T-9.20 Issues in der Volltextsuche; KONZEPT angeglichen; Release `v0.5.1`
 
