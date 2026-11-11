@@ -99,7 +99,7 @@ Abgleich-Job (`seedImport` am Anfang von `Sync`), nicht mehr im Web-Request; der
 Datenordner selbst ist als Quelle gesperrt. macOS-Papierkorb über `/usr/bin/trash`
 (den Ordner `~/.Trash` darf ein Programm ohne Sonderrecht nicht lesen). Ein kleiner
 Prüf-Ordner `reposhelf-trash-probe` liegt seit dem Test in Dennis' Papierkorb.
-Prüflauf `builds` baut jetzt auch eine Python-Kapsel mit Windows-Paketen.
+Prüflauf `builds` baut jetzt auch eine Python-Kapsel mit Windows-Paketen (seit v0.5.2 grün).
 
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
@@ -308,7 +308,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
-- 2026-11-11 · Claude Code · Prüflauf v0.5.1: Python-Kapsel scheiterte am root-eigenen Kapselordner (R-009); dabei R-010 (Push schrieb repo.yaml neu) gefunden; beides behoben; Release `v0.5.2`
+- 2026-11-11 · Claude Code · Prüflauf v0.5.1: Python-Kapsel scheiterte am root-eigenen Kapselordner (R-009); dabei R-010 (Push schrieb repo.yaml neu) gefunden; beides behoben; Release `v0.5.2`, Prüflauf grün (Python-Kapsel mit echten Windows-Paketen)
 
 - 2026-11-11 · Claude Code · Eigene Prüfung: R-001–R-008 (u. a. Datenordner als Quelle gesperrt, Übernahme im Hintergrund, exFAT) behoben; T-9.20 Issues in der Volltextsuche; KONZEPT angeglichen; Release `v0.5.1`
 
