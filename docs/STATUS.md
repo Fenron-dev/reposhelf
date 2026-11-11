@@ -290,7 +290,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
-- 2026-11-11 · Claude Code · T-9.19 Laufzeit-Image (Build-Ziel `image`, Laden in Docker); alle Aufgaben erledigt; Release `v0.5.0`
+- 2026-11-11 · Claude Code · T-9.19 Laufzeit-Image (Build-Ziel `image`, Laden in Docker); alle Aufgaben erledigt; Release `v0.5.0`, Prüflauf grün (echtes Image gebaut, in Docker geladen, gestartet)
 
 - 2026-11-11 · Claude Code · T-9.18 LFS über Git-HTTP; T-9.11 fertig (HF_HOME-Ordner, Python-Pakete je Plattform, CPU-PyTorch); T-9.19 (Laufzeit-Image) als optional abgetrennt; Release `v0.4.0`, Prüflauf grün (HF-Modell per `git-lfs` über RepoShelf geklont, Modell-Ordner im Container geprüft)
 
