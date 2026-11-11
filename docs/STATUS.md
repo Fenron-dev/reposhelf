@@ -259,12 +259,16 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.13 | Lokale Issues: anlegen, kommentieren, schließen, wieder öffnen – Oberfläche, CLI, MCP (Recht schreiben); gespiegelte Issues bleiben schreibgeschützt | erledigt | Claude Code | 2026-11-10 | D-028; `e4bc0de` – Reiter „Issues“ immer da, `reposhelf issue`, MCP `list_issues`/`create_issue`/`comment_issue`/`set_issue_state` |
 | T-9.14 | Pushes auf eigene Projekte/Forks an das Original weiterreichen, je Repo einschaltbar (Standard aus), ohne Force-Push | erledigt | Claude Code | 2026-11-10 | D-029; `8c60f60` – `sync.push_upstream` (SCHEMA ergänzt), nie erzwungen, Fehler am Repo |
 | T-9.15 | Projektordner ohne Leerzeichen am Ende | erledigt | Claude Code | 2026-11-10 | D-030 – Ordner heißt jetzt `Portable RepoShelf` (am Sitzungsende umbenannt; `.claude/launch.json` angepasst) |
+| T-9.16 | Issues eigener Projekte/Forks lokal bearbeiten (auch gespiegelte), Schalter je Repo „Issues an das Original senden“, ausstehende Änderungen markieren und per Knopf senden (GitHub, Gitea/Forgejo) | in Arbeit | Claude Code | 2026-11-11 | D-031 |
+| T-9.17 | Lokale Ordner übernehmen (Modelle): Pfad im Hinzufügen-Feld, HF-Cache erkennen oder Modell-ID abfragen, vorhandene Dateien statt Download, Kopieren/Verschieben (Original in System-Papierkorb) | in Arbeit | Claude Code | 2026-11-11 | D-032, D-033 |
 
 ---
 
 ## Verlauf
 
 Neueste oben. Eine Zeile pro Sitzung.
+
+- 2026-11-11 · Dennis · Wünsche: Issues eigener Repos lokal bearbeiten und auf Wunsch senden (D-031); lokale Modell-Ordner übernehmen, Kopieren/Verschieben (D-032, D-033) → T-9.16, T-9.17
 
 - 2026-11-10 · Claude Code · T-9.12 Toolchain-Image in Kapseln, T-9.13 lokale Issues, T-9.14 Push-Weiterreichen (opt-in), T-9.11 Schritt 1 Hugging-Face-Modelle; Release `v0.2.0`, Prüflauf grün (Toolchain-Image `golang:1.24` echt gesichert, 319 MB); Projektordner ohne Leerzeichen (T-9.15)
 

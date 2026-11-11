@@ -395,3 +395,48 @@ am Ende).
 
 **Folgen:** Umbenennen am Ende einer Sitzung; die nächste Sitzung startet im
 neuen Ordner.
+
+### D-031 · Issues eigener Projekte lokal bearbeiten, Senden je Repo
+2026-11-11 · gültig (Wunsch von Dennis)
+
+**Entscheidung:** Bei eigenen Projekten und Forks mit Original lassen sich auch die
+gespiegelten Issues lokal bearbeiten (kommentieren, schließen, wieder öffnen), und neue
+Issues entstehen lokal. Ob Änderungen an das Original (GitHub, Gitea/Forgejo) gehen,
+bestimmt ein Schalter je Repo „Issues an das Original senden“ – Standard aus. Aus: alles
+bleibt privat in RepoShelf, ausstehende Änderungen sind markiert und lassen sich später
+per Knopf senden. An: jede Änderung geht sofort raus.
+
+**Begründung:** RepoShelf soll aus Datenschutzgründen auch ganz ohne GitHub nutzbar sein
+(z. B. „Agent, nutze nur das lokale Repo“), ohne den Weg zurück zu verbauen.
+
+**Folgen:** Ausstehende Änderungen liegen in `meta/…/issues/outbox.yaml`. Gespiegelte
+Issues von Spiegeln bleiben schreibgeschützt. Der Token braucht Schreibrecht auf Issues.
+
+### D-032 · Lokale Ordner übernehmen: Kopieren oder Verschieben
+2026-11-11 · gültig (Wunsch von Dennis)
+
+**Entscheidung:** Beim Übernehmen eines lokalen Ordners (z. B. bereits geladenes Modell)
+fragt RepoShelf „Kopieren“ (Standard) oder „Verschieben“. Verschieben heißt: erst
+vollständig übernehmen und per Prüfsumme prüfen, dann den Original-Ordner in den
+**Papierkorb des Systems** legen – wiederherstellbar.
+
+**Begründung:** Spart Platz bei großen Modellen, ohne dass etwas unwiederbringlich
+verloren geht.
+
+**Folgen:** Einzige Ausnahme von Invariante 2 (AGENTS.md ergänzt). Nur von diesem Rechner
+aus (Desktop/CLI), nicht über das Netz und nicht über MCP. Wo es keinen System-Papierkorb
+gibt (Docker), gibt es nur Kopieren.
+
+### D-033 · Ein Eingabefeld für Links und lokale Pfade
+2026-11-11 · gültig (Wunsch von Dennis)
+
+**Entscheidung:** „+ Repo hinzufügen“ nimmt einen Link (`https://`, `http://`, `ssh://`,
+`git@…`) oder einen lokalen Pfad (`C:\…`, `D:\…`, `\\server\freigabe\…`, `/…`, `~/…`,
+`file://…`). Bei Modell-Ordnern erkennt RepoShelf das Modell aus dem Hugging-Face-Cache
+(`models--org--name`); sonst fragt es nach der Modell-ID (`org/name`) oder man gibt sie
+gleich mit. Ohne ID wird es ein rein lokales Modell.
+
+**Begründung:** Einfach für den Nutzer; die Art der Eingabe ist eindeutig erkennbar.
+
+**Folgen:** Mit bekannter ID wird das Modell normal vom Hub gespiegelt; vorhandene lokale
+Dateien ersetzen den Download (gleiche SHA-256 wie im Hub), nur Fehlendes wird geladen.
