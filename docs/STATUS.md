@@ -12,9 +12,9 @@
 
 ## Aktueller Stand
 
-- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.2.0` (T-9.11 Schritt 1, T-9.12–T-9.14) zum Test bei Dennis
-- **Letzte Änderung:** 2026-11-10 · Lokale Issues, Push-Weiterreichen, Toolchain-Image in Kapseln, Hugging-Face-Modelle
-- **Nächster Schritt:** Dennis testet `v0.2.0`; danach T-9.11 weiter (HF_HOME-Ordner, Python-Pakete), Projektordner ist jetzt `…/claude-code/Portable RepoShelf` (ohne Leerzeichen) – neue Sitzung dort öffnen
+- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.3.0` (T-9.11 Schritt 1, T-9.12–T-9.14, T-9.16, T-9.17) zum Test bei Dennis
+- **Letzte Änderung:** 2026-11-11 · Issues eigener Repos lokal bearbeiten und senden, lokale Modell-Ordner übernehmen
+- **Nächster Schritt:** Dennis testet `v0.3.0`; offen: T-9.11 (HF_HOME-Ordner, Python-Pakete), T-9.18 (LFS über Git-HTTP)
 
 ## Übergabe-Notiz
 
@@ -72,6 +72,14 @@ Toolchain-Image als Blob `.reposhelf-capsule/toolchain/<id>.tar`, `image_id` im 
 im echten Docker erst im Prüflauf `builds` belegt. Modelle: Provider `huggingface`
 (`internal/sources/huggingface.go`), Erkennung `internal/core/models.go`. Lokal ist kein
 git-lfs installiert: `TestLargeModelNeedsConfirmation` läuft nur in CI ganz durch.
+
+**2026-11-11 · Claude Code (T-9.16, T-9.17):** Issue-Änderungen für das Original
+stehen in `meta/…/issues/outbox.yaml` (`internal/core/issues.go`, `SendIssues`); ein
+gesendetes lokales Issue bekommt `remote: <n>` und wird dann als gespiegeltes angezeigt.
+Ordner-Übernahme in `internal/core/importdir.go` (Git ohne Arbeitskopie:
+`internal/gitcli/commitfiles.go`), Papierkorb `internal/systrash` (Tests ersetzen ihn über
+`trashMove`). Lokal kein git-lfs: `TestHFCacheFolder` läuft nur in CI ganz. Windows-
+Papierkorb (PowerShell) nur im Prüflauf belegbar – noch ohne eigenen Smoke-Schritt.
 
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
@@ -259,14 +267,17 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.13 | Lokale Issues: anlegen, kommentieren, schließen, wieder öffnen – Oberfläche, CLI, MCP (Recht schreiben); gespiegelte Issues bleiben schreibgeschützt | erledigt | Claude Code | 2026-11-10 | D-028; `e4bc0de` – Reiter „Issues“ immer da, `reposhelf issue`, MCP `list_issues`/`create_issue`/`comment_issue`/`set_issue_state` |
 | T-9.14 | Pushes auf eigene Projekte/Forks an das Original weiterreichen, je Repo einschaltbar (Standard aus), ohne Force-Push | erledigt | Claude Code | 2026-11-10 | D-029; `8c60f60` – `sync.push_upstream` (SCHEMA ergänzt), nie erzwungen, Fehler am Repo |
 | T-9.15 | Projektordner ohne Leerzeichen am Ende | erledigt | Claude Code | 2026-11-10 | D-030 – Ordner heißt jetzt `Portable RepoShelf` (am Sitzungsende umbenannt; `.claude/launch.json` angepasst) |
-| T-9.16 | Issues eigener Projekte/Forks lokal bearbeiten (auch gespiegelte), Schalter je Repo „Issues an das Original senden“, ausstehende Änderungen markieren und per Knopf senden (GitHub, Gitea/Forgejo) | in Arbeit | Claude Code | 2026-11-11 | D-031 |
-| T-9.17 | Lokale Ordner übernehmen (Modelle): Pfad im Hinzufügen-Feld, HF-Cache erkennen oder Modell-ID abfragen, vorhandene Dateien statt Download, Kopieren/Verschieben (Original in System-Papierkorb) | in Arbeit | Claude Code | 2026-11-11 | D-032, D-033 |
+| T-9.16 | Issues eigener Projekte/Forks lokal bearbeiten (auch gespiegelte), Schalter je Repo „Issues an das Original senden“, ausstehende Änderungen markieren und per Knopf senden (GitHub, Gitea/Forgejo) | erledigt | Claude Code | 2026-11-11 | D-031; `86df0dd` – `sync.issues_upstream`, `issues/outbox.yaml`, `reposhelf issue send`; GitHub + Gitea/Forgejo (GitLab noch nicht) |
+| T-9.17 | Lokale Ordner übernehmen (Modelle): Pfad im Hinzufügen-Feld, HF-Cache erkennen oder Modell-ID abfragen, vorhandene Dateien statt Download, Kopieren/Verschieben (Original in System-Papierkorb) | erledigt | Claude Code | 2026-11-11 | D-032, D-033; `697b589` – Pfad im Hinzufügen-Feld/`add <ordner>`, HF-Cache-Erkennung, LFS-Vorbefüllung, Prüfung nach erstem Abgleich, Papierkorb über `internal/systrash` |
+| T-9.18 | LFS-Dateien über Git-HTTP ausliefern (LFS-Batch-API), damit `git clone` über RepoShelf Modelle und große Dateien vollständig bekommt | offen | | 2026-11-11 | Befund bei T-9.17: bisher kommen beim Klonen über RepoShelf nur LFS-Zeiger an |
 
 ---
 
 ## Verlauf
 
 Neueste oben. Eine Zeile pro Sitzung.
+
+- 2026-11-11 · Claude Code · T-9.16 Issues eigener Repos lokal bearbeiten/senden (D-031), T-9.17 lokale Modell-Ordner übernehmen (D-032, D-033); neu T-9.18 (LFS über Git-HTTP); Release `v0.3.0`
 
 - 2026-11-11 · Dennis · Wünsche: Issues eigener Repos lokal bearbeiten und auf Wunsch senden (D-031); lokale Modell-Ordner übernehmen, Kopieren/Verschieben (D-032, D-033) → T-9.16, T-9.17
 
