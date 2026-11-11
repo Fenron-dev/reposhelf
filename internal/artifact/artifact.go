@@ -49,6 +49,7 @@ const (
 	KindGitHub      = "github"       // GitHub Actions as external runner
 	KindCapsule     = "capsule"      // create a build capsule
 	KindCapsuleTest = "capsule_test" // offline build from a capsule
+	KindImage       = "image"        // runtime image from the Dockerfile (T-9.19)
 )
 
 const (

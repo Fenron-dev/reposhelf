@@ -255,6 +255,11 @@ func (m *Manager) resolveTarget(ctx context.Context, repo *core.Repo, commit, na
 		return artifact.KindCapsule, "capsule", nil
 	case "capsule-test", artifact.KindCapsuleTest:
 		return artifact.KindCapsuleTest, "capsule-test", nil
+	case TargetImage:
+		if !m.hasDockerfile(ctx, repo.Paths.Mirror, commit) {
+			return "", "", fmt.Errorf("%w: %q braucht ein %s im Projekt", ErrTarget, name, dockerfile)
+		}
+		return artifact.KindImage, TargetImage, nil
 	}
 	targets, err := Targets(ctx, m.Lib.Git, repo.Paths.Mirror, commit, repo.Entry.Host == "github.com")
 	if err != nil {
@@ -449,6 +454,8 @@ func (m *Manager) run(parent context.Context, b artifact.Build) {
 				err = m.runCapsule(ctx, &b, lw)
 			case artifact.KindCapsuleTest:
 				err = m.runCapsuleTest(ctx, &b, lw)
+			case artifact.KindImage:
+				err = m.runImage(ctx, &b, lw)
 			default:
 				err = fmt.Errorf("%w: kind %s", ErrTarget, b.Kind)
 			}

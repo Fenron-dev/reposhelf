@@ -29,8 +29,11 @@ case "$1" in
       sha256:*) [ -f "$FAKEBIN/loaded" ] && { echo "$ref"; exit 0; }; exit 1 ;;
       *) echo "sha256:$(printf %064d 7)"; exit 0 ;;
     esac ;;
-  load) touch "$FAKEBIN/loaded"; exit 0 ;;
-  save) shift; while [ $# -gt 0 ]; do if [ "$1" = "-o" ]; then echo image > "$2"; fi; shift; done; exit 0 ;;
+  load) touch "$FAKEBIN/loaded"; echo "Loaded image: reposhelf/x:1"; exit 0 ;;
+  save) shift; out=""; while [ $# -gt 0 ]; do if [ "$1" = "-o" ]; then out="$2"; fi; shift; done
+    if [ -n "$out" ]; then echo image > "$out"; else printf 'fake-image-tar'; fi; exit 0 ;;
+  build) echo "fake build $*"; [ -f Dockerfile ] || exit 7; touch "$FAKEBIN/built"; exit 0 ;;
+  rmi) rm -f "$FAKEBIN/built"; exit 0 ;;
 esac
 src=""; script=""; net=1
 while [ $# -gt 0 ]; do
