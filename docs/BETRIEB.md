@@ -122,10 +122,15 @@ schnell Hunderte MB sein. Einstellbar global, je Sammlung und je Repo.
 
 **Issues:** Jedes Repo hat den Reiter „Issues“. Lokale Issues (L1, L2 …) legst
 du dort an, kommentierst und schließt sie – auch ohne GitHub, z. B. als Aufgabenliste
-für Agenten. Gespiegelte Issues vom Original (#12) bleiben schreibgeschützt.
-CLI: `reposhelf issue list|new|comment|close|reopen <repo> [L3]`; MCP: `list_issues`,
-`create_issue`, `comment_issue`, `set_issue_state`. Abgelegt als Markdown unter
-`meta/…/issues/local/`.
+für Agenten. Bei **eigenen Projekten und Forks** lassen sich auch die gespiegelten
+Issues (#12) bearbeiten. Ob Änderungen an das Original gehen, bestimmt der Schalter
+„Issues an das Original senden“ in den Repo-Einstellungen (Standard aus, D-031): aus =
+alles bleibt privat, Ungesendetes ist markiert und lässt sich mit „Jetzt an … senden“
+nachholen; an = jede Änderung geht sofort raus. Bei Spiegeln bleiben gespiegelte Issues
+schreibgeschützt. Der Token braucht Schreibrecht auf Issues (GitHub: „Issues: Read and
+write“). CLI: `reposhelf issue list|new|comment|close|reopen|send <repo> [L3|#12]`;
+MCP: `list_issues`, `create_issue`, `comment_issue`, `set_issue_state`. Abgelegt als
+Markdown unter `meta/…/issues/local/`, Ungesendetes in `meta/…/issues/outbox.yaml`.
 
 ## 4. Aufbewahrung und Papierkorb
 

@@ -99,6 +99,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /repo/{id}/relation", write(s.repoRelation))
 	mux.Handle("POST /repo/{id}/notes", write(s.repoNotes))
 	mux.Handle("POST /repo/{id}/issues", write(s.issueCreate))
+	mux.Handle("POST /repo/{id}/issues/_send", write(s.issueSend))
 	mux.Handle("POST /repo/{id}/issues/{n}", write(s.issueAction))
 	mux.Handle("POST /repo/{id}/settings", write(s.repoSettings))
 	mux.Handle("POST /repo/{id}/pin", write(s.repoPin))

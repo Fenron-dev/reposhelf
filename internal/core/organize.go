@@ -413,6 +413,7 @@ type Settings struct {
 	Include        repometa.Include
 	Buildable      bool
 	PushUpstream   bool
+	IssuesUpstream bool
 	StatusOverride *repometa.UpstreamStatus
 	Retention      repometa.Retention
 }
@@ -428,7 +429,9 @@ func (l *Library) UpdateSettings(ctx context.Context, ref string, s Settings, ac
 		}
 		r.Sync.Mode = s.Mode
 		r.Sync.Interval = s.Interval
-		r.Sync.PushUpstream = s.PushUpstream && r.Kind != repometa.KindMirror && r.Source.Host != repometa.LocalHost
+		withOriginal := r.Kind != repometa.KindMirror && r.Source.Host != repometa.LocalHost
+		r.Sync.PushUpstream = s.PushUpstream && withOriginal
+		r.Sync.IssuesUpstream = s.IssuesUpstream && withOriginal
 		if s.Mode == repometa.SyncFollow && r.Sync.Interval == nil {
 			d := l.Config().Sync.DefaultInterval
 			r.Sync.Interval = &d

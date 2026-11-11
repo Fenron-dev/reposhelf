@@ -67,6 +67,9 @@ func (r *Repo) Validate() error {
 	if r.Sync.PushUpstream && (r.Kind == KindMirror || r.Source.Host == LocalHost) {
 		v.add("sync.push_upstream", "only for own projects and forks with an original")
 	}
+	if r.Sync.IssuesUpstream && (r.Kind == KindMirror || r.Source.Host == LocalHost) {
+		v.add("sync.issues_upstream", "only for own projects and forks with an original")
+	}
 	switch {
 	case r.Kind == KindFork && r.ForkOf == nil:
 		v.add("fork_of", "is required for kind fork")

@@ -15,7 +15,8 @@ import (
 //	issue list <repo> [--all]
 //	issue new <repo> --title T [--body B | --body -] [--labels a,b]
 //	issue comment <repo> L3 --body B
-//	issue close|reopen <repo> L3 [--body B]
+//	issue close|reopen <repo> L3|#12 [--body B]
+//	issue send <repo>   (waiting changes to the original, D-031)
 func runIssue(args []string, sys system) int {
 	fset, data := dataFlagSet("issue", sys)
 	title := fset.String("title", "", "")
@@ -38,15 +39,15 @@ func runIssue(args []string, sys system) int {
 		return code
 	}
 	defer lib.Close()
-	number := func() (int, bool) {
+	number := func() (core.IssueRef, bool) {
 		if len(pos) < 3 {
-			fmt.Fprintln(sys.stderr, "Issue fehlt, z. B. L3")
-			return 0, false
+			fmt.Fprintln(sys.stderr, "Issue fehlt, z. B. L3 oder #12")
+			return core.IssueRef{}, false
 		}
 		n, err := core.ParseIssueRef(pos[2])
 		if err != nil {
 			fmt.Fprintln(sys.stderr, errText(err))
-			return 0, false
+			return core.IssueRef{}, false
 		}
 		return n, true
 	}
@@ -70,6 +71,9 @@ func runIssue(args []string, sys system) int {
 			if len(is.Labels) > 0 {
 				fmt.Fprintf(sys.stdout, " [%s]", strings.Join(is.Labels, ", "))
 			}
+			if len(is.Pending) > 0 {
+				fmt.Fprintf(sys.stdout, " (%d nicht gesendet)", len(is.Pending))
+			}
 			fmt.Fprintln(sys.stdout)
 		}
 	case "new":
@@ -83,7 +87,7 @@ func runIssue(args []string, sys system) int {
 			return ExitUsage
 		}
 		if err = lib.CommentIssue(ctx, repo, n, *body, "cli"); err == nil {
-			fmt.Fprintf(sys.stdout, "Kommentar an L%d gespeichert.\n", n)
+			fmt.Fprintf(sys.stdout, "Kommentar an %s gespeichert.\n", n)
 		}
 	case "close", "reopen":
 		n, ok := number()
@@ -92,7 +96,15 @@ func runIssue(args []string, sys system) int {
 		}
 		state := map[string]string{"close": core.IssueClosed, "reopen": core.IssueOpen}[sub]
 		if err = lib.SetIssueState(ctx, repo, n, state, *body, "cli"); err == nil {
-			fmt.Fprintf(sys.stdout, "L%d ist jetzt %s.\n", n, map[string]string{core.IssueClosed: "geschlossen", core.IssueOpen: "offen"}[state])
+			fmt.Fprintf(sys.stdout, "%s ist jetzt %s.\n", n, map[string]string{core.IssueClosed: "geschlossen", core.IssueOpen: "offen"}[state])
+		}
+	case "send":
+		sent, failed, e := lib.SendIssues(ctx, repo, "cli")
+		if err = e; err == nil {
+			fmt.Fprintf(sys.stdout, "%d Änderung(en) gesendet, %d fehlgeschlagen.\n", sent, failed)
+			if failed > 0 {
+				return ExitError
+			}
 		}
 	default:
 		fmt.Fprintf(sys.stderr, msgUnknownCommand, "issue "+sub)

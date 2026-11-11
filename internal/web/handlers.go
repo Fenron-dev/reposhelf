@@ -199,21 +199,25 @@ func (s *Server) jobsPartial(w http.ResponseWriter, r *http.Request) {
 // ---- Repository detail (T-1.10) ----
 
 type repoData struct {
-	Repo        *core.Repo
-	Tab         string
-	CloneURL    string
-	Readme      template.HTML
-	ReadmeName  string
-	Ref         string
-	Path        string
-	Tree        []gitcli.TreeEntry
-	Crumbs      []crumb
-	File        *fileView
-	Branches    []gitcli.Ref
-	Versions    []gitcli.Ref
-	Releases    []core.StoredRelease
-	ActionRuns  []core.ActionRun
-	Issues      []core.IssueSummary
+	Repo       *core.Repo
+	Tab        string
+	CloneURL   string
+	Readme     template.HTML
+	ReadmeName string
+	Ref        string
+	Path       string
+	Tree       []gitcli.TreeEntry
+	Crumbs     []crumb
+	File       *fileView
+	Branches   []gitcli.Ref
+	Versions   []gitcli.Ref
+	Releases   []core.StoredRelease
+	ActionRuns []core.ActionRun
+	Issues     []core.IssueSummary
+	// IssuesOut: changes may go to the original (own project or fork);
+	// Unsent counts the waiting ones (D-031).
+	IssuesOut   bool
+	Unsent      int
 	Notes       string
 	NotesHTML   template.HTML
 	YAML        string
@@ -317,6 +321,8 @@ func (s *Server) repoPage(w http.ResponseWriter, r *http.Request) {
 		d.Backups, _ = s.Lib.Git.Backups(ctx, mirror)
 	case "issues":
 		d.Issues, _ = s.Lib.Issues(ctx, repo.R().ID)
+		d.IssuesOut = s.Lib.CanSendIssues(repo)
+		d.Unsent = len(s.Lib.PendingIssues(repo))
 	case "notes":
 		d.Notes, _ = s.Lib.Notes(ctx, repo.R().ID)
 		d.NotesHTML = s.renderMarkdown([]byte(d.Notes), "", "", "")
@@ -574,7 +580,22 @@ func (s *Server) issueAction(w http.ResponseWriter, r *http.Request) {
 		s.failErr(w, r, err)
 		return
 	}
-	redirect(w, r, withMsg(fmt.Sprintf("/repo/%s?tab=issues#issue-L%d", id, n), "ok", msg))
+	redirect(w, r, withMsg(fmt.Sprintf("/repo/%s?tab=issues#issue-%s", id, strings.TrimPrefix(n.String(), "#")), "ok", msg))
+}
+
+// issueSend sends the waiting issue changes to the original (D-031).
+func (s *Server) issueSend(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	sent, failed, err := s.Lib.SendIssues(r.Context(), id, s.actor(r))
+	if err != nil {
+		s.failErr(w, r, err)
+		return
+	}
+	key, msg := "ok", fmt.Sprintf("%d Änderung(en) an das Original gesendet.", sent)
+	if failed > 0 {
+		key, msg = "fehler", fmt.Sprintf("%d gesendet, %d fehlgeschlagen – Fehler stehen am Issue.", sent, failed)
+	}
+	redirect(w, r, withMsg("/repo/"+id+"?tab=issues", key, msg))
 }
 
 func (s *Server) repoSettings(w http.ResponseWriter, r *http.Request) {
@@ -586,8 +607,9 @@ func (s *Server) repoSettings(w http.ResponseWriter, r *http.Request) {
 		Include: repometa.Include{Releases: f.Get("releases") == "on", LFS: f.Get("lfs") == "on",
 			Submodules: f.Get("submodules") == "on", Issues: f.Get("issues") == "on", Wiki: f.Get("wiki") == "on",
 			Actions: f.Get("actions") == "on"},
-		Buildable:    f.Get("buildable") == "on",
-		PushUpstream: f.Get("push_upstream") == "on",
+		Buildable:      f.Get("buildable") == "on",
+		PushUpstream:   f.Get("push_upstream") == "on",
+		IssuesUpstream: f.Get("issues_upstream") == "on",
 	}
 	if v := f.Get("interval"); v != "" && set.Mode == repometa.SyncFollow {
 		d, err := repometa.ParseDuration(v)
