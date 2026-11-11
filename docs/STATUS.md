@@ -285,7 +285,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
-- 2026-11-11 · Claude Code · T-9.18 LFS über Git-HTTP; T-9.11 fertig (HF_HOME-Ordner, Python-Pakete je Plattform, CPU-PyTorch); T-9.19 (Laufzeit-Image) als optional abgetrennt; Release `v0.4.0`
+- 2026-11-11 · Claude Code · T-9.18 LFS über Git-HTTP; T-9.11 fertig (HF_HOME-Ordner, Python-Pakete je Plattform, CPU-PyTorch); T-9.19 (Laufzeit-Image) als optional abgetrennt; Release `v0.4.0`, Prüflauf grün (HF-Modell per `git-lfs` über RepoShelf geklont, Modell-Ordner im Container geprüft)
 
 - 2026-11-11 · Claude Code · Prüflauf v0.3.0: Windows-Papierkorb griff nicht (Pfad mit Leerzeichen als PowerShell-Code-Text zerlegt, auch Einschleusung möglich) → Pfad per Umgebungsvariable; Release `v0.3.1`, Prüflauf grün
 
