@@ -137,7 +137,14 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 | ID | Befund | Fundstelle | Schwere | Status | Gefunden von / Datum | Bezug |
 |---|---|---|---|---|---|---|
-| – | (noch keine) | | | | | |
+| R-001 | Ordner-Übernahme prüft nicht, ob der Ordner den Datenordner enthält oder darin liegt: das Archiv würde in sich selbst kopiert, mit „Verschieben“ käme der Datenordner in den Papierkorb | `internal/core/importdir.go` InspectFolder | hoch | in Arbeit (Claude Code) | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
+| R-002 | Ordner-Übernahme läuft im Web-Request: große Modelle blockieren minutenlang ohne Fortschritt (widerspricht T-9.9) | `internal/core/importdir.go` ImportFolder, `internal/web/handlers.go` importFolder | mittel | in Arbeit (Claude Code) | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
+| R-003 | Vorschau durchläuft beliebig große Ordner (z. B. `C:\`) bei jeder Eingabe | `internal/core/importdir.go` folderFiles | mittel | in Arbeit (Claude Code) | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
+| R-004 | Modell-Ordner für Programme scheitert auf Datenträgern ohne Hardlinks (exFAT/FAT – portabler USB-Betrieb) bei jedem Abgleich | `internal/core/hfhome.go` exportHF | mittel | in Arbeit (Claude Code) | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
+| R-005 | Ausstehende Änderungen an einem schon gesendeten lokalen Issue (L3 → #12) werden nirgends angezeigt | `internal/core/extras.go` Issues | gering | in Arbeit (Claude Code) | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
+| R-006 | SendIssues hält eine globale Sperre während der Netzaufrufe: Issue-Änderungen aller Repos warten | `internal/core/issues.go` issueMu | gering | in Arbeit (Claude Code) | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
+| R-007 | PutLFS ersetzt ein vorhandenes Objekt per Rename; unter Windows scheitert das am schreibgeschützten Ziel | `internal/gitcli/commitfiles.go` PutLFS | gering | in Arbeit (Claude Code) | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
+| R-008 | macOS: Papierkorb per Umbenennen ohne „Zurücklegen“; `/usr/bin/trash` (ab macOS 15) nutzen | `internal/systrash/trash_darwin.go` | Hinweis | in Arbeit (Claude Code) | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
 
 ---
 
@@ -283,6 +290,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.17 | Lokale Ordner übernehmen (Modelle): Pfad im Hinzufügen-Feld, HF-Cache erkennen oder Modell-ID abfragen, vorhandene Dateien statt Download, Kopieren/Verschieben (Original in System-Papierkorb) | erledigt | Claude Code | 2026-11-11 | D-032, D-033; `697b589` – Pfad im Hinzufügen-Feld/`add <ordner>`, HF-Cache-Erkennung, LFS-Vorbefüllung, Prüfung nach erstem Abgleich, Papierkorb über `internal/systrash` |
 | T-9.18 | LFS-Dateien über Git-HTTP ausliefern (LFS-Batch-API), damit `git clone` über RepoShelf Modelle und große Dateien vollständig bekommt | erledigt | Claude Code | 2026-11-11 | `5a509bc` – LFS-Batch-API unter `…/info/lfs/` (Download, Upload für eigene Repos, locks/verify); Prüflauf klont ein HF-Modell über RepoShelf |
 | T-9.19 | Optional: Laufzeit-Image je Repo (fertige Umgebung per `docker save`, z. B. für Dienste auf Unraid) | erledigt | Claude Code | 2026-11-11 | aus T-9.11 abgetrennt; `64316c4` – Build-Ziel `image` (docker build + save → `.tar.gz` im Archiv), „In Docker laden“ |
+| T-9.20 | Issues (gespiegelte und lokale) in die Volltextsuche aufnehmen (KONZEPT 6.9) | in Arbeit | Claude Code | 2026-11-11 | Abgleich Konzept ↔ Stand |
 
 ---
 
