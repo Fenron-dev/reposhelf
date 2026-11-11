@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -53,11 +54,13 @@ type Forge struct {
 	Files     map[string][]byte // asset path → content
 	Gone      map[string]bool
 	Artifacts map[string][]map[string]any
+	// Issues per "owner/name"; written by the issue API (D-031 tests).
+	Issues map[string][]*FakeIssue
 }
 
 // NewForge starts a fake host.
 func NewForge(t testing.TB) *Forge {
-	f := &Forge{t: t, Git: Git(t), Root: t.TempDir(), Meta: map[string]map[string]any{}, Artifacts: map[string][]map[string]any{},
+	f := &Forge{t: t, Git: Git(t), Root: t.TempDir(), Meta: map[string]map[string]any{}, Artifacts: map[string][]map[string]any{}, Issues: map[string][]*FakeIssue{},
 		Releases: map[string][]map[string]any{}, Files: map[string][]byte{}, Gone: map[string]bool{}}
 	gitPath := f.Git.Path
 	backend := &cgi.Handler{
@@ -138,8 +141,8 @@ func (f *Forge) api(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{}`))
 	case len(parts) == 4 && parts[2] == "actions" && parts[3] == "artifacts":
 		json.NewEncoder(w).Encode(map[string]any{"artifacts": f.Artifacts[key]})
-	case len(parts) == 3 && parts[2] == "issues":
-		w.Write([]byte(`[]`))
+	case len(parts) >= 3 && parts[2] == "issues":
+		f.issues(w, r, key, parts[3:])
 	default:
 		http.NotFound(w, r)
 	}
@@ -254,4 +257,77 @@ func (r *Repo) AddArtifact(runID int64, name, content, created string, expired b
 		"created_at": created, "archive_download_url": f.Server.URL + "/files/" + path,
 		"workflow_run": map[string]any{"id": runID, "head_branch": "main", "head_sha": "abc"},
 	})
+}
+
+// FakeIssue is an issue on the fake host.
+type FakeIssue struct {
+	Number   int
+	Title    string
+	Body     string
+	State    string
+	Comments []string
+}
+
+// issues serves the GitHub issue endpoints (list, comments, create,
+// comment, change state, labels). Called with f.mu held.
+func (f *Forge) issues(w http.ResponseWriter, r *http.Request, key string, rest []string) {
+	find := func(s string) *FakeIssue {
+		for _, is := range f.Issues[key] {
+			if strconv.Itoa(is.Number) == s {
+				return is
+			}
+		}
+		return nil
+	}
+	var in struct {
+		Title, Body, State string
+	}
+	if r.Method != http.MethodGet {
+		_ = json.NewDecoder(r.Body).Decode(&in)
+	}
+	now := "2026-11-11T10:00:00Z"
+	switch {
+	case len(rest) == 0 && r.Method == http.MethodGet:
+		var out []map[string]any
+		for _, is := range f.Issues[key] {
+			out = append(out, map[string]any{"number": is.Number, "title": is.Title, "state": is.State, "body": is.Body,
+				"comments": len(is.Comments), "created_at": now, "updated_at": now, "user": map[string]string{"login": "dennis"},
+				"html_url": f.URL(strings.Split(key, "/")[0], strings.Split(key, "/")[1]) + "/issues/" + strconv.Itoa(is.Number)})
+		}
+		json.NewEncoder(w).Encode(out)
+	case len(rest) == 0 && r.Method == http.MethodPost:
+		is := &FakeIssue{Number: len(f.Issues[key]) + 1, Title: in.Title, Body: in.Body, State: "open"}
+		f.Issues[key] = append(f.Issues[key], is)
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]any{"number": is.Number})
+	case len(rest) == 1 && r.Method == http.MethodPatch:
+		is := find(rest[0])
+		if is == nil {
+			http.NotFound(w, r)
+			return
+		}
+		is.State = in.State
+		w.Write([]byte(`{}`))
+	case len(rest) == 2 && rest[1] == "comments":
+		is := find(rest[0])
+		if is == nil {
+			http.NotFound(w, r)
+			return
+		}
+		if r.Method == http.MethodPost {
+			is.Comments = append(is.Comments, in.Body)
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(`{}`))
+			return
+		}
+		var out []map[string]any
+		for _, c := range is.Comments {
+			out = append(out, map[string]any{"body": c, "created_at": now, "user": map[string]string{"login": "dennis"}})
+		}
+		json.NewEncoder(w).Encode(out)
+	case len(rest) == 2 && rest[1] == "labels":
+		w.Write([]byte(`[]`))
+	default:
+		http.NotFound(w, r)
+	}
 }

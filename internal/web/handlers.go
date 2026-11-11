@@ -199,21 +199,25 @@ func (s *Server) jobsPartial(w http.ResponseWriter, r *http.Request) {
 // ---- Repository detail (T-1.10) ----
 
 type repoData struct {
-	Repo        *core.Repo
-	Tab         string
-	CloneURL    string
-	Readme      template.HTML
-	ReadmeName  string
-	Ref         string
-	Path        string
-	Tree        []gitcli.TreeEntry
-	Crumbs      []crumb
-	File        *fileView
-	Branches    []gitcli.Ref
-	Versions    []gitcli.Ref
-	Releases    []core.StoredRelease
-	ActionRuns  []core.ActionRun
-	Issues      []core.IssueSummary
+	Repo       *core.Repo
+	Tab        string
+	CloneURL   string
+	Readme     template.HTML
+	ReadmeName string
+	Ref        string
+	Path       string
+	Tree       []gitcli.TreeEntry
+	Crumbs     []crumb
+	File       *fileView
+	Branches   []gitcli.Ref
+	Versions   []gitcli.Ref
+	Releases   []core.StoredRelease
+	ActionRuns []core.ActionRun
+	Issues     []core.IssueSummary
+	// IssuesOut: changes may go to the original (own project or fork);
+	// Unsent counts the waiting ones (D-031).
+	IssuesOut   bool
+	Unsent      int
 	Notes       string
 	NotesHTML   template.HTML
 	YAML        string
@@ -317,6 +321,8 @@ func (s *Server) repoPage(w http.ResponseWriter, r *http.Request) {
 		d.Backups, _ = s.Lib.Git.Backups(ctx, mirror)
 	case "issues":
 		d.Issues, _ = s.Lib.Issues(ctx, repo.R().ID)
+		d.IssuesOut = s.Lib.CanSendIssues(repo)
+		d.Unsent = len(s.Lib.PendingIssues(repo))
 	case "notes":
 		d.Notes, _ = s.Lib.Notes(ctx, repo.R().ID)
 		d.NotesHTML = s.renderMarkdown([]byte(d.Notes), "", "", "")
@@ -574,7 +580,22 @@ func (s *Server) issueAction(w http.ResponseWriter, r *http.Request) {
 		s.failErr(w, r, err)
 		return
 	}
-	redirect(w, r, withMsg(fmt.Sprintf("/repo/%s?tab=issues#issue-L%d", id, n), "ok", msg))
+	redirect(w, r, withMsg(fmt.Sprintf("/repo/%s?tab=issues#issue-%s", id, strings.TrimPrefix(n.String(), "#")), "ok", msg))
+}
+
+// issueSend sends the waiting issue changes to the original (D-031).
+func (s *Server) issueSend(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	sent, failed, err := s.Lib.SendIssues(r.Context(), id, s.actor(r))
+	if err != nil {
+		s.failErr(w, r, err)
+		return
+	}
+	key, msg := "ok", fmt.Sprintf("%d Änderung(en) an das Original gesendet.", sent)
+	if failed > 0 {
+		key, msg = "fehler", fmt.Sprintf("%d gesendet, %d fehlgeschlagen – Fehler stehen am Issue.", sent, failed)
+	}
+	redirect(w, r, withMsg("/repo/"+id+"?tab=issues", key, msg))
 }
 
 func (s *Server) repoSettings(w http.ResponseWriter, r *http.Request) {
@@ -586,8 +607,9 @@ func (s *Server) repoSettings(w http.ResponseWriter, r *http.Request) {
 		Include: repometa.Include{Releases: f.Get("releases") == "on", LFS: f.Get("lfs") == "on",
 			Submodules: f.Get("submodules") == "on", Issues: f.Get("issues") == "on", Wiki: f.Get("wiki") == "on",
 			Actions: f.Get("actions") == "on"},
-		Buildable:    f.Get("buildable") == "on",
-		PushUpstream: f.Get("push_upstream") == "on",
+		Buildable:      f.Get("buildable") == "on",
+		PushUpstream:   f.Get("push_upstream") == "on",
+		IssuesUpstream: f.Get("issues_upstream") == "on",
 	}
 	if v := f.Get("interval"); v != "" && set.Mode == repometa.SyncFollow {
 		d, err := repometa.ParseDuration(v)
@@ -681,6 +703,7 @@ func (s *Server) repoMark(w http.ResponseWriter, r *http.Request) {
 type addData struct {
 	URL         string
 	Preview     *core.Preview
+	Folder      *core.FolderInfo // a local path (D-033)
 	Collections []core.Collection
 	Error       string
 	Intervals   []string
@@ -690,31 +713,56 @@ type addData struct {
 func (s *Server) addPage(w http.ResponseWriter, r *http.Request) {
 	d := addData{URL: r.URL.Query().Get("url"), Intervals: []string{"1h", "6h", "24h", "7d"}, Defaults: s.Lib.Config()}
 	d.Collections, _ = s.Lib.Collections(r.Context())
-	if d.URL != "" {
+	s.fillPreview(r, &d)
+	s.render(w, r, "add", "Repo hinzufügen", "library", d)
+}
+
+// fillPreview recognises a link or a local folder.
+func (s *Server) fillPreview(r *http.Request, d *addData) {
+	switch {
+	case d.URL == "":
+	case core.IsLocalPath(d.URL):
+		if !s.isLocal(r) {
+			d.Error = "Lokale Ordner lassen sich nur am Rechner selbst übernehmen (Desktop-App oder Kommandozeile)."
+			return
+		}
+		if info, err := s.Lib.InspectFolder(d.URL); err == nil {
+			d.Folder = &info
+		} else {
+			d.Error = ErrText(err)
+		}
+	case strings.HasPrefix(strings.ToLower(d.URL), "smb://"):
+		d.Error = `Freigaben bitte als Pfad angeben: unter Windows \\server\freigabe\ordner, auf dem Mac zuerst im Finder verbinden und dann /Volumes/freigabe/ordner.`
+	default:
 		if pv, err := s.Lib.Preview(r.Context(), d.URL); err == nil {
 			d.Preview = &pv
 		} else {
 			d.Error = ErrText(err)
 		}
 	}
-	s.render(w, r, "add", "Repo hinzufügen", "library", d)
+}
+
+// isLocal reports whether the request comes from this machine's user
+// (desktop window or browser on the same computer), who may name local
+// folders.
+func (s *Server) isLocal(r *http.Request) bool {
+	tok, _ := s.Identity(r)
+	return tok.ID == auth.Local.ID
 }
 
 func (s *Server) addPreview(w http.ResponseWriter, r *http.Request) {
 	d := addData{URL: strings.TrimSpace(r.URL.Query().Get("url"))}
-	if d.URL != "" {
-		if pv, err := s.Lib.Preview(r.Context(), d.URL); err == nil {
-			d.Preview = &pv
-		} else {
-			d.Error = ErrText(err)
-		}
-	}
+	s.fillPreview(r, &d)
 	s.partial(w, "add-preview", d)
 }
 
 func (s *Server) addSubmit(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	f := r.Form
+	if core.IsLocalPath(f.Get("url")) {
+		s.importFolder(w, r)
+		return
+	}
 	req := core.AddRequest{
 		URL: f.Get("url"), Kind: repometa.Kind(f.Get("kind")), Mode: repometa.SyncMode(f.Get("mode")),
 		Tags: splitList(f.Get("tags")), Collections: f["collection"], Buildable: f.Get("buildable") == "on",
@@ -738,6 +786,32 @@ func (s *Server) addSubmit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	redirect(w, r, withMsg("/repo/"+repo.R().ID, "ok", "Aufgenommen – der erste Abgleich läuft im Hintergrund."))
+}
+
+// importFolder takes over a local folder (D-032, D-033).
+func (s *Server) importFolder(w http.ResponseWriter, r *http.Request) {
+	if !s.isLocal(r) {
+		s.fail(w, r, http.StatusForbidden, "Lokale Ordner lassen sich nur am Rechner selbst übernehmen.")
+		return
+	}
+	f := r.Form
+	req := core.ImportRequest{Path: f.Get("url"), ModelID: f.Get("model_id"), Move: f.Get("folder_mode") == "move",
+		Tags: splitList(f.Get("tags")), Actor: s.actor(r)}
+	repo, err := s.Lib.ImportFolder(r.Context(), req)
+	if err != nil && repo == nil {
+		s.failErr(w, r, err)
+		return
+	}
+	msg, key := "Ordner übernommen.", "ok"
+	switch {
+	case err != nil:
+		msg, key = "Übernommen, aber: "+ErrText(err), "fehler"
+	case repo.Upstream.Import != nil:
+		msg = "Ordner übernommen – fehlende Dateien kommen beim ersten Abgleich, danach wird geprüft."
+	case req.Move:
+		msg = "Ordner geprüft übernommen; das Original liegt im Papierkorb des Systems."
+	}
+	redirect(w, r, withMsg("/repo/"+repo.R().ID, key, msg))
 }
 
 func (s *Server) createLocal(w http.ResponseWriter, r *http.Request) {

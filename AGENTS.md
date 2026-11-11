@@ -108,6 +108,8 @@ Der Entwicklungsrechner (MacBook) hat **wenig freien Speicher**.
    löschen würde, Backup-Refs anlegen. Kein `--prune` ohne Sicherung.
 2. **Löschen nur über Papierkorb und Bestätigung.** RepoShelf löscht nichts,
    was es nicht selbst geschrieben hat.
+   Einzige Ausnahme: „Verschieben“ beim Übernehmen eines lokalen Ordners legt
+   das Original nach geprüfter Übernahme in den Papierkorb des Systems (D-032).
 3. **Zustandsdateien atomar schreiben** (temp im selben Ordner → `rename`).
 4. **Pfadsegmente aus dem Netz werden geprüft** (`..`, leer, reserviert,
    Steuerzeichen) – nie ungeprüft als Pfad verwenden.

@@ -103,6 +103,16 @@ Agenten können das nicht. Beim Abgleich durchsucht RepoShelf den Code eines Pro
 Modelle“ mit einem Knopf zum Sichern. Für gesperrte Modelle (Zustimmung nötig) einen
 Token für `huggingface.co` unter „Zugänge“ hinterlegen.
 
+**Schon geladene Modelle übernehmen:** Statt eines Links einen Ordner angeben
+(`C:\Modelle\kokoro`, `\\nas\freigabe\modell`, `/Users/…`, `~/…`; D-033). Ordner aus
+dem Hugging-Face-Cache (`…/hub/models--org--name`) erkennt RepoShelf selbst; sonst die
+Modell-ID (`org/name`) eintragen oder leer lassen (rein lokales Modell unter
+`local/modelle/…`). Mit ID werden die vorhandenen Dateien übernommen und nur Fehlendes
+geladen; nach dem ersten Abgleich prüft RepoShelf jede Datei. „Kopieren“ lässt den
+Ordner unverändert, „Verschieben“ legt ihn nach der Prüfung in den Papierkorb des
+Systems (D-032). Nur am Rechner selbst, nicht übers Netz oder per MCP. CLI:
+`reposhelf add <ordner> [--model org/name] [--move]`.
+
 **Achtung Speicher:** „Releases mitsichern“ lädt die Dateien der neuesten
 Releases (Standard: 5) – bei Projekten mit vielen Plattform-Builds können das
 schnell Hunderte MB sein. Einstellbar global, je Sammlung und je Repo.
@@ -122,10 +132,15 @@ schnell Hunderte MB sein. Einstellbar global, je Sammlung und je Repo.
 
 **Issues:** Jedes Repo hat den Reiter „Issues“. Lokale Issues (L1, L2 …) legst
 du dort an, kommentierst und schließt sie – auch ohne GitHub, z. B. als Aufgabenliste
-für Agenten. Gespiegelte Issues vom Original (#12) bleiben schreibgeschützt.
-CLI: `reposhelf issue list|new|comment|close|reopen <repo> [L3]`; MCP: `list_issues`,
-`create_issue`, `comment_issue`, `set_issue_state`. Abgelegt als Markdown unter
-`meta/…/issues/local/`.
+für Agenten. Bei **eigenen Projekten und Forks** lassen sich auch die gespiegelten
+Issues (#12) bearbeiten. Ob Änderungen an das Original gehen, bestimmt der Schalter
+„Issues an das Original senden“ in den Repo-Einstellungen (Standard aus, D-031): aus =
+alles bleibt privat, Ungesendetes ist markiert und lässt sich mit „Jetzt an … senden“
+nachholen; an = jede Änderung geht sofort raus. Bei Spiegeln bleiben gespiegelte Issues
+schreibgeschützt. Der Token braucht Schreibrecht auf Issues (GitHub: „Issues: Read and
+write“). CLI: `reposhelf issue list|new|comment|close|reopen|send <repo> [L3|#12]`;
+MCP: `list_issues`, `create_issue`, `comment_issue`, `set_issue_state`. Abgelegt als
+Markdown unter `meta/…/issues/local/`, Ungesendetes in `meta/…/issues/outbox.yaml`.
 
 ## 4. Aufbewahrung und Papierkorb
 

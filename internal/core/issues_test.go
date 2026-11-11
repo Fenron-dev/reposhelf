@@ -22,6 +22,7 @@ func TestLocalIssues(t *testing.T) {
 		t.Fatal(err)
 	}
 	id := r.R().ID
+	L1 := IssueRef{Local: true, Number: 1}
 
 	n1, err := l.CreateIssue(ctx, id, "Export kaputt", "Beim Export fehlt die Datei.", []string{"bug", " bug ", ""}, "web")
 	if err != nil || n1 != 1 {
@@ -34,13 +35,13 @@ func TestLocalIssues(t *testing.T) {
 	if _, err := l.CreateIssue(ctx, id, "  ", "x", nil, "web"); !errors.Is(err, ErrInvalid) {
 		t.Errorf("empty title = %v", err)
 	}
-	if err := l.CommentIssue(ctx, id, 1, "Liegt am Pfad.", "mcp:claude"); err != nil {
+	if err := l.CommentIssue(ctx, id, L1, "Liegt am Pfad.", "mcp:claude"); err != nil {
 		t.Fatal(err)
 	}
-	if err := l.SetIssueState(ctx, id, 1, IssueClosed, "Behoben in abc123.", "web"); err != nil {
+	if err := l.SetIssueState(ctx, id, L1, IssueClosed, "Behoben in abc123.", "web"); err != nil {
 		t.Fatal(err)
 	}
-	if err := l.CommentIssue(ctx, id, 9, "x", "web"); !errors.Is(err, ErrNotFound) {
+	if err := l.CommentIssue(ctx, id, IssueRef{Local: true, Number: 9}, "x", "web"); !errors.Is(err, ErrNotFound) {
 		t.Errorf("missing issue = %v", err)
 	}
 
@@ -56,7 +57,7 @@ func TestLocalIssues(t *testing.T) {
 		!strings.Contains(closed.Body, "Liegt am Pfad.") || !strings.Contains(closed.Body, "Behoben in abc123.") {
 		t.Errorf("closed = %+v", closed)
 	}
-	if err := l.SetIssueState(ctx, id, 1, IssueOpen, "", "web"); err != nil {
+	if err := l.SetIssueState(ctx, id, L1, IssueOpen, "", "web"); err != nil {
 		t.Fatal(err)
 	}
 	// Files are plain Markdown next to repo.yaml (YAML is the truth).
@@ -64,9 +65,9 @@ func TestLocalIssues(t *testing.T) {
 	if err != nil || !strings.Contains(string(b), "source: local") || !strings.Contains(string(b), "state: open") {
 		t.Errorf("file = %s, %v", b, err)
 	}
-	for _, ref := range []string{"L3", "l3", "3"} {
-		if n, err := ParseIssueRef(ref); err != nil || n != 3 {
-			t.Errorf("ParseIssueRef(%q) = %d, %v", ref, n, err)
+	for ref, want := range map[string]IssueRef{"L3": {true, 3}, "l3": {true, 3}, "#12": {false, 12}, "12": {false, 12}} {
+		if n, err := ParseIssueRef(ref); err != nil || n != want {
+			t.Errorf("ParseIssueRef(%q) = %v, %v", ref, n, err)
 		}
 	}
 	if _, err := ParseIssueRef("#x"); err == nil {

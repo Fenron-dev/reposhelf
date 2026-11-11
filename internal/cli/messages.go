@@ -26,6 +26,9 @@ Repos:
        --tags a,b   --collection x   --buildable   --no-releases   --issues   --wiki
        --actions           GitHub-Actions-Artefakte mitsichern (neueste Läufe, Anzahl: retention.actions_keep)
        --large             großes Hugging-Face-Modell bestätigen (über retention.ask_above_mb)
+  add <ordner>             Lokalen Ordner übernehmen (z. B. bereits geladenes Modell):
+       --model org/name    mit Hugging-Face-Modell verknüpfen (sonst aus dem HF-Cache erkannt
+                           oder rein lokal)   --move  Original danach in den Papierkorb
   create <name>            Eigenes Projekt nur in RepoShelf anlegen (--owner, --description)
   fork <repo>              Beschreibbare Kopie eines Spiegels anlegen (--name)
   sync <repo>… | --all | --due   Abgleichen (mit Sicherung vor Force-Pushes)
@@ -37,9 +40,10 @@ Repos:
   import-zip <datei.zip>   Eigenes Projekt aus einem ZIP anlegen (mit .git: ganze Geschichte)
   grep <text>              Code aller Repos durchsuchen (--regex -i --tag --repo)
   reindex                  Index aus den Dateien neu aufbauen
-  issue list|new|comment|close|reopen <repo> [L3]
-                           Lokale Issues (--title, --body, --body - liest von der
-                           Eingabe, --labels a,b, --all)
+  issue list|new|comment|close|reopen|send <repo> [L3|#12]
+                           Issues (--title, --body, --body - liest von der Eingabe,
+                           --labels a,b, --all); send schickt wartende Änderungen
+                           an das Original
   host-token list | check | set | remove [<host>]
                            Zugänge zu Git-Hosts (Standard github.com); set liest den
                            Token von der Eingabe und legt ihn im Schlüsselbund ab

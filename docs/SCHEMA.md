@@ -95,6 +95,7 @@ created: 2026-11-08T10:00:00Z
 | `sync.last_success` | Zeitpunkt | nein | `null` | RFC 3339, UTC empfohlen |
 | `sync.last_check` | Zeitpunkt | nein | `null` | RFC 3339 |
 | `sync.last_error` | Text | nein | `null` | letzte Fehlermeldung |
+| `sync.issues_upstream` | ja/nein | nein | `false` | Issue-Änderungen sofort an das Original senden (D-031); nur bei `own`/`fork` mit Original |
 | `sync.push_upstream` | ja/nein | nein | `false` | Pushes an das Original weiterreichen (D-029); nur bei `own`/`fork` mit Original, nie erzwungen |
 | `status_override` | Auswahl | nein | `null` | vom Nutzer gesetzt, schlägt den erkannten Status: `ok` · `degraded` · `gone` · `archived` |
 | `include.releases` | ja/nein | nein | `true` | |

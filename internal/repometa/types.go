@@ -87,6 +87,9 @@ type Sync struct {
 	// PushUpstream passes pushes on to the original (D-029); only for own
 	// projects and forks with an original. Default off.
 	PushUpstream bool `yaml:"push_upstream,omitempty"`
+	// IssuesUpstream sends issue changes to the original at once (D-031);
+	// off: they wait until the user sends them.
+	IssuesUpstream bool `yaml:"issues_upstream,omitempty"`
 }
 
 // SyncMode tells when a repository is fetched.

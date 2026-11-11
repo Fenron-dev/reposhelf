@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -63,6 +64,8 @@ type issueFront struct {
 	Comments int        `yaml:"comments"`
 	// Source is "local" for issues created in RepoShelf (D-028).
 	Source string `yaml:"source,omitempty"`
+	// Remote is the number a local issue got at the original (D-031).
+	Remote int `yaml:"remote,omitempty"`
 }
 
 func writeIssue(dir string, is sources.Issue) error {
@@ -95,6 +98,16 @@ type IssueSummary struct {
 	URL      string
 	Comments int
 	Updated  time.Time
+	Remote   int       // local issue sent to the original as #Remote
+	Pending  []IssueOp // changes not yet sent to the original
+}
+
+// Key is the issue reference for URLs and forms: "L3" or "12".
+func (i IssueSummary) Key() string {
+	if i.Local {
+		return fmt.Sprintf("L%d", i.Number)
+	}
+	return strconv.Itoa(i.Number)
 }
 
 // Ref is how the issue is named: "L3" for local, "#3" for mirrored ones.
@@ -112,11 +125,28 @@ func (l *Library) Issues(ctx context.Context, ref string) ([]IssueSummary, error
 	if err != nil {
 		return nil, err
 	}
-	out := readIssues(filepath.Join(r.Paths.Meta, IssuesDir))
-	for i := range out {
-		out[i].Local = false // only files below local/ are local
+	mirrored := readIssues(filepath.Join(r.Paths.Meta, IssuesDir))
+	have := map[int]bool{}
+	for i := range mirrored {
+		mirrored[i].Local = false // only files below local/ are local
+		have[mirrored[i].Number] = true
 	}
-	out = append(out, readIssues(l.localIssuesDir(r))...)
+	out := mirrored
+	for _, is := range readIssues(l.localIssuesDir(r)) {
+		// A local issue sent to the original shows as the mirrored one.
+		if is.Remote == 0 || !have[is.Remote] {
+			out = append(out, is)
+		}
+	}
+	pending := l.PendingIssues(r)
+	for i := range out {
+		ref := IssueRef{Local: out[i].Local, Number: out[i].Number}.String()
+		for _, op := range pending {
+			if op.Issue == ref {
+				out[i].Pending = append(out[i].Pending, op)
+			}
+		}
+	}
 	sortIssues(out)
 	return out, nil
 }

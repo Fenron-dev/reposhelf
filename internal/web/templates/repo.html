@@ -80,19 +80,26 @@
       <div><button class="btn btn-primary" type="submit">Anlegen</button></div>
     </form>
   </details>{{end}}
+  {{if $d.IssuesOut}}<div class="card row-wrap">
+    <span class="small">{{if $r.R.Sync.IssuesUpstream}}Änderungen gehen sofort an <span class="mono">{{$e.Host}}</span>.{{else}}Änderungen bleiben in RepoShelf, bis du sie sendest (Schalter in den Einstellungen).{{end}}
+    {{if $d.Unsent}}<strong>{{$d.Unsent}} nicht gesendet.</strong>{{end}}</span>
+    {{if and $d.Unsent $d.CanWrite}}<form method="post" action="/repo/{{$id}}/issues/_send" class="inline"><button class="btn btn-small">Jetzt an {{$e.Host}} senden</button></form>{{end}}
+  </div>{{end}}
   <div class="card">
   {{range $d.Issues}}
-    <details class="issue" id="issue-{{.Ref}}"><summary><span class="status {{if eq .State "open"}}status-ok{{else}}muted{{end}}">{{if eq .State "open"}}● offen{{else}}✓ geschlossen{{end}}</span> <strong>{{.Ref}}</strong> {{.Title}} <span class="small muted">· {{.Author}}{{if .Comments}} · {{.Comments}} Kommentar{{if gt .Comments 1}}e{{end}}{{end}}{{if not .Local}} · gespiegelt{{end}}</span> {{range .Labels}}<span class="tag">{{.}}</span>{{end}}</summary>
+    <details class="issue" id="issue-{{.Key}}"><summary><span class="status {{if eq .State "open"}}status-ok{{else}}muted{{end}}">{{if eq .State "open"}}● offen{{else}}✓ geschlossen{{end}}</span> <strong>{{.Ref}}</strong> {{.Title}} <span class="small muted">· {{.Author}}{{if .Comments}} · {{.Comments}} Kommentar{{if gt .Comments 1}}e{{end}}{{end}}{{if not .Local}} · gespiegelt{{end}}</span> {{range .Labels}}<span class="tag">{{.}}</span>{{end}}</summary>
       {{if .Body}}<pre class="issue-body">{{.Body}}</pre>{{end}}
-      {{if and .Local $d.CanWrite}}
-      <form method="post" action="/repo/{{$id}}/issues/{{.Number}}" class="stack">
+      {{range .Pending}}<div class="small {{if .Error}}error{{else}}warn{{end}}">◌ nicht gesendet: {{if eq .Kind "create"}}Issue anlegen{{else if eq .Kind "state"}}{{if eq .State "closed"}}schließen{{else}}wieder öffnen{{end}}{{else}}Kommentar „{{.Text}}“{{end}}{{if .Error}} – Fehler: {{.Error}}{{end}}</div>{{end}}
+      {{if and $d.CanWrite (or .Local $d.IssuesOut)}}
+      <form method="post" action="/repo/{{$id}}/issues/{{.Key}}" class="stack">
         <label>Kommentar <textarea name="text" rows="3"></textarea></label>
         <div class="row-wrap">
           <button class="btn btn-small" name="action" value="comment">Kommentieren</button>
           {{if eq .State "open"}}<button class="btn btn-small" name="action" value="close">Schließen</button>{{else}}<button class="btn btn-small" name="action" value="reopen">Wieder öffnen</button>{{end}}
         </div>
       </form>
-      {{else if .URL}}<p class="small"><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">Im Original öffnen</a> – gespiegelte Issues sind schreibgeschützt.</p>{{end}}
+      {{if .URL}}<p class="small"><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">Im Original öffnen</a></p>{{end}}
+      {{else if .URL}}<p class="small"><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">Im Original öffnen</a> – gespiegelte Issues von Spiegeln sind schreibgeschützt.</p>{{end}}
     </details>
   {{else}}<p class="muted">Noch keine Issues. Lokale Issues legst du hier an; gespiegelte kommen beim Abgleich, wenn „Issues mitsichern“ an ist.</p>{{end}}
   </div>
@@ -312,7 +319,9 @@
     <label class="check"><input type="radio" name="mode" value="manual" {{if eq $r.Sync.Mode "manual"}}checked{{end}}> Nur von Hand</label>
   </fieldset>
   {{if and (ne $r.Kind "mirror") (ne $r.Source.Host "local")}}
-  <fieldset><legend>Pushes</legend>
+  <fieldset><legend>Mit dem Original</legend>
+    <label class="check"><input type="checkbox" name="issues_upstream" {{if $r.Sync.IssuesUpstream}}checked{{end}}> Issues an das Original senden (neue Issues, Kommentare, Schließen)</label>
+    <p class="small muted">Aus: Issue-Änderungen bleiben privat in RepoShelf und lassen sich später per Knopf senden. Braucht einen Token mit Schreibrecht auf Issues.</p>
     <label class="check"><input type="checkbox" name="push_upstream" {{if $r.Sync.PushUpstream}}checked{{end}}> Pushes an das Original weiterreichen (<span class="mono">{{$r.Source.Host}}</span>)</label>
     <p class="small muted">Nach jedem Push in RepoShelf werden Branches und Tags an das Original geschickt – nie erzwungen, nie gelöscht. Braucht einen Token mit Schreibrecht (Contents: Read and write).</p>
   </fieldset>
