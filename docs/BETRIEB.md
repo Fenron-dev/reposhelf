@@ -190,8 +190,11 @@ Runner-Rolle in den Einstellungen einschalten (braucht Docker). Ziele kommen aus
       commands: ["go build -o dist/app ./cmd/app"]
       artifacts: ["dist/*"]
       network: false        # ohne Netz bauen
-      secrets: [NPM_TOKEN]  # nur genannte Geheimnisse, aus REPOSHELF_SECRET_NPM_TOKEN
+      secrets: [NPM_TOKEN]  # aus REPOSHELF_SECRET_NPM_TOKEN – nur wenn für das Repo freigegeben
   ```
+  Geheimnisse bekommt ein Build nur, wenn du sie in den Repo-Einstellungen unter
+  „Baubar halten“ für dieses Repo freigibst (Verwalter) – die Build-Datei im Repo
+  allein genügt nicht. Bei fremden Repos nichts freigeben.
 - Linux-Jobs aus `.github/workflows` (mit `act`, im Docker-Image enthalten),
 - GitHub Actions als externer Runner (Workflows mit `workflow_dispatch`, Artefakte
   werden ins Archiv geholt; braucht `REPOSHELF_GITHUB_TOKEN`).

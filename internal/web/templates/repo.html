@@ -347,6 +347,9 @@
       <span class="muted">Python-Pakete zusätzlich sichern für:</span><input type="hidden" name="platforms_sent" value="1">
       <div class="row-wrap">{{range .Platforms}}<label class="check"><input type="checkbox" name="platform" value="{{.Value}}" {{if .Checked}}checked{{end}}> {{.Label}}</label>{{end}}</div>
       <label class="check"><input type="checkbox" name="cuda" {{if $r.Buildable.CUDA}}checked{{end}}> CUDA-Varianten (Grafikkarte; PyTorch dann mehrere GB)</label>
+      {{if .CanAdmin}}<label>Geheimnisse für Builds dieses Repos freigeben <input name="secrets" class="mono" value="{{join $r.Buildable.Secrets ", "}}" placeholder="z. B. NPM_TOKEN" spellcheck="false"></label><input type="hidden" name="secrets_sent" value="1">
+      <span class="muted">Nur hier genannte Namen (aus <span class="mono">REPOSHELF_SECRET_&lt;NAME&gt;</span>) gehen in den Build-Container – und nur, wenn die Build-Datei des Repos sie verlangt. Bei fremden Repos leer lassen: der Build-Code könnte sie weitergeben.</span>
+      {{else if $r.Buildable.Secrets}}<span class="muted">Freigegebene Geheimnisse: <span class="mono">{{join $r.Buildable.Secrets ", "}}</span></span>{{end}}
     </div>
   </fieldset>
   <fieldset><legend>Status festlegen</legend>

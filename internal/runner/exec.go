@@ -18,6 +18,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -26,6 +27,7 @@ import (
 
 	"github.com/Fenron-dev/reposhelf/internal/artifact"
 	"github.com/Fenron-dev/reposhelf/internal/gitcli"
+	"github.com/Fenron-dev/reposhelf/internal/repometa"
 )
 
 // containerArgs are the common docker run options: limits from the
@@ -80,18 +82,27 @@ func (m *Manager) runDocker(ctx context.Context, b *artifact.Build, log io.Write
 	for _, k := range keys {
 		args = append(args, "-e", k+"="+t.Env[k])
 	}
+	// A secret reaches the container only when the target asks for it AND
+	// the user released it for this repository: the build definition is
+	// part of the (possibly foreign) repository and must not decide alone
+	// (KONZEPT 6.12, R-013). Values travel in docker's environment, not on
+	// its command line (process list).
+	var env []string
 	for _, s := range t.Secrets {
-		// Secrets only when the target names them (KONZEPT 6.12).
-		if v, ok := m.LookupEnv("REPOSHELF_SECRET_" + s); ok {
-			args = append(args, "-e", s+"="+v)
-		} else {
+		switch v, ok := m.LookupEnv("REPOSHELF_SECRET_" + s); {
+		case !repometa.SecretName.MatchString(s) || !slices.Contains(repo.R().Buildable.Secrets, s):
+			fmt.Fprintf(log, "Hinweis: Geheimnis %s ist für dieses Repo nicht freigegeben (Repo-Einstellungen → Baubar halten)\n", s)
+		case !ok:
 			fmt.Fprintf(log, "Hinweis: Geheimnis %s nicht gesetzt (REPOSHELF_SECRET_%s)\n", s, s)
+		default:
+			args = append(args, "-e", s)
+			env = append(env, s+"="+v)
 		}
 	}
 	script := "set -e\n" + strings.Join(t.Commands, "\n")
 	args = append(args, t.Image, "sh", "-c", script)
 	fmt.Fprintf(log, "docker run %s (Netz: %v)\n", t.Image, network)
-	if err := m.command(ctx, log, "", m.Docker, args...); err != nil {
+	if err := m.commandEnv(ctx, log, "", env, m.Docker, args...); err != nil {
 		return err
 	}
 	return m.collect(b, work, t.Artifacts, log)
@@ -99,9 +110,17 @@ func (m *Manager) runDocker(ctx context.Context, b *artifact.Build, log io.Write
 
 // command runs an executable and streams its output into the log.
 func (m *Manager) command(ctx context.Context, log io.Writer, dir, name string, args ...string) error {
+	return m.commandEnv(ctx, log, dir, nil, name, args...)
+}
+
+// commandEnv is command with extra environment variables.
+func (m *Manager) commandEnv(ctx context.Context, log io.Writer, dir string, env []string, name string, args ...string) error {
 	cmd := exec.CommandContext(ctx, name, args...)
 	gitcli.HideWindow(cmd)
 	cmd.Dir = dir
+	if len(env) > 0 {
+		cmd.Env = append(os.Environ(), env...)
+	}
 	pr, pw := io.Pipe()
 	cmd.Stdout, cmd.Stderr = pw, pw
 	done := make(chan struct{})
