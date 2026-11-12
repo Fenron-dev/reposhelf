@@ -5,7 +5,9 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"mime"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/Fenron-dev/reposhelf/internal/auth"
@@ -40,8 +42,35 @@ func (h *Handler) Routes() http.Handler {
 	return mux
 }
 
+// fromOtherSite reports a state-changing request a web page of another
+// site made in the user's browser (R-012): browsers name the page in
+// Origin and Sec-Fetch-Site, and such "simple" requests cannot carry JSON.
+func fromOtherSite(r *http.Request) string {
+	if r.Method == http.MethodGet || r.Method == http.MethodHead {
+		return ""
+	}
+	if o := r.Header.Get("Origin"); o != "" {
+		if u, err := url.Parse(o); err != nil || u.Host != r.Host {
+			return "Anfrage von fremder Seite abgelehnt"
+		}
+	}
+	if site := r.Header.Get("Sec-Fetch-Site"); site == "cross-site" {
+		return "Anfrage von fremder Seite abgelehnt"
+	}
+	if r.ContentLength != 0 {
+		if mt, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type")); mt != "application/json" {
+			return "Content-Type muss application/json sein"
+		}
+	}
+	return ""
+}
+
 func (h *Handler) need(right string, f http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if msg := fromOtherSite(r); msg != "" {
+			writeJSON(w, http.StatusForbidden, map[string]string{"error": msg})
+			return
+		}
 		tok, authed := h.Identity(r)
 		if !tok.Has(right) {
 			code := http.StatusForbidden

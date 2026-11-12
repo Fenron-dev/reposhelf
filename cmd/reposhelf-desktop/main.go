@@ -165,7 +165,9 @@ func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	r.RemoteAddr = "127.0.0.1:1"
 	r.Header.Del("X-Forwarded-For")
-	h.ServeHTTP(w, r)
+	// The window's Host is Wails' own (wails.localhost / wails), not a
+	// name of this machine: vouch for the request explicitly (R-011).
+	h.ServeHTTP(w, server.MarkLocal(r))
 }
 
 func portablePath() string {
