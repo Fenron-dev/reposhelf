@@ -40,6 +40,8 @@ jobs:
         uses: golangci/golangci-lint-action@v8
         with:
           version: latest
+      - name: govulncheck (known vulnerabilities in Go and dependencies, R-017)
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
   build:
     runs-on: ubuntu-latest
