@@ -14,7 +14,7 @@
 
 - **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.5.3` (T-9.11–T-9.20, R-001–R-014) zum Test bei Dennis
 - **Letzte Änderung:** 2026-11-21 · Schwere Befunde behoben: R-011 (DNS-Rebinding), R-012 (API-CSRF), R-013 (Geheimnisse), R-014 (act)
-- **Nächster Schritt:** Dennis klärt die GitHub-Abrechnung (Actions blockiert), danach Release `v0.5.3` neu anstoßen (`gh run rerun 44942193518`) und Prüflauf; Dennis testet `v0.5.3`; offen: R-015–R-027 (mittel/gering), F-019 entscheiden
+- **Nächster Schritt:** Dennis testet `v0.5.3`; offen: R-015–R-027 (mittel/gering), F-019 entscheiden
 
 ## Übergabe-Notiz
 
@@ -341,7 +341,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
-- 2026-11-21 · Claude Code · R-011–R-014 behoben (DNS-Rebinding, API-CSRF, Geheimnisse nur nach Freigabe, act abgedichtet); Tag `v0.5.3` gesetzt, aber GitHub Actions startet nicht (Abrechnung/Ausgabenlimit des Kontos) – Release-Dateien und Prüflauf fehlen noch; lokal alle Tests grün
+- 2026-11-21 · Claude Code · R-011–R-014 behoben (DNS-Rebinding, API-CSRF, Geheimnisse nur nach Freigabe, act abgedichtet); Release `v0.5.3` (nach Klärung der GitHub-Abrechnung), Prüflauf grün inkl. `act` ohne Docker-Socket
 
 - 2026-11-11 · Claude Code · Prüfung des Projekts (Sicherheit, Probleme, Optimierungen, fehlende Funktionen): `docs/PRUEFBERICHT-2026-11.md`, Befunde R-011–R-027, Vorschläge in F-019; kein Code geändert
 
