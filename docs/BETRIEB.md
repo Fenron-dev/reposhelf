@@ -234,6 +234,9 @@ einem Intervall. Hat sich ein Feld auf beiden Seiten geändert, erscheint ein
 Konflikt zum Entscheiden. Gekoppelte Instanzen mit Runner-Rolle können – wenn
 freigegeben – Builds übernehmen.
 
+Beide Instanzen brauchen mindestens v0.5.4 (Schutz gegen wiederholte Anfragen); nach
+zehn falschen Kopplungsversuchen verfällt der Code, dann einen neuen anzeigen lassen.
+
 Jede Instanz hat einen eigenen Schlüssel in `.reposhelf/instance.key` (nur für
 den Besitzer lesbar). Gespeichert wird von der Gegenseite nur ihr öffentlicher
 Schlüssel; Anfragen sind signiert.

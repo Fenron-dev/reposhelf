@@ -111,6 +111,8 @@ type Manager struct {
 
 	mu      sync.Mutex
 	codes   map[string]time.Time // pairing codes
+	misses  int                  // wrong pairing proofs since the last code
+	nonces  map[string]time.Time // nonces of signed requests seen (replay)
 	temp    map[string]tempToken // short-lived git tokens for peers
 	syncing map[string]bool
 	builds  Builds
@@ -248,16 +250,25 @@ func (m *Manager) addPeer(p Peer) error {
 // codeTTL is how long a pairing code is valid.
 const codeTTL = 10 * time.Minute
 
+// codeChars is the length of a pairing code: 12 base32 characters are
+// 60 bits – the proof sent while pairing (HMAC of code and key) cannot be
+// tried out offline within codeTTL (R-021).
+const codeChars = 12
+
+// maxMisses wrong pairing proofs invalidate all open codes.
+const maxMisses = 10
+
 // NewCode creates a pairing code to show to the user.
 func (m *Manager) NewCode() (string, time.Time) {
-	var b [5]byte
+	var b [8]byte
 	rand.Read(b[:])
-	code := base32.StdEncoding.EncodeToString(b[:])[:8]
+	code := base32.StdEncoding.EncodeToString(b[:])[:codeChars]
 	exp := time.Now().Add(codeTTL)
 	m.mu.Lock()
 	m.codes[code] = exp
+	m.misses = 0
 	m.mu.Unlock()
-	return code[:4] + "-" + code[4:], exp
+	return code[:4] + "-" + code[4:8] + "-" + code[8:], exp
 }
 
 func normCode(c string) string {
@@ -327,6 +338,8 @@ func (m *Manager) acceptPair(req pairRequest) (pairResponse, error) {
 	}
 	if used != "" {
 		delete(m.codes, used) // one-time
+	} else if m.misses++; m.misses >= maxMisses {
+		clear(m.codes) // someone is guessing: the user makes a new code
 	}
 	m.mu.Unlock()
 	if used == "" {
@@ -348,23 +361,50 @@ func (m *Manager) acceptPair(req pairRequest) (pairResponse, error) {
 // ---- signed requests ----
 
 const (
-	hdrPeer = "X-Reposhelf-Peer"
-	hdrTime = "X-Reposhelf-Time"
-	hdrSig  = "X-Reposhelf-Signature"
+	hdrPeer  = "X-Reposhelf-Peer"
+	hdrTime  = "X-Reposhelf-Time"
+	hdrSig   = "X-Reposhelf-Signature"
+	hdrNonce = "X-Reposhelf-Nonce"
 	// maxSkew tolerates clock differences between instances.
 	maxSkew = 5 * time.Minute
 )
 
-func signingString(method, path, ts string, body []byte) []byte {
+// The nonce makes every signed request unique: one seen before is refused,
+// so a recorded request cannot be sent again within maxSkew (R-021).
+func signingString(method, path, ts, nonce string, body []byte) []byte {
 	h := sha256.Sum256(body)
-	return []byte(method + "\n" + path + "\n" + ts + "\n" + hex.EncodeToString(h[:]))
+	return []byte(method + "\n" + path + "\n" + ts + "\n" + nonce + "\n" + hex.EncodeToString(h[:]))
 }
 
 func (m *Manager) sign(r *http.Request, body []byte) {
 	ts := strconv.FormatInt(time.Now().Unix(), 10)
+	var nb [16]byte
+	rand.Read(nb[:])
+	nonce := hex.EncodeToString(nb[:])
 	r.Header.Set(hdrPeer, m.OwnFingerprint())
 	r.Header.Set(hdrTime, ts)
-	r.Header.Set(hdrSig, base64.StdEncoding.EncodeToString(ed25519.Sign(m.priv, signingString(r.Method, r.URL.RequestURI(), ts, body))))
+	r.Header.Set(hdrNonce, nonce)
+	r.Header.Set(hdrSig, base64.StdEncoding.EncodeToString(ed25519.Sign(m.priv, signingString(r.Method, r.URL.RequestURI(), ts, nonce, body))))
+}
+
+// fresh records a nonce; false if it was used before.
+func (m *Manager) fresh(nonce string) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.nonces == nil {
+		m.nonces = map[string]time.Time{}
+	}
+	now := time.Now()
+	for n, t := range m.nonces {
+		if now.Sub(t) > 2*maxSkew {
+			delete(m.nonces, n)
+		}
+	}
+	if _, seen := m.nonces[nonce]; seen {
+		return false
+	}
+	m.nonces[nonce] = now
+	return true
 }
 
 // verify checks a signed request and returns the peer.
@@ -378,10 +418,17 @@ func (m *Manager) verify(r *http.Request, body []byte) (Peer, error) {
 	if err != nil || time.Since(time.Unix(sec, 0)).Abs() > maxSkew {
 		return Peer{}, fmt.Errorf("%w: time", ErrBadSignature)
 	}
+	nonce := r.Header.Get(hdrNonce)
+	if len(nonce) != 32 {
+		return Peer{}, fmt.Errorf("%w: die andere Instanz ist zu alt – bitte beide auf mindestens v0.5.4 aktualisieren", ErrBadSignature)
+	}
 	pub, _ := base64.StdEncoding.DecodeString(p.PublicKey)
 	sig, _ := base64.StdEncoding.DecodeString(r.Header.Get(hdrSig))
-	if len(pub) != ed25519.PublicKeySize || !ed25519.Verify(pub, signingString(r.Method, r.URL.RequestURI(), ts, body), sig) {
+	if len(pub) != ed25519.PublicKeySize || !ed25519.Verify(pub, signingString(r.Method, r.URL.RequestURI(), ts, nonce, body), sig) {
 		return Peer{}, ErrBadSignature
+	}
+	if !m.fresh(nonce) {
+		return Peer{}, fmt.Errorf("%w: wiederholte Anfrage", ErrBadSignature)
 	}
 	return p, nil
 }
