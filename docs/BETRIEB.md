@@ -165,6 +165,16 @@ Einträge wandern in den **Papierkorb** und bleiben dort 30 Tage
 wiederherstellbar; endgültig gelöscht wird nur nach erneuter Bestätigung.
 Angeheftete Versionen und die Git-Geschichte selbst sind nie betroffen.
 
+## 4a. Integrität
+
+RepoShelf liest regelmäßig (Standard alle 30 Tage, `retention.integrity_every`) alles,
+was es aufbewahrt, und vergleicht es mit den gespeicherten Prüfsummen: Git-Objekte
+(`git fsck`), Release-Dateien, Actions-Artefakte, große Dateien (LFS), Kapseln und
+README-Bilder. Ergebnis unter Einstellungen → „Integrität“ (dort auch „Jetzt prüfen“);
+Schäden erscheinen als Hinweis in der Bibliothek. CLI: `reposhelf check` (Exit 1 bei
+Schäden). Ein beschädigter Spiegel lässt sich meist durch einen neuen Abgleich oder aus
+einer gekoppelten Instanz wiederherstellen.
+
 ## 5. Agenten und Git
 
 - **Git:** `git clone http://<server>:7373/git/<host>/<owner>/<name>.git`

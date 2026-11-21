@@ -297,6 +297,7 @@
     <label>Neueste Releases behalten <input name="releases_keep" class="short" value="{{$c.Retention.ReleasesKeep}}" inputmode="numeric"></label>
     <label>Actions-Läufe mit Artefakten behalten <input name="actions_keep" class="short" value="{{$c.Retention.ActionsKeep}}" inputmode="numeric"></label>
     <label>Höchstgröße je Release-Datei (MB) <input name="max_asset_mb" class="short" value="{{$c.Retention.MaxAssetMB}}" inputmode="numeric"><span class="small muted">0 = keine Grenze</span></label>
+    <label>Integrität prüfen alle <input name="integrity_every" class="short" value="{{$c.Retention.IntegrityEvery}}"><span class="small muted">z. B. 30d, 0 = nur von Hand</span></label>
     <label>Modelle: nachfragen ab (MB) <input name="ask_above_mb" class="short" value="{{$c.Retention.AskAboveMB}}" inputmode="numeric"><span class="small muted">0 = nie nachfragen</span></label>
     <label>Snapshot alle <input name="snapshots_every" class="short" value="{{$c.Retention.SnapshotsEvery}}"><span class="small muted">0 = aus</span></label>
     <label>Snapshots behalten <input name="snapshots_keep_for" class="short" value="{{$c.Retention.SnapshotsKeepFor}}"></label>
@@ -325,6 +326,19 @@
   {{with .Data.TokenError}}<div class="alert alert-error small" role="alert">{{.}}</div>{{end}}
   <p class="small muted">Ein Token öffnet private Repos, GitHub-Actions-Artefakte und 5000 statt 60 API-Anfragen pro Stunde. Er liegt im Schlüsselbund dieses Rechners, nie im Datenordner.</p>
   <div hx-get="/settings/tokens" hx-trigger="load" hx-swap="outerHTML"><p class="small muted"><span class="spinner" aria-hidden="true"></span> wird geladen …</p></div>
+</div>
+
+<div class="card stack" id="integritaet">
+  <h2 class="h3">Integrität</h2>
+  <p class="small muted">Liest alles, was RepoShelf aufbewahrt, und vergleicht es mit den gespeicherten Prüfsummen: Git-Objekte, Release-Dateien, Actions-Artefakte, große Dateien (LFS), Kapseln, README-Bilder. Läuft automatisch alle {{$c.Retention.IntegrityEvery}} (Einstellung oben, 0 = nur von Hand).</p>
+  {{if $d.IntegrityRunning}}<p class="small"><span class="spinner" aria-hidden="true"></span> Prüfung läuft …</p>
+  {{else if $d.HasIntegrity}}{{with $d.Integrity}}
+  <p class="small">Zuletzt geprüft {{dt .Finished}}: {{.Repos}} Repos, {{.Files}} Dateien, {{size .Bytes}} –
+    {{if .OK}}<span class="ok">✓ alles in Ordnung</span>{{else}}<span class="error">{{len .Problems}} Probleme</span>{{end}}{{if .Error}} <span class="error">({{.Error}})</span>{{end}}</p>
+  {{if .Problems}}<ul class="small">{{range .Problems}}<li>{{if .RepoID}}<a href="/repo/{{.RepoID}}">{{.Key}}</a>{{else}}Kapseln{{end}} · <span class="mono">{{.Path}}</span>: {{.Detail}}</li>{{end}}</ul>
+  <p class="small muted">Beschädigte Spiegel lassen sich oft durch einen neuen Abgleich reparieren (solange es das Original gibt) oder aus einer gekoppelten Instanz holen.</p>{{end}}
+  {{end}}{{else}}<p class="small muted">Noch nie geprüft.</p>{{end}}
+  {{if not $d.IntegrityRunning}}<form method="post" action="/settings/integrity"><button class="btn" type="submit">Jetzt prüfen</button></form>{{end}}
 </div>
 
 <div class="card">

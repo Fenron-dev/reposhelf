@@ -40,6 +40,7 @@ Repos:
   import-zip <datei.zip>   Eigenes Projekt aus einem ZIP anlegen (mit .git: ganze Geschichte)
   grep <text>              Code aller Repos durchsuchen (--regex -i --tag --repo)
   reindex                  Index aus den Dateien neu aufbauen
+  check                    Alles Aufbewahrte lesen und prüfen (Git, Prüfsummen); Fehler → Exit 1
   issue list|new|comment|close|reopen|send <repo> [L3|#12]
                            Issues (--title, --body, --body - liest von der Eingabe,
                            --labels a,b, --all); send schickt wartende Änderungen

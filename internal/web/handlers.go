@@ -5,6 +5,7 @@ package web
 import (
 	"archive/zip"
 	"encoding/json"
+	"context"
 	"errors"
 	"fmt"
 	"html/template"
@@ -48,7 +49,9 @@ type libraryData struct {
 	Filtered bool
 	Review   core.StartupReview
 	ShowRev  bool
-	Busy     map[string]bool
+	// Damaged reports the problems of the last integrity check (V-1).
+	Damaged int
+	Busy    map[string]bool
 }
 
 type group struct {
@@ -100,6 +103,9 @@ func (s *Server) library(w http.ResponseWriter, r *http.Request) {
 			d.Groups = append(d.Groups, group{Name: k, Entries: v})
 		}
 		sort.Slice(d.Groups, func(i, j int) bool { return strings.ToLower(d.Groups[i].Name) < strings.ToLower(d.Groups[j].Name) })
+	}
+	if rep, ok := s.Lib.LastIntegrity(); ok {
+		d.Damaged = len(rep.Problems)
 	}
 	// Cleanup review at start (T-3.3): once per run, admins only.
 	if tok, _ := s.Identity(r); tok.Has(auth.Admin) {
@@ -1256,10 +1262,14 @@ func (s *Server) trashPurge(w http.ResponseWriter, r *http.Request) {
 // ---- Settings and access ----
 
 type settingsData struct {
-	Cfg      config.Config
-	Doctor   core.DoctorReport
-	DataDir  string
-	Warnings []string
+	// Integrity is the last check (V-1); IntegrityRunning while one runs.
+	Integrity        core.IntegrityReport
+	HasIntegrity     bool
+	IntegrityRunning bool
+	Cfg              config.Config
+	Doctor           core.DoctorReport
+	DataDir          string
+	Warnings         []string
 	// TokenOK and TokenError are shown in the access card (T-9.10).
 	TokenOK, TokenError string
 }
@@ -1267,6 +1277,8 @@ type settingsData struct {
 func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 	d := settingsData{Cfg: s.Lib.Config(), DataDir: s.Lib.Layout.Root, Warnings: s.Lib.ConfigWarnings(),
 		TokenOK: r.URL.Query().Get("token_ok"), TokenError: r.URL.Query().Get("token_fehler")}
+	d.Integrity, d.HasIntegrity = s.Lib.LastIntegrity()
+	d.IntegrityRunning = s.Lib.IntegrityRunning()
 	s.render(w, r, "settings", "Einstellungen", "settings", d)
 }
 
@@ -1274,6 +1286,16 @@ func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 // for every repository (T-9.9).
 func (s *Server) settingsDoctor(w http.ResponseWriter, r *http.Request) {
 	s.partial(w, "doctor", s.Lib.Doctor(r.Context()))
+}
+
+// integrityStart runs the integrity check in the background (V-1).
+func (s *Server) integrityStart(w http.ResponseWriter, r *http.Request) {
+	if s.Lib.IntegrityRunning() {
+		redirect(w, r, withMsg("/settings#integritaet", "ok", "Die Prüfung läuft bereits."))
+		return
+	}
+	go func() { _, _ = s.Lib.CheckIntegrity(context.Background()) }()
+	redirect(w, r, withMsg("/settings#integritaet", "ok", "Prüfung gestartet – sie liest alle Dateien und kann bei großen Archiven dauern."))
 }
 
 // settingsTokens lists the hosts and where their tokens come from (T-9.10).
@@ -1380,7 +1402,7 @@ func (s *Server) settingsSave(w http.ResponseWriter, r *http.Request) {
 	if n, err := strconv.Atoi(f.Get("releases_keep")); err == nil {
 		cfg.Retention.ReleasesKeep = n
 	}
-	for key, dst := range map[string]*repometa.Duration{"snapshots_every": &cfg.Retention.SnapshotsEvery, "snapshots_keep_for": &cfg.Retention.SnapshotsKeepFor, "backups_keep_for": &cfg.Retention.ForcePushBackupsKeepFor} {
+	for key, dst := range map[string]*repometa.Duration{"snapshots_every": &cfg.Retention.SnapshotsEvery, "snapshots_keep_for": &cfg.Retention.SnapshotsKeepFor, "backups_keep_for": &cfg.Retention.ForcePushBackupsKeepFor, "integrity_every": &cfg.Retention.IntegrityEvery} {
 		v := strings.TrimSpace(f.Get(key))
 		if v == "" || v == "0" {
 			*dst = 0

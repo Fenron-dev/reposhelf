@@ -136,6 +136,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /trash/purge", admin(s.trashPurge))
 	mux.Handle("GET /settings", admin(s.settingsPage))
 	mux.Handle("GET /settings/doctor", admin(s.settingsDoctor))
+	mux.Handle("POST /settings/integrity", admin(s.integrityStart))
 	mux.Handle("GET /settings/tokens", admin(s.settingsTokens))
 	mux.Handle("POST /settings/tokens", admin(s.settingsTokenAction))
 	mux.Handle("GET /repo/{id}/panel", read(s.repoPanel))
