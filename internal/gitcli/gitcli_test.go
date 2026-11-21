@@ -301,3 +301,26 @@ func TestMirrorReportsProgress(t *testing.T) {
 		t.Errorf("parsed = %v", seen)
 	}
 }
+
+// TestGitHardening: remote helpers like ext:: are refused, the data folder
+// is a safe directory, credentials and base settings are combined (R-024).
+func TestGitHardening(t *testing.T) {
+	ctx := context.Background()
+	g := testGit(t)
+	if _, err := g.LsRemote(ctx, "ext::sh -c touch% /tmp/reposhelf-pwned", nil); err == nil {
+		t.Error("ext:: transport allowed")
+	}
+	if _, err := os.Stat("/tmp/reposhelf-pwned"); err == nil {
+		t.Fatal("ext:: command ran")
+	}
+	out, err := g.Run(ctx, "", nil, "config", "--get", "safe.directory")
+	if err != nil || strings.TrimSpace(string(out)) != "*" {
+		t.Errorf("safe.directory = %q, %v", out, err)
+	}
+	a := &Auth{Token: "secret", URLPrefix: "https://example.org/"}
+	cmd := g.command(ctx, "", a, "config", "--get-regexp", ".")
+	env := strings.Join(cmd.Env, "\n")
+	if !strings.Contains(env, "GIT_CONFIG_COUNT=2") || !strings.Contains(env, "GIT_CONFIG_KEY_1=http.https://example.org/.extraHeader") {
+		t.Errorf("config env:\n%s", env)
+	}
+}
