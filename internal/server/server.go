@@ -64,6 +64,62 @@ type Server struct {
 
 	mu       sync.Mutex
 	sessions map[string]session
+	failures map[string]*failure // wrong tokens per client address (R-018)
+}
+
+// failure counts wrong tokens of one client address.
+type failure struct {
+	count int
+	first time.Time
+}
+
+// After maxFailures wrong tokens within failWindow, a client address gets
+// no further token checks until the window has passed (R-018). Short, so
+// a shared proxy address is not locked out for long.
+const (
+	maxFailures = 10
+	failWindow  = 5 * time.Minute
+	// minAdminToken is the length below which REPOSHELF_ADMIN_TOKEN is
+	// reported as weak.
+	minAdminToken = 20
+)
+
+// clientAddr is the address failures are counted for.
+func clientAddr(r *http.Request) string {
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		return host
+	}
+	return r.RemoteAddr
+}
+
+// blocked reports whether addr made too many wrong attempts lately.
+func (s *Server) blocked(addr string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	f := s.failures[addr]
+	if f == nil {
+		return false
+	}
+	if time.Since(f.first) > failWindow {
+		delete(s.failures, addr)
+		return false
+	}
+	return f.count >= maxFailures
+}
+
+// failed notes a wrong token from addr.
+func (s *Server) failed(addr string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	f := s.failures[addr]
+	if f == nil || time.Since(f.first) > failWindow {
+		f = &failure{first: time.Now()}
+		s.failures[addr] = f
+	}
+	f.count++
+	if f.count == maxFailures {
+		s.Log.Warn("too many wrong tokens, pausing checks", "client", addr)
+	}
 }
 
 type session struct {
@@ -91,7 +147,10 @@ func New(lib *core.Library, o Options) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &Server{Lib: lib, Tokens: tokens, Log: o.Log, opts: o, sessions: map[string]session{}}
+	if a := strings.TrimSpace(admin); a != "" && len(a) < minAdminToken {
+		o.Log.Warn("REPOSHELF_ADMIN_TOKEN is short and easy to guess; use at least 20 random characters", "length", len(a))
+	}
+	s := &Server{Lib: lib, Tokens: tokens, Log: o.Log, opts: o, sessions: map[string]session{}, failures: map[string]*failure{}}
 	s.Web = &web.Server{Lib: lib, Tokens: tokens, Identity: s.identity, Log: o.Log, Ext: o.Ext,
 		Login: s.login, Logout: s.logout, CloneBase: s.base}
 	return s, nil
@@ -146,6 +205,10 @@ func (s *Server) identity(r *http.Request) (auth.Token, bool) {
 // resolve: explicit token > session > trusted local > anonymous read.
 func (s *Server) resolve(r *http.Request) ident {
 	if secret := bearer(r); secret != "" {
+		addr := clientAddr(r)
+		if s.blocked(addr) {
+			return ident{}
+		}
 		if tok, err := s.Tokens.Check(secret); err == nil {
 			return ident{tok: tok, authed: true}
 		}
@@ -154,6 +217,7 @@ func (s *Server) resolve(r *http.Request) ident {
 				return ident{tok: tok, authed: true}
 			}
 		}
+		s.failed(addr)
 		return ident{} // wrong token: no fallback to local trust
 	}
 	if c, err := r.Cookie(sessionCookie); err == nil {
@@ -256,8 +320,14 @@ func (s *Server) base(r *http.Request) string {
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
+	addr := clientAddr(r)
+	if s.blocked(addr) {
+		http.Redirect(w, r, "/login?fehler="+urlEsc("Zu viele Fehlversuche – bitte in einigen Minuten erneut."), http.StatusSeeOther)
+		return
+	}
 	tok, err := s.Tokens.Check(r.Form.Get("token"))
 	if err != nil {
+		s.failed(addr)
 		http.Redirect(w, r, "/login?fehler="+urlEsc("Token unbekannt oder widerrufen."), http.StatusSeeOther)
 		return
 	}
@@ -265,16 +335,29 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	rand.Read(b[:])
 	id := hex.EncodeToString(b[:])
 	s.mu.Lock()
-	s.sessions[id] = session{token: tok, expires: time.Now().Add(sessionTTL)}
+	now := time.Now()
+	for k, old := range s.sessions { // expired ones are dropped here (R-020)
+		if now.After(old.expires) {
+			delete(s.sessions, k)
+		}
+	}
+	s.sessions[id] = session{token: tok, expires: now.Add(sessionTTL)}
 	s.mu.Unlock()
 	http.SetCookie(w, &http.Cookie{Name: sessionCookie, Value: id, Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode,
-		Secure: r.TLS != nil, Expires: time.Now().Add(sessionTTL)})
+		Secure: r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https"), Expires: now.Add(sessionTTL)})
 	s.Lib.Record(core.Activity{Actor: "web:" + tok.Name, Action: "login"})
-	next := r.Form.Get("next")
-	if !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") {
-		next = "/"
+	http.Redirect(w, r, safeNext(r.Form.Get("next")), http.StatusSeeOther)
+}
+
+// safeNext keeps the page after the login on this site: a path without
+// scheme or host. Browsers read "/\\x" like "//x" (R-019).
+func safeNext(next string) string {
+	u, err := url.Parse(next)
+	if err != nil || !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") || strings.ContainsAny(next, "\\\r\n\t") ||
+		u.Scheme != "" || u.Host != "" {
+		return "/"
 	}
-	http.Redirect(w, r, next, http.StatusSeeOther)
+	return next
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
