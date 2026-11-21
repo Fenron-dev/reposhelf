@@ -171,4 +171,3 @@ func (g *gitea) UploadAsset(ctx context.Context, owner, name string, id int64, f
 	target := fmt.Sprintf("%s/repos/%s/%s/releases/%d/assets?name=%s", g.c.base, url.PathEscape(owner), url.PathEscape(name), id, url.QueryEscape(file))
 	return g.c.upload(ctx, http.MethodPost, target, mw.FormDataContentType(), -1, pr)
 }
-

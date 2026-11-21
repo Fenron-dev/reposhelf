@@ -248,7 +248,7 @@ type repoData struct {
 	Platforms []platformOpt
 	// ReviveHosts can receive this repository (V-5).
 	ReviveHosts []string
-	HF        *core.HFUsage
+	HF          *core.HFUsage
 }
 
 type crumb struct{ Name, URL string }
