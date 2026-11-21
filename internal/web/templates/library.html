@@ -10,6 +10,12 @@
   {{if .Identity.Has "write"}}<a class="btn btn-primary" href="/add">+ Repo hinzufügen</a>{{end}}
 </div>
 
+{{if $d.Damaged}}
+<div class="card alert-error" role="alert">
+  <strong>Die letzte Integritätsprüfung hat {{$d.Damaged}} beschädigte oder fehlende Einträge gefunden.</strong>
+  <a class="btn" href="/settings#integritaet">Ansehen</a>
+</div>
+{{end}}
 {{if $d.ShowRev}}
 <div class="card review-banner" role="region" aria-label="Lösch-Prüfung">
   <strong>{{len $d.Review.Pending}} Einträge sind nach deinen Aufbewahrungsregeln zur Löschung vorgemerkt{{if $d.Review.Due}}, {{len $d.Review.Due}} Papierkorb-Einträge sind älter als die Frist{{end}}.</strong>

@@ -123,6 +123,7 @@
   <div class="card">{{template "activity-list" (dict "Acts" $d.Activity "Names" (dict))}}</div>
 {{else if eq $d.Tab "settings"}}
   {{template "repo-settings" $d}}
+  {{if $d.CanAdmin}}{{template "repo-revive" $d}}{{end}}
 {{end}}
 </section>
 
@@ -376,3 +377,27 @@
 {{define "repo-progress"}}<div class="small"><strong>Abgleich läuft</strong> – die Seite aktualisiert sich danach von selbst.</div>{{template "progress" .}}{{end}}
 
 {{define "repo-progress-wrap"}}<div class="card-inset" hx-get="/repo/{{.ID}}/progress" hx-trigger="every 1s" hx-swap="outerHTML">{{template "repo-progress" .Job}}</div>{{end}}
+
+{{define "repo-revive"}}{{$r := .Repo}}{{$id := $r.R.ID}}
+<div class="card stack" id="wiederbeleben">
+  <h2 class="h3">Wiederbeleben</h2>
+  <p class="small muted">Lädt dieses Repo als neues Repo auf einen Host hoch: alle Branches und Tags, große Dateien (LFS) und auf Wunsch die gesicherten Releases mit ihren Dateien. Gedacht für Projekte, deren Original verschwunden ist. Der Token des Hosts braucht dafür das Recht, Repos anzulegen (GitHub: „Administration: Read and write“ und „Contents: Read and write“).</p>
+  {{with $r.Upstream.Revive}}
+    {{if .Running}}<p class="small"><span class="spinner" aria-hidden="true"></span> Wird nach <span class="mono">{{.Target}}</span> hochgeladen … {{if .Releases}}({{.Releases}} Releases, {{.Files}} Dateien){{end}}</p>
+    {{else if .Error}}<div class="alert alert-error small" role="alert">Hochladen nach <span class="mono">{{.Target}}</span> fehlgeschlagen: {{.Error}}</div>
+    {{else}}<p class="small"><span class="ok">✓</span> Am {{dt .Finished}} wiederbelebt: <a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.URL}}</a> ({{.Releases}} Releases, {{.Files}} Dateien)</p>{{end}}
+  {{end}}
+  {{if .ReviveHosts}}
+  <form method="post" action="/repo/{{$id}}/revive" class="stack">
+    <div class="row-wrap token-row">
+      <label>Host <select name="host">{{range .ReviveHosts}}<option>{{.}}</option>{{end}}</select></label>
+      <label>Organisation <input name="owner" placeholder="leer = eigenes Konto" spellcheck="false"></label>
+      <label class="grow">Name <input name="name" value="{{$r.R.Source.Name}}" required spellcheck="false"></label>
+    </div>
+    <label class="check"><input type="checkbox" name="private" checked> Privat anlegen</label>
+    <label class="check"><input type="checkbox" name="releases" checked> Releases mit Dateien mitnehmen</label>
+    <div><button class="btn btn-primary" type="submit">Hochladen</button></div>
+  </form>
+  {{else}}<p class="small">Dafür fehlt ein Token für GitHub oder Gitea/Forgejo – unter <a href="/settings#zugaenge">Einstellungen → Zugänge</a> hinterlegen.</p>{{end}}
+</div>
+{{end}}

@@ -4,6 +4,7 @@ package web
 
 import (
 	"archive/zip"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -48,7 +49,9 @@ type libraryData struct {
 	Filtered bool
 	Review   core.StartupReview
 	ShowRev  bool
-	Busy     map[string]bool
+	// Damaged reports the problems of the last integrity check (V-1).
+	Damaged int
+	Busy    map[string]bool
 }
 
 type group struct {
@@ -100,6 +103,9 @@ func (s *Server) library(w http.ResponseWriter, r *http.Request) {
 			d.Groups = append(d.Groups, group{Name: k, Entries: v})
 		}
 		sort.Slice(d.Groups, func(i, j int) bool { return strings.ToLower(d.Groups[i].Name) < strings.ToLower(d.Groups[j].Name) })
+	}
+	if rep, ok := s.Lib.LastIntegrity(); ok {
+		d.Damaged = len(rep.Problems)
 	}
 	// Cleanup review at start (T-3.3): once per run, admins only.
 	if tok, _ := s.Identity(r); tok.Has(auth.Admin) {
@@ -240,7 +246,9 @@ type repoData struct {
 	Models      []core.ModelRef
 	// Platforms offers the Python package platforms (D-026).
 	Platforms []platformOpt
-	HF        *core.HFUsage
+	// ReviveHosts can receive this repository (V-5).
+	ReviveHosts []string
+	HF          *core.HFUsage
 }
 
 type crumb struct{ Name, URL string }
@@ -308,6 +316,9 @@ func (s *Server) repoPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	d := s.baseRepoData(r, repo)
 	d.Tab = r.URL.Query().Get("tab")
+	if d.Tab == "settings" && d.CanAdmin {
+		d.ReviveHosts = s.Lib.PublishHosts(r.Context())
+	}
 	if d.Tab == "" {
 		d.Tab = "overview"
 	}
@@ -458,6 +469,28 @@ func (s *Server) repoRaw(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", ct)
 	w.Header().Set("Content-Security-Policy", "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox")
 	w.Write(b)
+}
+
+// readmeAsset serves an image a README embeds, kept by RepoShelf (V-4).
+// SVGs can carry scripts: the sandbox keeps them from running when opened
+// directly.
+func (s *Server) readmeAsset(w http.ResponseWriter, r *http.Request) {
+	p, a, err := s.Lib.ReadmeAssetPath(r.Context(), r.PathValue("id"), r.PathValue("name"))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	f, err := os.Open(p)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	defer f.Close()
+	hd := w.Header()
+	hd.Set("Content-Type", a.Type)
+	hd.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
+	hd.Set("Cache-Control", "private, max-age=86400")
+	http.ServeContent(w, r, "", a.Fetched, f)
 }
 
 func (s *Server) repoAsset(w http.ResponseWriter, r *http.Request) {
@@ -1234,10 +1267,17 @@ func (s *Server) trashPurge(w http.ResponseWriter, r *http.Request) {
 // ---- Settings and access ----
 
 type settingsData struct {
-	Cfg      config.Config
-	Doctor   core.DoctorReport
-	DataDir  string
-	Warnings []string
+	// Integrity is the last check (V-1); IntegrityRunning while one runs.
+	Integrity        core.IntegrityReport
+	HasIntegrity     bool
+	IntegrityRunning bool
+	NotifyKinds      []notifyKind
+	WebhookSet       bool
+	WebhookFromEnv   bool
+	Cfg              config.Config
+	Doctor           core.DoctorReport
+	DataDir          string
+	Warnings         []string
 	// TokenOK and TokenError are shown in the access card (T-9.10).
 	TokenOK, TokenError string
 }
@@ -1245,6 +1285,10 @@ type settingsData struct {
 func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 	d := settingsData{Cfg: s.Lib.Config(), DataDir: s.Lib.Layout.Root, Warnings: s.Lib.ConfigWarnings(),
 		TokenOK: r.URL.Query().Get("token_ok"), TokenError: r.URL.Query().Get("token_fehler")}
+	d.Integrity, d.HasIntegrity = s.Lib.LastIntegrity()
+	d.NotifyKinds = notifyKinds(d.Cfg.Notify.Off)
+	d.WebhookSet, d.WebhookFromEnv = s.Lib.NotifyWebhook()
+	d.IntegrityRunning = s.Lib.IntegrityRunning()
 	s.render(w, r, "settings", "Einstellungen", "settings", d)
 }
 
@@ -1252,6 +1296,30 @@ func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 // for every repository (T-9.9).
 func (s *Server) settingsDoctor(w http.ResponseWriter, r *http.Request) {
 	s.partial(w, "doctor", s.Lib.Doctor(r.Context()))
+}
+
+// repoRevive uploads the repository to a host (V-5); runs in the background.
+func (s *Server) repoRevive(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	id := r.PathValue("id")
+	f := r.Form
+	err := s.Lib.Revive(r.Context(), id, core.ReviveRequest{Host: f.Get("host"), Owner: f.Get("owner"), Name: f.Get("name"),
+		Private: f.Get("private") == "on", Releases: f.Get("releases") == "on", Actor: s.actor(r)})
+	if err != nil {
+		s.failErr(w, r, err)
+		return
+	}
+	redirect(w, r, withMsg("/repo/"+id+"?tab=settings#wiederbeleben", "ok", "Hochladen gestartet – der Fortschritt steht unten auf dieser Seite."))
+}
+
+// integrityStart runs the integrity check in the background (V-1).
+func (s *Server) integrityStart(w http.ResponseWriter, r *http.Request) {
+	if s.Lib.IntegrityRunning() {
+		redirect(w, r, withMsg("/settings#integritaet", "ok", "Die Prüfung läuft bereits."))
+		return
+	}
+	go func() { _, _ = s.Lib.CheckIntegrity(context.Background()) }()
+	redirect(w, r, withMsg("/settings#integritaet", "ok", "Prüfung gestartet – sie liest alle Dateien und kann bei großen Archiven dauern."))
 }
 
 // settingsTokens lists the hosts and where their tokens come from (T-9.10).
@@ -1358,7 +1426,7 @@ func (s *Server) settingsSave(w http.ResponseWriter, r *http.Request) {
 	if n, err := strconv.Atoi(f.Get("releases_keep")); err == nil {
 		cfg.Retention.ReleasesKeep = n
 	}
-	for key, dst := range map[string]*repometa.Duration{"snapshots_every": &cfg.Retention.SnapshotsEvery, "snapshots_keep_for": &cfg.Retention.SnapshotsKeepFor, "backups_keep_for": &cfg.Retention.ForcePushBackupsKeepFor} {
+	for key, dst := range map[string]*repometa.Duration{"snapshots_every": &cfg.Retention.SnapshotsEvery, "snapshots_keep_for": &cfg.Retention.SnapshotsKeepFor, "backups_keep_for": &cfg.Retention.ForcePushBackupsKeepFor, "integrity_every": &cfg.Retention.IntegrityEvery} {
 		v := strings.TrimSpace(f.Get(key))
 		if v == "" || v == "0" {
 			*dst = 0
@@ -1501,4 +1569,81 @@ func attachment(name string) string {
 		return v
 	}
 	return "attachment"
+}
+
+// ---- Notifications (V-2) ----
+
+func (s *Server) notificationsPage(w http.ResponseWriter, r *http.Request) {
+	s.render(w, r, "notifications", "Meldungen", "notifications", s.Lib.Notifications())
+}
+
+func (s *Server) notificationsRead(w http.ResponseWriter, r *http.Request) {
+	if err := s.Lib.MarkNotificationsRead(); err != nil {
+		s.failErr(w, r, err)
+		return
+	}
+	redirect(w, r, "/notifications")
+}
+
+type notifyKind struct {
+	Value, Label string
+	On           bool
+}
+
+var notifyLabels = map[string]string{
+	core.NotifyVersion: "Neue Version (Tag)", core.NotifyGone: "Original verschwunden", core.NotifyArchived: "Original archiviert",
+	core.NotifyRewritten: "Geschichte umgeschrieben (Force-Push)", core.NotifyFailing: "Abgleich schlägt seit Tagen fehl",
+	core.NotifyIntegrity: "Integritätsprüfung findet Schäden", core.NotifyRevive: "Wiederbeleben fertig oder fehlgeschlagen",
+}
+
+func notifyKinds(off []string) []notifyKind {
+	var out []notifyKind
+	for _, k := range core.NotifyKinds {
+		out = append(out, notifyKind{Value: k, Label: notifyLabels[k], On: !slices.Contains(off, k)})
+	}
+	return out
+}
+
+// settingsNotify saves the notification settings; the webhook address goes
+// to the keychain, never to reposhelf.yaml.
+func (s *Server) settingsNotify(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	f := r.Form
+	back := func(key, msg string) { redirect(w, r, withMsg("/settings#meldungen", key, msg)) }
+	if f.Get("action") == "test" {
+		if err := s.Lib.TestNotify(r.Context()); err != nil {
+			back("fehler", "Test fehlgeschlagen: "+ErrText(err))
+			return
+		}
+		back("ok", "Testmeldung gesendet.")
+		return
+	}
+	cfg := s.Lib.Config()
+	cfg.Notify.WebhookKind = map[string]string{"ntfy": "ntfy", "discord": "discord"}[f.Get("webhook_kind")]
+	if cfg.Notify.WebhookKind == "" {
+		cfg.Notify.WebhookKind = "json"
+	}
+	cfg.Notify.Off = nil
+	for _, k := range core.NotifyKinds {
+		if f.Get("on_"+k) != "on" {
+			cfg.Notify.Off = append(cfg.Notify.Off, k)
+		}
+	}
+	if err := s.Lib.SaveConfig(cfg); err != nil {
+		s.failErr(w, r, err)
+		return
+	}
+	switch {
+	case f.Get("webhook_remove") == "on":
+		if err := s.Lib.SetNotifyWebhook(""); err != nil {
+			back("fehler", ErrText(err))
+			return
+		}
+	case strings.TrimSpace(f.Get("webhook")) != "":
+		if err := s.Lib.SetNotifyWebhook(f.Get("webhook")); err != nil {
+			back("fehler", "Webhook nicht gespeichert: "+ErrText(err))
+			return
+		}
+	}
+	back("ok", "Benachrichtigungen gespeichert.")
 }

@@ -124,6 +124,13 @@ Systems (D-032). Nur am Rechner selbst, nicht übers Netz oder per MCP. CLI:
 Releases (Standard: 5) – bei Projekten mit vielen Plattform-Builds können das
 schnell Hunderte MB sein. Einstellbar global, je Sammlung und je Repo.
 
+**README-Bilder:** Bilder, die ein README von fremden Servern einbindet (Logos,
+Screenshots, Badges), sichert RepoShelf beim Abgleich mit (höchstens 30 je Repo, je
+5 MB, nur Bilder) und zeigt sie von dort an – auch wenn das Original verschwindet. Nicht
+gesicherte Bilder erscheinen als Platzhalter „Externes Bild“: Beim Ansehen eines README
+erfährt kein fremder Server deine Adresse. Adressen im eigenen Netz lädt RepoShelf nie.
+Abgelegt unter `meta/…/readme-assets/`.
+
 ## 3. Ordnen
 
 - **Schlagwörter** mit Hierarchie (`ttrpg/tool`); Filter `ttrpg/*`; global
@@ -157,6 +164,37 @@ beim Start fragt RepoShelf nach. Nichts wird ohne Bestätigung entfernt:
 Einträge wandern in den **Papierkorb** und bleiben dort 30 Tage
 wiederherstellbar; endgültig gelöscht wird nur nach erneuter Bestätigung.
 Angeheftete Versionen und die Git-Geschichte selbst sind nie betroffen.
+
+## 3b. Benachrichtigungen
+
+RepoShelf meldet neue Versionen (Tags), ein verschwundenes oder archiviertes Original,
+umgeschriebene Geschichte (Force-Push), seit drei Tagen fehlschlagende Abgleiche,
+Schäden aus der Integritätsprüfung und das Ergebnis von „Wiederbeleben“. Die Meldungen
+stehen unter „Meldungen“ (Zähler in der Seitenleiste) und erscheinen kurz eingeblendet,
+solange RepoShelf offen ist. Unter Einstellungen → „Benachrichtigungen“ schaltest du Arten
+ab und richtest einen Webhook ein: **ntfy** (z. B. `https://ntfy.sh/mein-thema` oder ein
+eigener ntfy auf Unraid), **Discord** oder **allgemeines JSON**. Die Webhook-Adresse
+liegt im Schlüsselbund (Docker: `REPOSHELF_NOTIFY_URL`), nie in `reposhelf.yaml`. Mit
+eingetragener öffentlicher Adresse enthalten die Nachrichten einen Link zum Repo.
+
+## 3a. Wiederbeleben
+
+Ist ein Original verschwunden, lädt „Wiederbeleben“ (Repo → Einstellungen, nur
+Verwalter) die Sicherung als neues Repo auf GitHub oder Gitea/Forgejo hoch: alle Branches
+und Tags, große Dateien (LFS) und auf Wunsch die Releases mit ihren Dateien. Läuft im
+Hintergrund; Ergebnis und Link stehen danach an derselben Stelle. Der Token des Ziel-Hosts
+braucht das Recht, Repos anzulegen (GitHub: „Administration“ und „Contents“ jeweils
+„Read and write“). Agenten können das nicht auslösen.
+
+## 4a. Integrität
+
+RepoShelf liest regelmäßig (Standard alle 30 Tage, `retention.integrity_every`) alles,
+was es aufbewahrt, und vergleicht es mit den gespeicherten Prüfsummen: Git-Objekte
+(`git fsck`), Release-Dateien, Actions-Artefakte, große Dateien (LFS), Kapseln und
+README-Bilder. Ergebnis unter Einstellungen → „Integrität“ (dort auch „Jetzt prüfen“);
+Schäden erscheinen als Hinweis in der Bibliothek. CLI: `reposhelf check` (Exit 1 bei
+Schäden). Ein beschädigter Spiegel lässt sich meist durch einen neuen Abgleich oder aus
+einer gekoppelten Instanz wiederherstellen.
 
 ## 5. Agenten und Git
 

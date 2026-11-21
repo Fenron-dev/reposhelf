@@ -65,6 +65,16 @@ type Config struct {
 	Sync      Sync      `yaml:"sync"`
 	Retention Retention `yaml:"retention"`
 	Runner    Runner    `yaml:"runner"`
+	Notify    Notify    `yaml:"notify"`
+}
+
+// Notify configures notifications (V-2). The webhook address itself is a
+// secret and lives in the keychain or REPOSHELF_NOTIFY_URL.
+type Notify struct {
+	// WebhookKind is ntfy, discord or json.
+	WebhookKind string `yaml:"webhook_kind"`
+	// Off lists the kinds that are not reported (new_version, gone, …).
+	Off []string `yaml:"off,flow"`
 }
 
 // Instance names this installation (shown in the UI and to paired peers).
@@ -105,8 +115,11 @@ type Retention struct {
 	MaxAssetMB int `yaml:"max_asset_mb"`
 	// AskAboveMB asks before downloading runtime data such as a model
 	// larger than this (D-025; 0 = never ask).
-	AskAboveMB              int               `yaml:"ask_above_mb"`
-	SnapshotsEvery          repometa.Duration `yaml:"snapshots_every"`
+	AskAboveMB     int               `yaml:"ask_above_mb"`
+	SnapshotsEvery repometa.Duration `yaml:"snapshots_every"`
+	// IntegrityEvery is how often everything kept is read and verified
+	// (V-1; 0 = only on request).
+	IntegrityEvery          repometa.Duration `yaml:"integrity_every"`
 	SnapshotsKeepFor        repometa.Duration `yaml:"snapshots_keep_for"`
 	ForcePushBackupsKeepFor repometa.Duration `yaml:"force_push_backups_keep_for"`
 	CapsulesKeep            int               `yaml:"capsules_keep"`
@@ -138,6 +151,7 @@ const (
 	defaultActionsKeep      = 3
 	defaultAskAboveMB       = 1024
 	defaultSnapshotsEvery   = 30 * day
+	defaultIntegrityEvery   = 30 * day
 	defaultKeepFor          = 180 * day
 	defaultCapsulesKeep     = 3
 	defaultBuildsKeep       = 10
@@ -161,6 +175,7 @@ func Default() Config {
 			ActionsKeep:             defaultActionsKeep,
 			AskAboveMB:              defaultAskAboveMB,
 			SnapshotsEvery:          repometa.Duration(defaultSnapshotsEvery),
+			IntegrityEvery:          repometa.Duration(defaultIntegrityEvery),
 			SnapshotsKeepFor:        repometa.Duration(defaultKeepFor),
 			ForcePushBackupsKeepFor: repometa.Duration(defaultKeepFor),
 			CapsulesKeep:            defaultCapsulesKeep,

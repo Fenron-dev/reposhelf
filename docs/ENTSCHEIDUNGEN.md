@@ -440,3 +440,15 @@ gleich mit. Ohne ID wird es ein rein lokales Modell.
 
 **Folgen:** Mit bekannter ID wird das Modell normal vom Hub gespiegelt; vorhandene lokale
 Dateien ersetzen den Download (gleiche SHA-256 wie im Hub), nur Fehlendes wird geladen.
+
+### D-034 · Funktionsvorschläge aus dem Prüfbericht: V-1, V-2, V-4, V-5 zuerst
+2026-11-21 · gültig (F-019)
+
+**Entscheidung:** Aus `docs/PRUEFBERICHT-2026-11.md` werden zuerst umgesetzt:
+V-1 Integritätsprüfung nach Zeitplan, V-2 Benachrichtigungen, V-4 README-Bilder
+mitsichern (behebt R-023), V-5 Repo wiederbeleben. Die übrigen Vorschläge bleiben im
+Bericht und werden bei Bedarf als eigene Aufgaben angelegt.
+
+**Begründung:** Wunsch von Dennis; deckt sich mit der Empfehlung des Berichts.
+
+**Folgen:** Aufgaben T-9.21–T-9.24.

@@ -231,6 +231,9 @@ func (j *jobs) schedule() {
 
 // enqueueDue queues every repository whose next check is due (T-1.4).
 func (l *Library) enqueueDue(ctx context.Context) {
+	if l.IntegrityDue() {
+		go func() { _, _ = l.CheckIntegrity(ctx) }() // returns at once if one runs
+	}
 	if l.Config().Sync.Paused {
 		return
 	}

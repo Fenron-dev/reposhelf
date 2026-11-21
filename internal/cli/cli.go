@@ -101,6 +101,8 @@ func run(args []string, sys system) int {
 		return runTrash(args[1:], sys)
 	case "import":
 		return runImport(args[1:], sys)
+	case "check":
+		return runCheck(args[1:], sys)
 	case "issue":
 		return runIssue(args[1:], sys)
 	case "host-token":

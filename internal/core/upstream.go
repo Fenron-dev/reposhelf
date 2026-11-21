@@ -60,6 +60,10 @@ type Upstream struct {
 	Import *ImportState `json:"import,omitempty"`
 	// ExportNote explains why no model folder for programs exists.
 	ExportNote string `json:"export_note,omitempty"`
+	// FailingNotified: the long-failing sync was reported (V-2).
+	FailingNotified bool `json:"failing_notified,omitempty"`
+	// Revive is the last upload of this repository to a host (V-5).
+	Revive *ReviveState `json:"revive,omitempty"`
 	// AddedBy is "submodule" for repositories taken over as a submodule
 	// of another one (their own submodules are not followed, R-016).
 	AddedBy string `json:"added_by,omitempty"`
