@@ -70,8 +70,8 @@ type Library struct {
 	activity *activityLog
 	// lookupEnv reads settings from the environment (webhook address).
 	lookupEnv func(string) (string, bool)
-	jobs     *jobs
-	events   *events
+	jobs      *jobs
+	events    *events
 }
 
 // Open opens the data folder dir, creating missing subfolders, and loads the
@@ -117,8 +117,8 @@ func Open(ctx context.Context, opts Options) (*Library, error) {
 	l := &Library{
 		lookupEnv: opts.LookupEnv,
 		Layout:    lay,
-		Git:    g,
-		Tokens: tokens,
+		Git:       g,
+		Tokens:    tokens,
 		Sources: &sources.Registry{
 			HTTP:     opts.HTTP,
 			Tokens:   tokens.Token,
