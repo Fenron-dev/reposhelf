@@ -12,9 +12,9 @@
 
 ## Aktueller Stand
 
-- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.5.3` (T-9.11–T-9.20, R-001–R-014) zum Test bei Dennis
-- **Letzte Änderung:** 2026-11-21 · Schwere Befunde behoben: R-011 (DNS-Rebinding), R-012 (API-CSRF), R-013 (Geheimnisse), R-014 (act)
-- **Nächster Schritt:** Dennis testet `v0.5.3`; offen: R-015–R-027 (mittel/gering), F-019 entscheiden
+- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.5.4` (T-9.11–T-9.20, R-001–R-027 außer R-023) zum Test bei Dennis
+- **Letzte Änderung:** 2026-11-21 · Befunde R-015–R-027 behoben (außer R-023, hängt an F-019)
+- **Nächster Schritt:** Dennis testet `v0.5.4`; F-019 entscheiden (davon hängt R-023 ab)
 
 ## Übergabe-Notiz
 
@@ -116,6 +116,12 @@ nur mit `buildable.secrets` (Repo-Einstellungen, nur Verwalter). `act` ohne Dock
 (`--container-daemon-socket -`), unsichere Workflows abgelehnt, Spiegel-Workflows warten
 auf Bestätigung. Die Platte war zwischendurch voll; `go clean -cache` gab 5 GB frei.
 
+**2026-11-21 · Claude Code (R-015–R-027):** Kopplung von Instanzen braucht jetzt auf beiden
+Seiten v0.5.4 (Nonce gegen Wiederholung; ältere Gegenstellen bekommen eine klare Meldung).
+Submodule werden nur noch vom selben Host und eine Ebene tief übernommen. Nach zehn
+falschen Tokens von einer Adresse ruht die Prüfung fünf Minuten. Git läuft mit
+`GIT_ALLOW_PROTOCOL` und `safe.directory=*`. Offen: R-023 (README-Bilder, hängt an F-019/V-4).
+
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
   (T-1.13), der Hinzufügen-Dialog zeigt die erwartete Größe.
@@ -175,19 +181,19 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | R-012 | REST-API prüft weder Herkunft noch Inhaltstyp: fremde Seiten können für den lokal vertrauten Nutzer Repos aufnehmen und Abgleiche starten (CSRF) | `internal/api/api.go` POST /api/repos, /api/sync | mittel | erledigt `0d67fac` | Claude Code · 2026-11-11 | Prüfbericht |
 | R-013 | Das Build-Ziel im (fremden) Repo bestimmt, welche `REPOSHELF_SECRET_*` in den Container gehen – Geheimnisse an fremden Code mit Netzzugang | `internal/runner/exec.go:83` | hoch | erledigt `8b0f428` (`buildable.secrets`) | Claude Code · 2026-11-11 | Prüfbericht |
 | R-014 | `act` bindet standardmäßig den Docker-Anschluss ein, Workflows dürfen Container-Optionen/Laufwerke setzen: fremder Workflow kann den Host-Docker steuern (D-008); Annahme gegen act 0.2.97 bestätigen | `internal/runner/exec.go` runAct | hoch | erledigt `395ecd2` | Claude Code · 2026-11-11 | Prüfbericht |
-| R-015 | Artefakt-Muster folgen Verweisen, die der Build-Container anlegt: Dateien des Hosts landen in den Artefakten | `internal/runner/exec.go` collect | mittel | in Arbeit (Claude Code, 2026-11-21) | Claude Code · 2026-11-11 | Prüfbericht |
-| R-016 | Submodule aus `.gitmodules` werden ungefragt und rekursiv als Spiegel aufgenommen (bis 20 je Abgleich): fremde Daten lösen Downloads aus, auch ins Heimnetz; Platte kann volllaufen | `internal/core/extras.go` syncSubmodules | mittel | in Arbeit (Claude Code, 2026-11-21) | Claude Code · 2026-11-11 | Prüfbericht |
-| R-017 | Go 1.27.3 hat GO-2026-6859 (Absturz des HTTP/1-Servers), behoben in 1.27.4; `govulncheck` fehlt in der CI | `go.mod`, `.github/workflows/ci.yml` | mittel | in Arbeit (Claude Code, 2026-11-21) | Claude Code · 2026-11-11 | Prüfbericht |
-| R-018 | Kein Schutz gegen Durchprobieren von Tokens bzw. des frei gewählten Admin-Tokens | `internal/server/server.go` login/resolve | gering | in Arbeit (Claude Code, 2026-11-21) | Claude Code · 2026-11-11 | Prüfbericht |
-| R-019 | Weiterleitung nach Anmeldung: `next=/\evil.example` besteht die Prüfung (Browser lesen `/\` wie `//`) | `internal/server/server.go` login | gering | in Arbeit (Claude Code, 2026-11-21) | Claude Code · 2026-11-11 | Prüfbericht |
-| R-020 | Sitzungen: abgelaufene werden nie entfernt; Cookie hinter HTTPS-Proxy ohne „Secure“ | `internal/server/server.go` | gering | in Arbeit (Claude Code, 2026-11-21) | Claude Code · 2026-11-11 | Prüfbericht |
-| R-021 | Kopplung: 40-Bit-Code mit mitgeschicktem HMAC-Nachweis ist durchprobierbar (Umleiten im LAN); signierte Anfragen ohne Einmalnummer wiederholbar | `internal/peer/peer.go` | gering | in Arbeit (Claude Code, 2026-11-21) | Claude Code · 2026-11-11 | Prüfbericht |
-| R-022 | Geheimnisse als `-e NAME=wert` in der Prozessliste; Image-Namen aus Repo-Dateien ungeprüft an docker (führendes `-`) | `internal/runner/exec.go`, `capsule.go` | gering | in Arbeit (Claude Code, 2026-11-21); teilweise `8b0f428` (Geheimnisse über die Umgebung; Image-Namen offen) | Claude Code · 2026-11-11 | Prüfbericht |
+| R-015 | Artefakt-Muster folgen Verweisen, die der Build-Container anlegt: Dateien des Hosts landen in den Artefakten | `internal/runner/exec.go` collect | mittel | erledigt `ce50a4c` | Claude Code · 2026-11-11 | Prüfbericht |
+| R-016 | Submodule aus `.gitmodules` werden ungefragt und rekursiv als Spiegel aufgenommen (bis 20 je Abgleich): fremde Daten lösen Downloads aus, auch ins Heimnetz; Platte kann volllaufen | `internal/core/extras.go` syncSubmodules | mittel | erledigt `331c1a4` | Claude Code · 2026-11-11 | Prüfbericht |
+| R-017 | Go 1.27.3 hat GO-2026-6859 (Absturz des HTTP/1-Servers), behoben in 1.27.4; `govulncheck` fehlt in der CI | `go.mod`, `.github/workflows/ci.yml` | mittel | erledigt `7e34e1a` | Claude Code · 2026-11-11 | Prüfbericht |
+| R-018 | Kein Schutz gegen Durchprobieren von Tokens bzw. des frei gewählten Admin-Tokens | `internal/server/server.go` login/resolve | gering | erledigt `f949985` | Claude Code · 2026-11-11 | Prüfbericht |
+| R-019 | Weiterleitung nach Anmeldung: `next=/\evil.example` besteht die Prüfung (Browser lesen `/\` wie `//`) | `internal/server/server.go` login | gering | erledigt `f949985` | Claude Code · 2026-11-11 | Prüfbericht |
+| R-020 | Sitzungen: abgelaufene werden nie entfernt; Cookie hinter HTTPS-Proxy ohne „Secure“ | `internal/server/server.go` | gering | erledigt `f949985` | Claude Code · 2026-11-11 | Prüfbericht |
+| R-021 | Kopplung: 40-Bit-Code mit mitgeschicktem HMAC-Nachweis ist durchprobierbar (Umleiten im LAN); signierte Anfragen ohne Einmalnummer wiederholbar | `internal/peer/peer.go` | gering | erledigt `a60a1fe` | Claude Code · 2026-11-11 | Prüfbericht |
+| R-022 | Geheimnisse als `-e NAME=wert` in der Prozessliste; Image-Namen aus Repo-Dateien ungeprüft an docker (führendes `-`) | `internal/runner/exec.go`, `capsule.go` | gering | erledigt `ccc00ea` | Claude Code · 2026-11-11 | Prüfbericht |
 | R-023 | Datenschutz: README-Bilder werden von fremden Servern geladen (IP-Adresse geht an Dritte; Bilder fehlen offline) | `internal/web/web.go` CSP img-src | gering | offen – hängt an F-019 (V-4: Bilder mitsichern) | Claude Code · 2026-11-11 | Prüfbericht |
-| R-024 | Git-Härtung fehlt: `fetch.fsckObjects`, `GIT_ALLOW_PROTOCOL`, Einfluss der globalen Git-Konfiguration; „dubious ownership“ auf FAT/exFAT prüfen (portabel) | `internal/gitcli/gitcli.go` | Hinweis | in Arbeit (Claude Code, 2026-11-21) | Claude Code · 2026-11-11 | Prüfbericht |
-| R-025 | Dateinamen aus Repos ungequotet in `Content-Disposition` | `internal/web/handlers.go` repoRaw, ServeFileSafe | Hinweis | in Arbeit (Claude Code, 2026-11-21) | Claude Code · 2026-11-11 | Prüfbericht |
-| R-026 | `activity.jsonl` wächst unbegrenzt und wird je Abruf ganz gelesen | `internal/core/events.go` RecentActivity | gering | in Arbeit (Claude Code, 2026-11-21) | Claude Code · 2026-11-11 | Prüfbericht |
-| R-027 | Laufzeit-Image-Bau ohne Ressourcengrenze; ZIP-Import mit `.git` holt per `git fetch` aus fremdem Ordner | `internal/runner/image.go`, `internal/core/zipimport.go` | Hinweis | in Arbeit (Claude Code, 2026-11-21) | Claude Code · 2026-11-11 | Prüfbericht |
+| R-024 | Git-Härtung fehlt: `fetch.fsckObjects`, `GIT_ALLOW_PROTOCOL`, Einfluss der globalen Git-Konfiguration; „dubious ownership“ auf FAT/exFAT prüfen (portabel) | `internal/gitcli/gitcli.go` | Hinweis | erledigt `4f01614` (Protokoll-Liste, safe.directory; `fetch.fsckObjects` bewusst nicht – bricht Spiegel alter Repos, siehe F-019/V-1) | Claude Code · 2026-11-11 | Prüfbericht |
+| R-025 | Dateinamen aus Repos ungequotet in `Content-Disposition` | `internal/web/handlers.go` repoRaw, ServeFileSafe | Hinweis | erledigt `ccc00ea` | Claude Code · 2026-11-11 | Prüfbericht |
+| R-026 | `activity.jsonl` wächst unbegrenzt und wird je Abruf ganz gelesen | `internal/core/events.go` RecentActivity | gering | erledigt `4f01614` | Claude Code · 2026-11-11 | Prüfbericht |
+| R-027 | Laufzeit-Image-Bau ohne Ressourcengrenze; ZIP-Import mit `.git` holt per `git fetch` aus fremdem Ordner | `internal/runner/image.go`, `internal/core/zipimport.go` | Hinweis | erledigt `4f01614` (ZIP neutralisiert; Image-Bau ohne Grenze dokumentiert) | Claude Code · 2026-11-11 | Prüfbericht |
 
 ---
 
@@ -340,6 +346,8 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 ## Verlauf
 
 Neueste oben. Eine Zeile pro Sitzung.
+
+- 2026-11-21 · Claude Code · R-015–R-022, R-024–R-027 behoben (Artefakte, Submodule, Go 1.27.4 + govulncheck, Fehlversuche, Weiterleitung, Sitzungen, Kopplung, Image-Namen, Git-Härtung, Dateinamen, Protokoll, ZIP); Release `v0.5.4`
 
 - 2026-11-21 · Claude Code · R-011–R-014 behoben (DNS-Rebinding, API-CSRF, Geheimnisse nur nach Freigabe, act abgedichtet); Release `v0.5.3` (nach Klärung der GitHub-Abrechnung), Prüflauf grün inkl. `act` ohne Docker-Socket
 
