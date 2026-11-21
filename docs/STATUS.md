@@ -347,7 +347,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
-- 2026-11-21 · Claude Code · R-015–R-022, R-024–R-027 behoben (Artefakte, Submodule, Go 1.27.4 + govulncheck, Fehlversuche, Weiterleitung, Sitzungen, Kopplung, Image-Namen, Git-Härtung, Dateinamen, Protokoll, ZIP); Release `v0.5.4`
+- 2026-11-21 · Claude Code · R-015–R-022, R-024–R-027 behoben (Artefakte, Submodule, Go 1.27.4 + govulncheck, Fehlversuche, Weiterleitung, Sitzungen, Kopplung, Image-Namen, Git-Härtung, Dateinamen, Protokoll, ZIP); Release `v0.5.4`, Prüflauf und CI grün (govulncheck: keine Schwachstellen)
 
 - 2026-11-21 · Claude Code · R-011–R-014 behoben (DNS-Rebinding, API-CSRF, Geheimnisse nur nach Freigabe, act abgedichtet); Release `v0.5.3` (nach Klärung der GitHub-Abrechnung), Prüflauf grün inkl. `act` ohne Docker-Socket
 
