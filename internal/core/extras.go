@@ -184,6 +184,9 @@ func (l *Library) syncWiki(ctx context.Context, r *Repo, auth *gitcli.Auth) erro
 
 var gitmodulesURL = regexp.MustCompile(`(?m)^\s*url\s*=\s*(\S+)\s*$`)
 
+// addedBySubmodule marks repositories taken over as a submodule.
+const addedBySubmodule = "submodule"
+
 // maxAutoAdd bounds how many submodules one sync may add.
 const maxAutoAdd = 20
 
@@ -211,8 +214,19 @@ func (l *Library) syncSubmodules(ctx context.Context, r *Repo) ([]string, error)
 		if _, err := l.Store.ByFolder(ctx, target); err == nil {
 			continue
 		}
+		// .gitmodules is foreign data: it must not make RepoShelf download
+		// from anywhere (other hosts, the home network) or recurse without
+		// end. Kept automatically: one level deep, same host; the rest
+		// stays a relation the user can follow (R-016).
+		if r.Upstream.AddedBy == addedBySubmodule || !strings.EqualFold(p.Source.Host, r.R().Source.Host) {
+			continue
+		}
 		mode := r.R().Sync.Mode
-		req := AddRequest{URL: raw, Kind: repometa.KindMirror, Mode: mode, Interval: r.R().Sync.Interval, Actor: "submodule", Tags: r.R().Tags}
+		req := AddRequest{URL: raw, Kind: repometa.KindMirror, Mode: mode, Interval: r.R().Sync.Interval, Actor: "submodule", Tags: r.R().Tags,
+			seed: func(sub *Repo) error {
+				sub.Upstream.AddedBy = addedBySubmodule
+				return writeUpstream(sub.Paths.Meta, sub.Upstream)
+			}}
 		inc := repometa.Defaults(repometa.KindMirror).Include
 		inc.Releases = false
 		req.Include = &inc

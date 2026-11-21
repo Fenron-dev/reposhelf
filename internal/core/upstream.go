@@ -60,6 +60,9 @@ type Upstream struct {
 	Import *ImportState `json:"import,omitempty"`
 	// ExportNote explains why no model folder for programs exists.
 	ExportNote string `json:"export_note,omitempty"`
+	// AddedBy is "submodule" for repositories taken over as a submodule
+	// of another one (their own submodules are not followed, R-016).
+	AddedBy string `json:"added_by,omitempty"`
 }
 
 // MetaChange keeps metadata as it was before a change upstream.
