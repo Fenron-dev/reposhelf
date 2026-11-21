@@ -75,6 +75,8 @@ func (l *Library) Sync(ctx context.Context, ref, actor string) (SyncReport, erro
 	now := l.now().UTC().Truncate(time.Second)
 	src := r.R().Source
 	auth := l.Sources.GitAuth(src)
+	firstSync := r.R().Sync.LastSuccess == nil
+	statusBefore := effectiveStatus(r.R(), r.Upstream)
 	if _, err := os.Stat(r.Paths.Mirror); errors.Is(err, os.ErrNotExist) {
 		if err := os.MkdirAll(parentDir(r.Paths.Mirror), dirPerm); err != nil {
 			return rep, err
@@ -128,6 +130,7 @@ func (l *Library) Sync(ctx context.Context, ref, actor string) (SyncReport, erro
 		msg := rep.Err.Error()
 		cr.Sync.LastError = &msg
 	}
+	l.notifySync(r, firstSync, statusBefore, rep)
 	l.progress(id, "Statistik", -1)
 	l.measure(ctx, r)
 	if err := writeUpstream(r.Paths.Meta, r.Upstream); err != nil {

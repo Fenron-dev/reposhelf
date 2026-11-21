@@ -12,6 +12,20 @@
       ["repo", "job", "reindex", "cleanup", "collection", "build"].forEach(function (k) {
         es.addEventListener(k, function () { document.body.dispatchEvent(new CustomEvent("sse-" + k)); });
       });
+      // Notifications (V-2): a short notice while the page is open.
+      es.addEventListener("notify", function (e) {
+        var text = "";
+        try { text = JSON.parse(e.data).text || ""; } catch (err) { return; }
+        if (!text) return;
+        var t = document.createElement("div");
+        t.className = "toast";
+        t.setAttribute("role", "status");
+        t.textContent = text;
+        t.addEventListener("click", function () { location.href = "/notifications"; });
+        document.body.appendChild(t);
+        setTimeout(function () { t.classList.add("toast-hide"); }, 6000);
+        setTimeout(function () { t.remove(); }, 6600);
+      });
     } catch (e) {}
   }
 

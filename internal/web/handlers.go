@@ -1271,6 +1271,9 @@ type settingsData struct {
 	Integrity        core.IntegrityReport
 	HasIntegrity     bool
 	IntegrityRunning bool
+	NotifyKinds      []notifyKind
+	WebhookSet       bool
+	WebhookFromEnv   bool
 	Cfg              config.Config
 	Doctor           core.DoctorReport
 	DataDir          string
@@ -1283,6 +1286,8 @@ func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 	d := settingsData{Cfg: s.Lib.Config(), DataDir: s.Lib.Layout.Root, Warnings: s.Lib.ConfigWarnings(),
 		TokenOK: r.URL.Query().Get("token_ok"), TokenError: r.URL.Query().Get("token_fehler")}
 	d.Integrity, d.HasIntegrity = s.Lib.LastIntegrity()
+	d.NotifyKinds = notifyKinds(d.Cfg.Notify.Off)
+	d.WebhookSet, d.WebhookFromEnv = s.Lib.NotifyWebhook()
 	d.IntegrityRunning = s.Lib.IntegrityRunning()
 	s.render(w, r, "settings", "Einstellungen", "settings", d)
 }
@@ -1564,4 +1569,81 @@ func attachment(name string) string {
 		return v
 	}
 	return "attachment"
+}
+
+// ---- Notifications (V-2) ----
+
+func (s *Server) notificationsPage(w http.ResponseWriter, r *http.Request) {
+	s.render(w, r, "notifications", "Meldungen", "notifications", s.Lib.Notifications())
+}
+
+func (s *Server) notificationsRead(w http.ResponseWriter, r *http.Request) {
+	if err := s.Lib.MarkNotificationsRead(); err != nil {
+		s.failErr(w, r, err)
+		return
+	}
+	redirect(w, r, "/notifications")
+}
+
+type notifyKind struct {
+	Value, Label string
+	On           bool
+}
+
+var notifyLabels = map[string]string{
+	core.NotifyVersion: "Neue Version (Tag)", core.NotifyGone: "Original verschwunden", core.NotifyArchived: "Original archiviert",
+	core.NotifyRewritten: "Geschichte umgeschrieben (Force-Push)", core.NotifyFailing: "Abgleich schlägt seit Tagen fehl",
+	core.NotifyIntegrity: "Integritätsprüfung findet Schäden", core.NotifyRevive: "Wiederbeleben fertig oder fehlgeschlagen",
+}
+
+func notifyKinds(off []string) []notifyKind {
+	var out []notifyKind
+	for _, k := range core.NotifyKinds {
+		out = append(out, notifyKind{Value: k, Label: notifyLabels[k], On: !slices.Contains(off, k)})
+	}
+	return out
+}
+
+// settingsNotify saves the notification settings; the webhook address goes
+// to the keychain, never to reposhelf.yaml.
+func (s *Server) settingsNotify(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	f := r.Form
+	back := func(key, msg string) { redirect(w, r, withMsg("/settings#meldungen", key, msg)) }
+	if f.Get("action") == "test" {
+		if err := s.Lib.TestNotify(r.Context()); err != nil {
+			back("fehler", "Test fehlgeschlagen: "+ErrText(err))
+			return
+		}
+		back("ok", "Testmeldung gesendet.")
+		return
+	}
+	cfg := s.Lib.Config()
+	cfg.Notify.WebhookKind = map[string]string{"ntfy": "ntfy", "discord": "discord"}[f.Get("webhook_kind")]
+	if cfg.Notify.WebhookKind == "" {
+		cfg.Notify.WebhookKind = "json"
+	}
+	cfg.Notify.Off = nil
+	for _, k := range core.NotifyKinds {
+		if f.Get("on_"+k) != "on" {
+			cfg.Notify.Off = append(cfg.Notify.Off, k)
+		}
+	}
+	if err := s.Lib.SaveConfig(cfg); err != nil {
+		s.failErr(w, r, err)
+		return
+	}
+	switch {
+	case f.Get("webhook_remove") == "on":
+		if err := s.Lib.SetNotifyWebhook(""); err != nil {
+			back("fehler", ErrText(err))
+			return
+		}
+	case strings.TrimSpace(f.Get("webhook")) != "":
+		if err := s.Lib.SetNotifyWebhook(f.Get("webhook")); err != nil {
+			back("fehler", "Webhook nicht gespeichert: "+ErrText(err))
+			return
+		}
+	}
+	back("ok", "Benachrichtigungen gespeichert.")
 }

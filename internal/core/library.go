@@ -68,6 +68,8 @@ type Library struct {
 	lfs      bool
 	locks    keyedLocks
 	activity *activityLog
+	// lookupEnv reads settings from the environment (webhook address).
+	lookupEnv func(string) (string, bool)
 	jobs     *jobs
 	events   *events
 }
@@ -113,7 +115,8 @@ func Open(ctx context.Context, opts Options) (*Library, error) {
 	}
 	tokens := sources.NewTokenStore(opts.LookupEnv, kc)
 	l := &Library{
-		Layout: lay,
+		lookupEnv: opts.LookupEnv,
+		Layout:    lay,
 		Git:    g,
 		Tokens: tokens,
 		Sources: &sources.Registry{

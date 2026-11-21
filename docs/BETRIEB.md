@@ -165,6 +165,18 @@ Einträge wandern in den **Papierkorb** und bleiben dort 30 Tage
 wiederherstellbar; endgültig gelöscht wird nur nach erneuter Bestätigung.
 Angeheftete Versionen und die Git-Geschichte selbst sind nie betroffen.
 
+## 3b. Benachrichtigungen
+
+RepoShelf meldet neue Versionen (Tags), ein verschwundenes oder archiviertes Original,
+umgeschriebene Geschichte (Force-Push), seit drei Tagen fehlschlagende Abgleiche,
+Schäden aus der Integritätsprüfung und das Ergebnis von „Wiederbeleben“. Die Meldungen
+stehen unter „Meldungen“ (Zähler in der Seitenleiste) und erscheinen kurz eingeblendet,
+solange RepoShelf offen ist. Unter Einstellungen → „Benachrichtigungen“ schaltest du Arten
+ab und richtest einen Webhook ein: **ntfy** (z. B. `https://ntfy.sh/mein-thema` oder ein
+eigener ntfy auf Unraid), **Discord** oder **allgemeines JSON**. Die Webhook-Adresse
+liegt im Schlüsselbund (Docker: `REPOSHELF_NOTIFY_URL`), nie in `reposhelf.yaml`. Mit
+eingetragener öffentlicher Adresse enthalten die Nachrichten einen Link zum Repo.
+
 ## 3a. Wiederbeleben
 
 Ist ein Original verschwunden, lädt „Wiederbeleben“ (Repo → Einstellungen, nur

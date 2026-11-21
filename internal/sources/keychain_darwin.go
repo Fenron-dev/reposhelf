@@ -4,6 +4,7 @@ package sources
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os/exec"
@@ -35,13 +36,15 @@ func (macKeychain) Get(host string) (string, error) {
 // Set passes the token on standard input ("security -i"), so it never
 // shows up in the process list.
 func (k macKeychain) Set(host, token string) error {
-	if !ValidToken(token) || !validHost(host) {
+	if token == "" || strings.ContainsAny(token, "\r\n\x00") || !validHost(host) {
 		return ErrInvalidToken
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, securityTool, "-i")
-	cmd.Stdin = strings.NewReader(fmt.Sprintf("add-generic-password -U -s %s -a %s -w %s\n", KeychainService, host, token))
+	// -X takes the secret as hex: any characters (a webhook URL) pass the
+	// command parser of "security -i" unchanged.
+	cmd.Stdin = strings.NewReader(fmt.Sprintf("add-generic-password -U -s %s -a %s -X %s\n", KeychainService, host, hex.EncodeToString([]byte(token))))
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("keychain: %v %s", err, strings.TrimSpace(string(out)))
 	}

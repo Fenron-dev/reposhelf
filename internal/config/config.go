@@ -65,6 +65,16 @@ type Config struct {
 	Sync      Sync      `yaml:"sync"`
 	Retention Retention `yaml:"retention"`
 	Runner    Runner    `yaml:"runner"`
+	Notify    Notify    `yaml:"notify"`
+}
+
+// Notify configures notifications (V-2). The webhook address itself is a
+// secret and lives in the keychain or REPOSHELF_NOTIFY_URL.
+type Notify struct {
+	// WebhookKind is ntfy, discord or json.
+	WebhookKind string `yaml:"webhook_kind"`
+	// Off lists the kinds that are not reported (new_version, gone, …).
+	Off []string `yaml:"off,flow"`
 }
 
 // Instance names this installation (shown in the UI and to paired peers).

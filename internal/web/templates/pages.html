@@ -328,6 +328,29 @@
   <div hx-get="/settings/tokens" hx-trigger="load" hx-swap="outerHTML"><p class="small muted"><span class="spinner" aria-hidden="true"></span> wird geladen …</p></div>
 </div>
 
+<div class="card stack" id="meldungen">
+  <h2 class="h3">Benachrichtigungen</h2>
+  <form method="post" action="/settings/notify" class="stack">
+    <fieldset><legend>Melden bei</legend>
+      {{range $d.NotifyKinds}}<label class="check"><input type="checkbox" name="on_{{.Value}}" {{if .On}}checked{{end}}> {{.Label}}</label>{{end}}
+    </fieldset>
+    <p class="small muted">Meldungen erscheinen immer unter „Meldungen“ (mit Zähler in der Seitenleiste) und kurz eingeblendet, solange RepoShelf offen ist. Zusätzlich per Webhook aufs Handy oder in einen Chat:</p>
+    <div class="row-wrap token-row">
+      <label>Art <select name="webhook_kind">
+        <option value="ntfy" {{if eq $c.Notify.WebhookKind "ntfy"}}selected{{end}}>ntfy</option>
+        <option value="discord" {{if eq $c.Notify.WebhookKind "discord"}}selected{{end}}>Discord</option>
+        <option value="json" {{if or (eq $c.Notify.WebhookKind "json") (eq $c.Notify.WebhookKind "")}}selected{{end}}>Allgemein (JSON)</option>
+      </select></label>
+      <label class="grow">Webhook-Adresse <input name="webhook" type="password" autocomplete="off" spellcheck="false" placeholder="{{if $d.WebhookSet}}gesetzt – leer lassen zum Behalten{{else}}https://ntfy.sh/mein-thema{{end}}" {{if $d.WebhookFromEnv}}disabled{{end}}></label>
+    </div>
+    {{if $d.WebhookFromEnv}}<p class="small muted">Die Adresse kommt aus <span class="mono">REPOSHELF_NOTIFY_URL</span>.</p>
+    {{else if $d.WebhookSet}}<label class="check"><input type="checkbox" name="webhook_remove"> Webhook entfernen</label>{{end}}
+    <p class="small muted">Die Adresse kann einen Schlüssel enthalten und liegt deshalb im Schlüsselbund dieses Rechners, nicht in <span class="mono">reposhelf.yaml</span>. Für Links in den Nachrichten oben die öffentliche Adresse eintragen.</p>
+    <div class="row-wrap"><button class="btn btn-primary" type="submit">Speichern</button>
+    {{if $d.WebhookSet}}<button class="btn" type="submit" name="action" value="test">Test senden</button>{{end}}</div>
+  </form>
+</div>
+
 <div class="card stack" id="integritaet">
   <h2 class="h3">Integrität</h2>
   <p class="small muted">Liest alles, was RepoShelf aufbewahrt, und vergleicht es mit den gespeicherten Prüfsummen: Git-Objekte, Release-Dateien, Actions-Artefakte, große Dateien (LFS), Kapseln, README-Bilder. Läuft automatisch alle {{$c.Retention.IntegrityEvery}} (Einstellung oben, 0 = nur von Hand).</p>
@@ -490,3 +513,17 @@
 </div>{{end}}
 
 {{define "doctor"}}<ul class="checks">{{range .Checks}}<li><span class="{{if .OK}}ok{{else}}error{{end}}">{{if .OK}}✓{{else}}✕{{end}}</span> <strong>{{.Name}}</strong>: {{.Detail}}</li>{{end}}</ul>{{end}}
+
+{{define "notifications"}}{{template "head" .}}
+<h1>Meldungen</h1>
+<p class="muted">Wichtige Änderungen an deinen Repos. Was gemeldet wird und ob zusätzlich ein Webhook (ntfy, Discord) eine Nachricht bekommt, stellst du unter <a href="/settings#meldungen">Einstellungen → Benachrichtigungen</a> ein.</p>
+{{if .Data}}
+<form method="post" action="/notifications/read"><button class="btn" type="submit">Alle als gelesen markieren</button></form>
+<ul class="card notifications">
+{{range .Data}}<li class="{{if not .Read}}unread{{end}}">
+  <div><strong>{{if .RepoID}}<a href="/repo/{{.RepoID}}">{{.Title}}</a>{{else}}{{.Title}}{{end}}</strong> <span class="small muted">· {{dt .Time}}</span></div>
+  {{if .Text}}<div class="small">{{.Text}}</div>{{end}}
+</li>{{end}}
+</ul>
+{{else}}<p class="muted">Noch keine Meldungen.</p>{{end}}
+{{template "foot" .}}{{end}}

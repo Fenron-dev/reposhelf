@@ -125,6 +125,9 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /graph", read(s.graphPage))
 	mux.Handle("GET /graph.json", read(s.graphJSON))
 	mux.Handle("GET /activity", read(s.activityPage))
+	mux.Handle("GET /notifications", read(s.notificationsPage))
+	mux.Handle("POST /notifications/read", read(s.notificationsRead))
+	mux.Handle("POST /settings/notify", admin(s.settingsNotify))
 	mux.Handle("GET /code", read(s.codePage))
 	mux.Handle("GET /notes", read(s.notesPage))
 	mux.Handle("GET /notes/{name}", read(s.notePage))
@@ -234,6 +237,7 @@ type page struct {
 
 type sidebar struct {
 	Repos, Tags, Trash int
+	Unread             int // notifications (V-2)
 	Size               int64
 	Collections        []core.Collection
 	Jobs               int
@@ -289,6 +293,7 @@ func (s *Server) sidebar(r *http.Request) sidebar {
 	if tr, err := s.Lib.Trash(); err == nil {
 		sb.Trash = len(tr)
 	}
+	sb.Unread = s.Lib.UnreadNotifications()
 	sb.Jobs = len(s.Lib.Jobs())
 	sb.Builds = s.Ext.Builds != nil
 	sb.Peers = s.Ext.Peers != nil

@@ -43,6 +43,7 @@
     <li><a href="/notes" {{if eq .Nav "notes"}}aria-current="page"{{end}}>Notizen</a></li>
     {{if .Sidebar.Builds}}<li><a href="/builds" {{if eq .Nav "builds"}}aria-current="page"{{end}}>Builds &amp; Runner</a></li>{{end}}
     {{if .Identity.Has "admin"}}<li><a href="/access" {{if eq .Nav "mcp"}}aria-current="page"{{end}}>KI-Zugriff (MCP)</a></li>{{end}}
+    <li><a href="/notifications" {{if eq .Nav "notifications"}}aria-current="page"{{end}}>Meldungen{{if .Sidebar.Unread}} <span class="count badge-new">{{.Sidebar.Unread}}</span>{{end}}</a></li>
     <li><a href="/activity" {{if eq .Nav "activity"}}aria-current="page"{{end}}>Verlauf</a></li>
   </ul>
   <div class="nav-section">

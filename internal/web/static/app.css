@@ -294,3 +294,9 @@ details.inline > summary { list-style: none; display: inline-block; }
 details.inline > summary::-webkit-details-marker { display: none; }
 details.inline[open] > summary { display: none; }
 .token-row { align-items: flex-end; gap: 12px; } .token-row .grow { min-width: 240px; }
+.toast { position: fixed; right: 16px; bottom: 16px; max-width: min(420px, calc(100vw - 32px)); background: var(--surface-2, #222); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 14px; z-index: 400; cursor: pointer; box-shadow: 0 6px 24px #0006; transition: opacity .5s; }
+.toast-hide { opacity: 0; }
+.notifications { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.notifications li { padding: 6px 0; border-bottom: 1px solid var(--border); }
+.notifications li.unread strong { color: var(--accent); }
+.badge-new { background: var(--accent); color: var(--bg, #000); border-radius: 9px; padding: 0 6px; }

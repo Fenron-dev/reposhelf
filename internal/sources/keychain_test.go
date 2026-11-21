@@ -91,6 +91,13 @@ func TestSystemKeychain(t *testing.T) {
 	if got, _ := kc.Get(host); got != "test_token_456" {
 		t.Errorf("update = %q", got)
 	}
+	const webhook = "https://discord.com/api/webhooks/123/abc-DEF_x?wait=true&thread_id=9"
+	if err := kc.Set(host, webhook); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := kc.Get(host); got != webhook {
+		t.Errorf("URL value = %q", got)
+	}
 	if err := kc.Delete(host); err != nil {
 		t.Fatal(err)
 	}

@@ -212,6 +212,8 @@ func (l *Library) CheckIntegrity(ctx context.Context) (IntegrityReport, error) {
 		Detail: fmt.Sprintf("%d Repos, %d Dateien geprüft, %d Probleme", rep.Repos, rep.Files, len(rep.Problems))})
 	if len(rep.Problems) > 0 {
 		l.events.publish(Event{Kind: "integrity", Text: fmt.Sprintf("%d Probleme", len(rep.Problems))})
+		l.Notify(Notification{Kind: NotifyIntegrity, Title: fmt.Sprintf("Integritätsprüfung: %d beschädigte oder fehlende Einträge", len(rep.Problems)),
+			Text: "Details unter Einstellungen → Integrität."})
 	}
 	return rep, l.writeIntegrity(rep)
 }

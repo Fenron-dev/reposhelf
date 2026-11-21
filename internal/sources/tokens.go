@@ -197,3 +197,34 @@ func envName(host string) string {
 		return '_'
 	}, host)
 }
+
+// Secrets other than host tokens (e.g. a webhook address) are kept in the
+// keychain under their own account name.
+var secretAccount = regexp.MustCompile(`^reposhelf-[a-z0-9-]{1,40}$`)
+
+// Secret returns a stored secret ("" if none).
+func (s *TokenStore) Secret(account string) (string, error) {
+	if s.kc == nil || !secretAccount.MatchString(account) {
+		return "", nil
+	}
+	return s.kc.Get(account)
+}
+
+// SaveSecret stores a secret in the keychain.
+func (s *TokenStore) SaveSecret(account, value string) error {
+	if s.kc == nil {
+		return ErrNoKeychain
+	}
+	if !secretAccount.MatchString(account) || value == "" || strings.ContainsAny(value, "\r\n\x00") {
+		return errors.New("ungültiges Geheimnis")
+	}
+	return s.kc.Set(account, value)
+}
+
+// RemoveSecret deletes a secret from the keychain.
+func (s *TokenStore) RemoveSecret(account string) error {
+	if s.kc == nil || !secretAccount.MatchString(account) {
+		return nil
+	}
+	return s.kc.Delete(account)
+}

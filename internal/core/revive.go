@@ -115,6 +115,11 @@ func (l *Library) revive(ctx context.Context, id string, req ReviveRequest, stat
 			_ = l.setRevive(r, state)
 		}
 		l.Record(Activity{Actor: actorOr(req.Actor), Action: "revive", RepoID: id, Detail: detail})
+		title := "Wiederbelebt: " + state.Target
+		if err != nil {
+			title = "Wiederbeleben fehlgeschlagen: " + state.Target
+		}
+		l.Notify(Notification{Kind: NotifyRevive, RepoID: id, Title: title, Text: detail})
 	}
 	r, err := l.Get(ctx, id)
 	if err != nil {
