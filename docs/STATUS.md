@@ -44,7 +44,7 @@ Apple-Entwicklerkonto). Artefakt-Download von GitHub Actions gegen das echte Git
 die zwei neuesten Läufe, ZIPs gültig, Prüfsummen stimmen) und per Test gegen eine
 nachgebildete API (`internal/runner/github_test.go`).
 
-**Offene Fragen:** F-019 (Funktionsvorschläge aus dem Prüfbericht).
+**Offene Fragen:** keine (F-019 → D-034).
 
 **2026-11-10 · Claude Code (T-9.8/T-9.9, Rückmeldung zu v0.1.7 unter Windows):**
 Jeder Git-/Docker-/act-Aufruf startet ohne Konsolenfenster (`gitcli.HideWindow`).
@@ -155,7 +155,7 @@ Entscheidung: Status `entschieden`, Eintrag in `docs/ENTSCHEIDUNGEN.md`, Verweis
 | F-016 | Laufzeit-Daten (T-9.11): Ab welcher Größe fragt RepoShelf vor dem Herunterladen nach? | Je Eintrag ab 1 GB nachfragen; globale Obergrenze wie `retention.max_asset_mb` | entschieden | **Ab 1 GB je Eintrag** → D-025 |
 | F-017 | Python-Pakete (z. B. PyTorch) für welche Plattformen sichern? | Nur die gewählten Plattformen je Repo (Standard: die eigene + linux/amd64 für Unraid); CUDA-Variante nur auf Wunsch | entschieden | **Je Repo wählbar** (Standard: eigene + linux/amd64) → D-026 |
 | F-018 | Modelle aktualisieren oder einfrieren? | Wie Repos: festgehaltene Revision bleibt; neue Revisionen werden zusätzlich gesichert, ältere schlägt die Lösch-Prüfung vor | entschieden | **Wie Repos** → D-027 |
-| F-019 | Welche der Funktionsvorschläge V-1 bis V-18 aus `docs/PRUEFBERICHT-2026-11.md` sollen umgesetzt werden (und in welcher Reihenfolge)? | Zuerst V-1 (Integritätsprüfung), V-2 (Benachrichtigungen), V-4 (README-Bilder mitsichern), V-5 (Repo wiederbeleben) | offen | |
+| F-019 | Welche der Funktionsvorschläge V-1 bis V-18 aus `docs/PRUEFBERICHT-2026-11.md` sollen umgesetzt werden (und in welcher Reihenfolge)? | Zuerst V-1 (Integritätsprüfung), V-2 (Benachrichtigungen), V-4 (README-Bilder mitsichern), V-5 (Repo wiederbeleben) | entschieden | **V-1, V-2, V-4, V-5** → D-034 (T-9.21–T-9.24) |
 
 ---
 
@@ -189,7 +189,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | R-020 | Sitzungen: abgelaufene werden nie entfernt; Cookie hinter HTTPS-Proxy ohne „Secure“ | `internal/server/server.go` | gering | erledigt `f949985` | Claude Code · 2026-11-11 | Prüfbericht |
 | R-021 | Kopplung: 40-Bit-Code mit mitgeschicktem HMAC-Nachweis ist durchprobierbar (Umleiten im LAN); signierte Anfragen ohne Einmalnummer wiederholbar | `internal/peer/peer.go` | gering | erledigt `a60a1fe` | Claude Code · 2026-11-11 | Prüfbericht |
 | R-022 | Geheimnisse als `-e NAME=wert` in der Prozessliste; Image-Namen aus Repo-Dateien ungeprüft an docker (führendes `-`) | `internal/runner/exec.go`, `capsule.go` | gering | erledigt `ccc00ea` | Claude Code · 2026-11-11 | Prüfbericht |
-| R-023 | Datenschutz: README-Bilder werden von fremden Servern geladen (IP-Adresse geht an Dritte; Bilder fehlen offline) | `internal/web/web.go` CSP img-src | gering | offen – hängt an F-019 (V-4: Bilder mitsichern) | Claude Code · 2026-11-11 | Prüfbericht |
+| R-023 | Datenschutz: README-Bilder werden von fremden Servern geladen (IP-Adresse geht an Dritte; Bilder fehlen offline) | `internal/web/web.go` CSP img-src | gering | in Arbeit (mit T-9.23) | Claude Code · 2026-11-11 | Prüfbericht |
 | R-024 | Git-Härtung fehlt: `fetch.fsckObjects`, `GIT_ALLOW_PROTOCOL`, Einfluss der globalen Git-Konfiguration; „dubious ownership“ auf FAT/exFAT prüfen (portabel) | `internal/gitcli/gitcli.go` | Hinweis | erledigt `4f01614` (Protokoll-Liste, safe.directory; `fetch.fsckObjects` bewusst nicht – bricht Spiegel alter Repos, siehe F-019/V-1) | Claude Code · 2026-11-11 | Prüfbericht |
 | R-025 | Dateinamen aus Repos ungequotet in `Content-Disposition` | `internal/web/handlers.go` repoRaw, ServeFileSafe | Hinweis | erledigt `ccc00ea` | Claude Code · 2026-11-11 | Prüfbericht |
 | R-026 | `activity.jsonl` wächst unbegrenzt und wird je Abruf ganz gelesen | `internal/core/events.go` RecentActivity | gering | erledigt `4f01614` | Claude Code · 2026-11-11 | Prüfbericht |
@@ -340,12 +340,18 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.18 | LFS-Dateien über Git-HTTP ausliefern (LFS-Batch-API), damit `git clone` über RepoShelf Modelle und große Dateien vollständig bekommt | erledigt | Claude Code | 2026-11-11 | `5a509bc` – LFS-Batch-API unter `…/info/lfs/` (Download, Upload für eigene Repos, locks/verify); Prüflauf klont ein HF-Modell über RepoShelf |
 | T-9.19 | Optional: Laufzeit-Image je Repo (fertige Umgebung per `docker save`, z. B. für Dienste auf Unraid) | erledigt | Claude Code | 2026-11-11 | aus T-9.11 abgetrennt; `64316c4` – Build-Ziel `image` (docker build + save → `.tar.gz` im Archiv), „In Docker laden“ |
 | T-9.20 | Issues (gespiegelte und lokale) in die Volltextsuche aufnehmen (KONZEPT 6.9) | erledigt | Claude Code | 2026-11-11 | Abgleich Konzept ↔ Stand; `ddf1416` – FTS-Spalte `issues` (Index-Schema 2, wird neu aufgebaut); KONZEPT.md an D-021–D-033 angeglichen |
+| T-9.21 | V-1 Integritätsprüfung nach Zeitplan: `git fsck`, Prüfsummen von Release-Dateien, LFS-Objekten und Kapsel-Blobs; Bericht, Warnung bei Schäden | offen | | 2026-11-21 | D-034 |
+| T-9.22 | V-2 Benachrichtigungen: neue Version, Original weg/archiviert, Force-Push, Abgleich dauerhaft fehlgeschlagen, Integritätsschaden – Meldungen in der Oberfläche, Webhook (ntfy, Discord, allgemein), Desktop-Meldung | offen | | 2026-11-21 | D-034 |
+| T-9.23 | V-4 README-Bilder beim Abgleich mitsichern und lokal ausliefern; fremde Bilder sonst nicht laden (behebt R-023) | in Arbeit | Claude Code | 2026-11-21 | D-034 |
+| T-9.24 | V-5 Repo wiederbeleben: Spiegel mit einem Klick zu GitHub oder Gitea/Forgejo hochladen (Repo anlegen, alle Branches/Tags, Releases mit Dateien) | offen | | 2026-11-21 | D-034 |
 
 ---
 
 ## Verlauf
 
 Neueste oben. Eine Zeile pro Sitzung.
+
+- 2026-11-21 · Dennis · F-019 entschieden: V-1, V-2, V-4, V-5 (D-034) → T-9.21–T-9.24
 
 - 2026-11-21 · Claude Code · R-015–R-022, R-024–R-027 behoben (Artefakte, Submodule, Go 1.27.4 + govulncheck, Fehlversuche, Weiterleitung, Sitzungen, Kopplung, Image-Namen, Git-Härtung, Dateinamen, Protokoll, ZIP); Release `v0.5.4`, Prüflauf und CI grün (govulncheck: keine Schwachstellen)
 
