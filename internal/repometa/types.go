@@ -3,6 +3,7 @@
 package repometa
 
 import (
+	"regexp"
 	"strings"
 	"time"
 )
@@ -188,7 +189,14 @@ type Buildable struct {
 	Platforms []string `yaml:"platforms,omitempty,flow"`
 	// CUDA keeps GPU builds of PyTorch & Co. (large); off: CPU builds.
 	CUDA bool `yaml:"cuda,omitempty"`
+	// Secrets names the secrets (REPOSHELF_SECRET_<NAME>) builds of this
+	// repository may receive. The build definition inside the repository
+	// can only ask for them; the release happens here (R-013).
+	Secrets []string `yaml:"secrets,omitempty,flow"`
 }
+
+// SecretName is the form of a secret's name (an environment variable).
+var SecretName = regexp.MustCompile(`^[A-Z][A-Z0-9_]{0,63}$`)
 
 // PythonPlatforms are the platforms Python packages can be kept for.
 var PythonPlatforms = []string{"linux/amd64", "linux/arm64", "windows/amd64", "darwin/arm64", "darwin/amd64"}

@@ -94,6 +94,11 @@ func (r *Repo) Validate() error {
 	v.relations(r)
 	v.retention(r.Retention)
 
+	for _, n := range r.Buildable.Secrets {
+		if !SecretName.MatchString(n) {
+			v.addf("buildable.secrets", "invalid name %q (capital letters, digits, _)", n)
+		}
+	}
 	for _, p := range r.Buildable.Platforms {
 		if !slices.Contains(PythonPlatforms, p) {
 			v.addf("buildable.platforms", "unknown platform %q (allowed: %s)", p, strings.Join(PythonPlatforms, ", "))

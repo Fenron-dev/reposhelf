@@ -116,6 +116,7 @@ created: 2026-11-08T10:00:00Z
 | `buildable.enabled` | ja/nein | nein | `false` | |
 | `buildable.capsules_keep` | Zahl | nein | `null` (erben) | ≥ 0 |
 | `buildable.platforms` | Liste | nein | `[]` | Python-Pakete zusätzlich für diese Plattformen sichern (D-026): `linux/amd64`, `linux/arm64`, `windows/amd64`, `darwin/arm64`, `darwin/amd64` |
+| `buildable.secrets` | Liste | nein | `[]` | Namen der Geheimnisse (`REPOSHELF_SECRET_<NAME>`), die Builds dieses Repos erhalten dürfen (R-013); Großbuchstaben, Ziffern, `_` |
 | `buildable.cuda` | ja/nein | nein | `false` | CUDA-Varianten (z. B. PyTorch für Grafikkarten); aus = CPU-Varianten |
 | `license.spdx` | Text | nein | `null` | SPDX-Kennung; `null` = nicht erkannt → Warnung in der Oberfläche |
 | `license.checked` | Datum | nein | `null` | `YYYY-MM-DD` |

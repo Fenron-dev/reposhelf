@@ -623,6 +623,14 @@ func (s *Server) repoSettings(w http.ResponseWriter, r *http.Request) {
 	if f.Get("platforms_sent") != "" {
 		set.Platforms = append([]string{}, f["platform"]...) // none chosen: empty, not "keep"
 	}
+	// Releasing secrets to a repository's builds is the administrator's
+	// decision (R-013); other users' forms leave the list alone.
+	if tok, _ := s.Identity(r); tok.Has(auth.Admin) && f.Get("secrets_sent") != "" {
+		set.Secrets = []string{}
+		for _, n := range splitList(f.Get("secrets")) {
+			set.Secrets = append(set.Secrets, strings.ToUpper(n))
+		}
+	}
 	if v := f.Get("interval"); v != "" && set.Mode == repometa.SyncFollow {
 		d, err := repometa.ParseDuration(v)
 		if err != nil {

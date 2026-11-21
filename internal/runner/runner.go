@@ -227,6 +227,11 @@ func (m *Manager) StartBuild(ctx context.Context, req StartRequest) (artifact.Bu
 	if runner == RunnerLocal && cfg.Confirm && !req.Confirm {
 		b.Status = artifact.StatusWaiting
 	}
+	// A workflow of a foreign repository runs with act on this machine's
+	// Docker: always a person's decision, whatever the setting (R-014).
+	if runner == RunnerLocal && needsPerson(kind, repo.R().Kind) && !req.Confirm {
+		b.Status = artifact.StatusWaiting
+	}
 	if err := artifact.WriteBuild(b); err != nil {
 		return artifact.Build{}, err
 	}
@@ -235,6 +240,11 @@ func (m *Manager) StartBuild(ctx context.Context, req StartRequest) (artifact.Bu
 		m.enqueue(b)
 	}
 	return b, nil
+}
+
+// needsPerson: builds that always wait for a confirmation.
+func needsPerson(buildKind string, repoKind repometa.Kind) bool {
+	return buildKind == artifact.KindAct && repoKind == repometa.KindMirror
 }
 
 func (m *Manager) enqueue(b artifact.Build) {

@@ -167,6 +167,11 @@ func TestForms(t *testing.T) {
 	if r, _ := e.lib.Get(context.Background(), id); len(r.R().Buildable.Platforms) != 2 || !r.R().Buildable.CUDA {
 		t.Errorf("python platforms not saved: %+v", r.R().Buildable)
 	}
+	e.post("/repo/"+id+"/settings", url.Values{"kind": {"mirror"}, "mode": {"follow"}, "interval": {"12h"}, "secrets_sent": {"1"}, "secrets": {"npm_token, DEPLOY_KEY"}}, 303)
+	if r, _ := e.lib.Get(context.Background(), id); strings.Join(r.R().Buildable.Secrets, ",") != "NPM_TOKEN,DEPLOY_KEY" {
+		t.Errorf("released secrets = %v", r.R().Buildable.Secrets)
+	}
+	e.post("/repo/"+id+"/settings", url.Values{"kind": {"mirror"}, "mode": {"follow"}, "interval": {"12h"}, "secrets_sent": {"1"}, "secrets": {"bad name!"}}, 400)
 	e.post("/repo/"+id+"/settings", url.Values{"kind": {"mirror"}, "mode": {"follow"}, "interval": {"12h"}, "platforms_sent": {"1"}}, 303)
 	if r, _ := e.lib.Get(context.Background(), id); len(r.R().Buildable.Platforms) != 0 {
 		t.Errorf("platforms not cleared: %+v", r.R().Buildable)

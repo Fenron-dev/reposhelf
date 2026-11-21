@@ -14,6 +14,7 @@ import (
 	"github.com/Fenron-dev/reposhelf/internal/artifact"
 	"github.com/Fenron-dev/reposhelf/internal/core"
 	"github.com/Fenron-dev/reposhelf/internal/logx"
+	"github.com/Fenron-dev/reposhelf/internal/repometa"
 	"github.com/Fenron-dev/reposhelf/internal/sources"
 	"github.com/Fenron-dev/reposhelf/internal/testutil"
 )
@@ -128,7 +129,7 @@ func wait(t *testing.T, m *Manager, id string) artifact.Build {
 func TestDockerBuildWithConfirmation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	m, _, repoID := setup(t)
+	m, lib, repoID := setup(t)
 	m.Start(ctx)
 
 	targets := m.TargetNames(ctx, repoID)
@@ -161,8 +162,27 @@ func TestDockerBuildWithConfirmation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, _ := os.ReadFile(p); strings.TrimSpace(string(got)) != "secret=s3cret" {
-		t.Errorf("named secret not passed: %q", got)
+	// The build definition asks for the secret, but the repository is not
+	// allowed to have it: nothing is passed (R-013).
+	if got, _ := os.ReadFile(p); strings.TrimSpace(string(got)) != "secret=" || !strings.Contains(log, "nicht freigegeben") {
+		t.Errorf("secret passed without release: %q\n%s", got, log)
+	}
+	// Released for this repository by the user: now it arrives – through
+	// the environment, not on docker's command line.
+	if _, err := lib.Update(ctx, repoID, func(r *repometa.Repo) error { r.Buildable.Secrets = []string{"TOKEN"}; return nil }); err != nil {
+		t.Fatal(err)
+	}
+	b2, err := m.StartBuild(ctx, StartRequest{Repo: repoID, Target: "linux", Actor: "web", Confirm: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b2 = wait(t, m, b2.ID)
+	p2, _ := m.ArtifactPath(b2.ID, "dist/env.txt")
+	if got, _ := os.ReadFile(p2); strings.TrimSpace(string(got)) != "secret=s3cret" {
+		t.Errorf("released secret not passed: %q", got)
+	}
+	if l2, _ := m.BuildLog(b2.ID); strings.Contains(l2, "s3cret") {
+		t.Error("secret value in the build log")
 	}
 	if _, err := os.Stat(filepath.Join(b.Dir, "work")); !os.IsNotExist(err) {
 		t.Error("work folder not cleaned up")

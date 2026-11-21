@@ -5,6 +5,7 @@
 package main
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +14,10 @@ import (
 
 	wailsassets "github.com/wailsapp/wails/v2/pkg/assetserver"
 
+	"github.com/Fenron-dev/reposhelf/internal/core"
 	"github.com/Fenron-dev/reposhelf/internal/desktop"
+	"github.com/Fenron-dev/reposhelf/internal/server"
+	"github.com/Fenron-dev/reposhelf/internal/testutil"
 )
 
 type fakeRuntime struct{}
@@ -81,5 +85,36 @@ func TestWindowFollowsRedirectAfterPost(t *testing.T) {
 	srv.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "wails://wails/add", strings.NewReader("url=x")))
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "url=/repo/neu") {
 		t.Fatalf("POST answer = %d %s", rec.Code, rec.Body.String())
+	}
+}
+
+// TestWindowIsTrustedByTheServer: the window's Host is Wails' own name,
+// not this machine's; the real server must still treat it as the local
+// user (R-011), also for forms.
+func TestWindowIsTrustedByTheServer(t *testing.T) {
+	lib, err := core.Open(context.Background(), core.Options{DataDir: t.TempDir(), Git: testutil.NewForge(t).Git, NoKeychain: true,
+		LookupEnv: func(string) (string, bool) { return "", false }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lib.Close()
+	srv, err := server.New(lib, server.Options{LookupEnv: func(string) (string, bool) { return "", false }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	app := &App{handler: srv.Handler()}
+	if body := window(t, app, "/settings"); !strings.Contains(body, "Einstellungen") {
+		t.Fatalf("settings not shown to the window:\n%s", body)
+	}
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "wails://wails/create", strings.NewReader("name=probe"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Origin", "wails://wails")
+	app.ServeHTTP(rec, req)
+	if rec.Code == http.StatusForbidden {
+		t.Fatalf("window form refused: %s", rec.Body.String())
+	}
+	if _, err := lib.Get(context.Background(), "local/projekte/probe"); err != nil {
+		t.Errorf("window form did not create the project: %v", err)
 	}
 }

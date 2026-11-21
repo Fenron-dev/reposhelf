@@ -164,7 +164,7 @@ func (s *Server) resolve(r *http.Request) ident {
 			return ident{tok: sess.token, authed: true}
 		}
 	}
-	if isLocal(r) {
+	if s.isLocal(r) {
 		return ident{tok: auth.Local, authed: true}
 	}
 	if s.Lib.Config().Server.AnonymousRead {
@@ -187,10 +187,25 @@ func bearer(r *http.Request) string {
 	return ""
 }
 
+// trustedKey marks a request the embedding program vouches for.
+type trustedKey struct{}
+
+// MarkLocal marks a request as coming from this program's own window
+// (desktop app): it is trusted whatever its Host header says.
+func MarkLocal(r *http.Request) *http.Request {
+	return r.WithContext(context.WithValue(r.Context(), trustedKey{}, true))
+}
+
 // isLocal trusts requests from this machine (desktop app, CLI, health
 // checks) – but not when a proxy forwarded them: a tunnel on the same host
-// would otherwise make everyone "local".
-func isLocal(r *http.Request) bool {
+// would otherwise make everyone "local". The Host header must name this
+// machine too: a web page whose own domain resolves to 127.0.0.1 (DNS
+// rebinding) reaches the loopback address with its domain as Host and
+// would otherwise act as the local user (R-011).
+func (s *Server) isLocal(r *http.Request) bool {
+	if r.Context().Value(trustedKey{}) != nil {
+		return true
+	}
 	if r.Header.Get("X-Forwarded-For") != "" || r.Header.Get("Forwarded") != "" || r.Header.Get("X-Real-Ip") != "" || r.Header.Get("Cf-Connecting-Ip") != "" {
 		return false
 	}
@@ -199,7 +214,29 @@ func isLocal(r *http.Request) bool {
 		return false
 	}
 	ip := net.ParseIP(host)
-	return ip != nil && ip.IsLoopback()
+	return ip != nil && ip.IsLoopback() && s.localHost(r.Host)
+}
+
+// localHost reports whether a Host header names this machine: localhost,
+// a loopback address, or the configured public address.
+func (s *Server) localHost(hostport string) bool {
+	h := hostport
+	if host, _, err := net.SplitHostPort(hostport); err == nil {
+		h = host
+	}
+	h = strings.ToLower(strings.Trim(h, "[]"))
+	if h == "localhost" || strings.HasSuffix(h, ".localhost") {
+		return true
+	}
+	if ip := net.ParseIP(h); ip != nil && ip.IsLoopback() {
+		return true
+	}
+	if pu := s.Lib.Config().Server.PublicURL; pu != "" {
+		if u, err := url.Parse(pu); err == nil && u.Hostname() != "" && strings.EqualFold(u.Hostname(), h) {
+			return true
+		}
+	}
+	return false
 }
 
 // base returns scheme://host for links shown to the user.

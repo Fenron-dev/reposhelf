@@ -415,8 +415,11 @@ type Settings struct {
 	PushUpstream   bool
 	IssuesUpstream bool
 	// Platforms and CUDA for Python packages (D-026); nil keeps them.
-	Platforms      []string
-	CUDA           bool
+	Platforms []string
+	CUDA      bool
+	// Secrets released to builds of this repository (R-013); nil keeps
+	// them.
+	Secrets        []string
 	StatusOverride *repometa.UpstreamStatus
 	Retention      repometa.Retention
 }
@@ -444,6 +447,9 @@ func (l *Library) UpdateSettings(ctx context.Context, ref string, s Settings, ac
 		if s.Platforms != nil {
 			r.Buildable.Platforms = s.Platforms
 			r.Buildable.CUDA = s.CUDA
+		}
+		if s.Secrets != nil {
+			r.Buildable.Secrets = s.Secrets
 		}
 		r.StatusOverride = s.StatusOverride
 		r.Retention = s.Retention
