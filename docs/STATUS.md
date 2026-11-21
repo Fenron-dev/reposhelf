@@ -360,7 +360,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
-- 2026-11-21 · Claude Code · T-9.21 Integritätsprüfung, T-9.22 Benachrichtigungen, T-9.23 README-Bilder mitsichern (R-023), T-9.24 Wiederbeleben; Release `v0.6.0`
+- 2026-11-21 · Claude Code · T-9.21 Integritätsprüfung, T-9.22 Benachrichtigungen, T-9.23 README-Bilder mitsichern (R-023), T-9.24 Wiederbeleben; Release `v0.6.0`, Prüflauf und CI grün
 
 - 2026-11-21 · Dennis · F-019 entschieden: V-1, V-2, V-4, V-5 (D-034) → T-9.21–T-9.24
 
