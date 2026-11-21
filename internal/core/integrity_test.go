@@ -88,11 +88,11 @@ func TestIntegrity(t *testing.T) {
 func TestFsckFilter(t *testing.T) {
 	for line, want := range map[string]bool{
 		"error in commit 1234: badTimezone: invalid author/committer line - bad time zone": false,
-		"warning in tree 5678: zeroPaddedFilemode: contains zero-padded file modes":         false,
-		"missing blob 0123456789abcdef":                                                     true,
-		"error: sha1 mismatch for .git/objects/ab/cd":                                       true,
-		"broken link from tree 1 to blob 2":                                                 true,
-		"Checking object directories":                                                       false,
+		"warning in tree 5678: zeroPaddedFilemode: contains zero-padded file modes":        false,
+		"missing blob 0123456789abcdef":               true,
+		"error: sha1 mismatch for .git/objects/ab/cd": true,
+		"broken link from tree 1 to blob 2":           true,
+		"Checking object directories":                 false,
 	} {
 		got := fsckProblem.MatchString(line) && !fsckBenign.MatchString(line)
 		if got != want {
