@@ -108,6 +108,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /repo/{id}/pin", write(s.repoPin))
 	mux.Handle("POST /repo/{id}/fork", write(s.repoFork))
 	mux.Handle("POST /repo/{id}/mark", admin(s.repoMark))
+	mux.Handle("POST /repo/{id}/revive", admin(s.repoRevive))
 
 	mux.Handle("GET /add", write(s.addPage))
 	mux.Handle("GET /add/preview", write(s.addPreview))

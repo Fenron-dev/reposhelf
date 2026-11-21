@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/cgi"
 	"net/http/httptest"
@@ -56,11 +57,15 @@ type Forge struct {
 	Artifacts map[string][]map[string]any
 	// Issues per "owner/name"; written by the issue API (D-031 tests).
 	Issues map[string][]*FakeIssue
+	// Created and Uploaded record repositories and release files created
+	// through the API (V-5 tests): "owner/name" and "owner/name/tag/file".
+	Created  []string
+	Uploaded map[string][]byte
 }
 
 // NewForge starts a fake host.
 func NewForge(t testing.TB) *Forge {
-	f := &Forge{t: t, Git: Git(t), Root: t.TempDir(), Meta: map[string]map[string]any{}, Artifacts: map[string][]map[string]any{}, Issues: map[string][]*FakeIssue{},
+	f := &Forge{t: t, Git: Git(t), Root: t.TempDir(), Meta: map[string]map[string]any{}, Artifacts: map[string][]map[string]any{}, Issues: map[string][]*FakeIssue{}, Uploaded: map[string][]byte{},
 		Releases: map[string][]map[string]any{}, Files: map[string][]byte{}, Gone: map[string]bool{}}
 	gitPath := f.Git.Path
 	backend := &cgi.Handler{
@@ -114,6 +119,9 @@ func (f *Forge) URL(owner, name string) string {
 func (f *Forge) APIBase() string { return f.Server.URL + "/api" }
 
 func (f *Forge) api(w http.ResponseWriter, r *http.Request) {
+	if f.publish(w, r) {
+		return
+	}
 	path := strings.TrimPrefix(r.URL.Path, "/api/repos/")
 	parts := strings.Split(path, "/")
 	if len(parts) < 2 {
@@ -330,4 +338,66 @@ func (f *Forge) issues(w http.ResponseWriter, r *http.Request, key string, rest 
 	default:
 		http.NotFound(w, r)
 	}
+}
+
+// Login is the user of every token on the fake host.
+const Login = "dennis"
+
+// publish serves the endpoints that create things (V-5): the user, new
+// repositories (empty bare repositories that accept pushes), releases and
+// release files. It reports whether it handled the request.
+func (f *Forge) publish(w http.ResponseWriter, r *http.Request) bool {
+	p := strings.TrimPrefix(r.URL.Path, "/api")
+	switch {
+	case p == "/user" && r.Method == http.MethodGet:
+		json.NewEncoder(w).Encode(map[string]string{"login": Login})
+		return true
+	case (p == "/user/repos" || strings.HasPrefix(p, "/orgs/")) && r.Method == http.MethodPost:
+		var in struct{ Name string }
+		_ = json.NewDecoder(r.Body).Decode(&in)
+		owner := Login
+		if strings.HasPrefix(p, "/orgs/") {
+			owner = strings.TrimSuffix(strings.TrimPrefix(p, "/orgs/"), "/repos")
+		}
+		bare := filepath.Join(f.Root, owner, in.Name+".git")
+		f.run("", "init", "--bare", "--quiet", "--initial-branch=main", bare)
+		f.run(bare, "config", "http.receivepack", "true")
+		f.mu.Lock()
+		f.Created = append(f.Created, owner+"/"+in.Name)
+		f.mu.Unlock()
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]string{"clone_url": f.URL(owner, in.Name), "html_url": f.URL(owner, in.Name)})
+		return true
+	}
+	parts := strings.Split(strings.TrimPrefix(p, "/repos/"), "/")
+	if r.Method != http.MethodPost || len(parts) < 3 || parts[2] != "releases" {
+		return false
+	}
+	key := parts[0] + "/" + parts[1]
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	switch len(parts) {
+	case 3: // create release
+		var in struct {
+			Tag string `json:"tag_name"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&in)
+		f.Releases[key] = append(f.Releases[key], map[string]any{"tag_name": in.Tag})
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]any{"id": len(f.Releases[key])})
+		return true
+	case 5: // upload asset
+		id, _ := strconv.Atoi(parts[3])
+		if id < 1 || id > len(f.Releases[key]) {
+			http.NotFound(w, r)
+			return true
+		}
+		tag := f.Releases[key][id-1]["tag_name"]
+		b, _ := io.ReadAll(r.Body)
+		f.Uploaded[fmt.Sprintf("%s/%v/%s", key, tag, r.URL.Query().Get("name"))] = b
+		w.WriteHeader(http.StatusCreated)
+		w.Write([]byte(`{}`))
+		return true
+	}
+	return false
 }

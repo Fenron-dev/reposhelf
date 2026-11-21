@@ -246,6 +246,8 @@ type repoData struct {
 	Models      []core.ModelRef
 	// Platforms offers the Python package platforms (D-026).
 	Platforms []platformOpt
+	// ReviveHosts can receive this repository (V-5).
+	ReviveHosts []string
 	HF        *core.HFUsage
 }
 
@@ -314,6 +316,9 @@ func (s *Server) repoPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	d := s.baseRepoData(r, repo)
 	d.Tab = r.URL.Query().Get("tab")
+	if d.Tab == "settings" && d.CanAdmin {
+		d.ReviveHosts = s.Lib.PublishHosts(r.Context())
+	}
 	if d.Tab == "" {
 		d.Tab = "overview"
 	}
@@ -1286,6 +1291,20 @@ func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 // for every repository (T-9.9).
 func (s *Server) settingsDoctor(w http.ResponseWriter, r *http.Request) {
 	s.partial(w, "doctor", s.Lib.Doctor(r.Context()))
+}
+
+// repoRevive uploads the repository to a host (V-5); runs in the background.
+func (s *Server) repoRevive(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	id := r.PathValue("id")
+	f := r.Form
+	err := s.Lib.Revive(r.Context(), id, core.ReviveRequest{Host: f.Get("host"), Owner: f.Get("owner"), Name: f.Get("name"),
+		Private: f.Get("private") == "on", Releases: f.Get("releases") == "on", Actor: s.actor(r)})
+	if err != nil {
+		s.failErr(w, r, err)
+		return
+	}
+	redirect(w, r, withMsg("/repo/"+id+"?tab=settings#wiederbeleben", "ok", "Hochladen gestartet – der Fortschritt steht unten auf dieser Seite."))
 }
 
 // integrityStart runs the integrity check in the background (V-1).

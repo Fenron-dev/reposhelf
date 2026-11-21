@@ -165,6 +165,15 @@ Einträge wandern in den **Papierkorb** und bleiben dort 30 Tage
 wiederherstellbar; endgültig gelöscht wird nur nach erneuter Bestätigung.
 Angeheftete Versionen und die Git-Geschichte selbst sind nie betroffen.
 
+## 3a. Wiederbeleben
+
+Ist ein Original verschwunden, lädt „Wiederbeleben“ (Repo → Einstellungen, nur
+Verwalter) die Sicherung als neues Repo auf GitHub oder Gitea/Forgejo hoch: alle Branches
+und Tags, große Dateien (LFS) und auf Wunsch die Releases mit ihren Dateien. Läuft im
+Hintergrund; Ergebnis und Link stehen danach an derselben Stelle. Der Token des Ziel-Hosts
+braucht das Recht, Repos anzulegen (GitHub: „Administration“ und „Contents“ jeweils
+„Read and write“). Agenten können das nicht auslösen.
+
 ## 4a. Integrität
 
 RepoShelf liest regelmäßig (Standard alle 30 Tage, `retention.integrity_every`) alles,
