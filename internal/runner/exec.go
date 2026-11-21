@@ -137,14 +137,33 @@ func (m *Manager) commandEnv(ctx context.Context, log io.Writer, dir string, env
 // collect copies files matching patterns from work into artifacts/.
 func (m *Manager) collect(b *artifact.Build, work string, patterns []string, log io.Writer) error {
 	dst := filepath.Join(b.Dir, artifact.ArtifactsDir)
+	root, err := filepath.EvalSymlinks(work)
+	if err != nil {
+		return err
+	}
+	// The build container controls the checkout: a "dist" that links to /
+	// would otherwise copy files of this machine into the artifacts. Every
+	// file must lie inside the checkout once all links are resolved (R-015).
+	inside := func(p string) bool {
+		real, err := filepath.EvalSymlinks(p)
+		if err != nil {
+			return false
+		}
+		rel, err := filepath.Rel(root, real)
+		return err == nil && filepath.IsLocal(rel)
+	}
 	for _, pat := range patterns {
 		matches, err := filepath.Glob(filepath.Join(work, filepath.FromSlash(pat)))
 		if err != nil {
 			return err
 		}
 		for _, src := range matches {
+			if !inside(src) {
+				fmt.Fprintf(log, "Hinweis: %s zeigt aus dem Projekt hinaus – übersprungen\n", strings.TrimPrefix(src, work+string(filepath.Separator)))
+				continue
+			}
 			_ = filepath.WalkDir(src, func(p string, d fs.DirEntry, err error) error {
-				if err != nil || d.IsDir() || !d.Type().IsRegular() {
+				if err != nil || d.IsDir() || !d.Type().IsRegular() || !inside(p) {
 					return nil
 				}
 				rel, _ := filepath.Rel(work, p)
