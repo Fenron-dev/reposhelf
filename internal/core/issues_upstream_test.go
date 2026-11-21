@@ -96,12 +96,12 @@ func TestIssuesToOriginal(t *testing.T) {
 	}
 
 	// A failing host keeps the change with its error.
-	f.Gone["me/tool"] = true
+	f.SetGone("me/tool", true)
 	l.CommentIssue(ctx, id, m1, "noch was", "web")
 	if p := l.PendingIssues(r); len(p) != 1 || p[0].Error == "" {
 		t.Errorf("failed change = %+v", p)
 	}
-	delete(f.Gone, "me/tool")
+	f.SetGone("me/tool", false)
 
 	// Mirrors stay read-only.
 	f.NewRepo("other", "lib")

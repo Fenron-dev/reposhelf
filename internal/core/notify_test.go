@@ -59,7 +59,7 @@ func TestNotifications(t *testing.T) {
 	up.Git("push", "--quiet", "--force", "origin", "main")
 	l.Sync(ctx, r.R().ID, "t")
 
-	f.Gone["o/tool"] = true
+	f.SetGone("o/tool", true)
 	clk.Add(time.Hour)
 	l.Sync(ctx, r.R().ID, "t")
 	clk.Add(4 * 24 * time.Hour)

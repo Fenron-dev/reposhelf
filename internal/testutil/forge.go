@@ -401,3 +401,15 @@ func (f *Forge) publish(w http.ResponseWriter, r *http.Request) bool {
 	}
 	return false
 }
+
+// SetGone makes owner/name answer 404 (or not) – safe while the fake host
+// serves requests.
+func (f *Forge) SetGone(key string, gone bool) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if gone {
+		f.Gone[key] = true
+	} else {
+		delete(f.Gone, key)
+	}
+}
