@@ -129,7 +129,7 @@ func detect(work string) []eco {
 	if exists("Dockerfile") {
 		var images []string
 		for _, m := range fromLine.FindAllStringSubmatch(read("Dockerfile"), -1) {
-			if !strings.Contains(m[1], "$") && !strings.EqualFold(m[1], "scratch") {
+			if ValidImage(m[1]) && !strings.EqualFold(m[1], "scratch") {
 				images = append(images, m[1])
 			}
 		}
@@ -171,6 +171,9 @@ func (m *Manager) runCapsule(ctx context.Context, b *artifact.Build, log io.Writ
 	var files []artifact.File
 	for _, e := range ecos {
 		fmt.Fprintf(log, "== %s (%s) ==\n", e.Name, e.Toolchain)
+		if e.Image != "" && !ValidImage(e.Image) {
+			return fmt.Errorf("%s: ungültiger Image-Name %q (aus den Projektdateien)", e.Name, e.Image)
+		}
 		if e.Name == "docker" {
 			if err := m.saveImages(ctx, work, e.Fetch, log); err != nil {
 				return err

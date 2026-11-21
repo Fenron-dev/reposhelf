@@ -82,16 +82,35 @@ type Auth struct {
 	URLPrefix string
 }
 
-func (a *Auth) env() []string {
+func (a *Auth) env() []string { return configEnv(a.config()) }
+
+// config is the credential as git configuration (key, value).
+func (a *Auth) config() [][2]string {
 	if a == nil || a.Token == "" || a.URLPrefix == "" {
 		return nil
 	}
 	cred := base64.StdEncoding.EncodeToString([]byte("x-access-token:" + a.Token))
-	return []string{
-		"GIT_CONFIG_COUNT=1",
-		"GIT_CONFIG_KEY_0=http." + a.URLPrefix + ".extraHeader",
-		"GIT_CONFIG_VALUE_0=Authorization: Basic " + cred,
+	return [][2]string{{"http." + a.URLPrefix + ".extraHeader", "Authorization: Basic " + cred}}
+}
+
+// baseConfig applies to every git call of RepoShelf (R-024):
+//   - safe.directory: the data folder may live on a USB stick or network
+//     drive whose owner differs from the user (FAT/exFAT, NAS); git would
+//     refuse the repositories as of "dubious ownership". RepoShelf only
+//     runs git in folders it created.
+var baseConfig = [][2]string{{"safe.directory", "*"}}
+
+// configEnv passes configuration through the environment, never through
+// arguments or files (secrets stay out of the process list).
+func configEnv(kv [][2]string) []string {
+	if len(kv) == 0 {
+		return nil
 	}
+	env := []string{"GIT_CONFIG_COUNT=" + strconv.Itoa(len(kv))}
+	for i, p := range kv {
+		env = append(env, fmt.Sprintf("GIT_CONFIG_KEY_%d=%s", i, p[0]), fmt.Sprintf("GIT_CONFIG_VALUE_%d=%s", i, p[1]))
+	}
+	return env
 }
 
 // Error is a failed git call with its (trimmed) stderr.
@@ -152,9 +171,12 @@ func (g *Git) command(ctx context.Context, dir string, auth *Auth, args ...strin
 		"GIT_SSH_COMMAND=ssh -o BatchMode=yes",
 		"LC_ALL=C", // stable, parseable messages
 		"LANG=C",
+		// Only the transports RepoShelf uses: no remote helpers such as
+		// ext:: or fd:: that a URL from foreign data could name (R-024).
+		"GIT_ALLOW_PROTOCOL=https:http:ssh:git:file",
 	)
 	cmd.Env = append(cmd.Env, g.Env...)
-	cmd.Env = append(cmd.Env, auth.env()...)
+	cmd.Env = append(cmd.Env, configEnv(append(append([][2]string{}, baseConfig...), auth.config()...))...)
 	return cmd
 }
 

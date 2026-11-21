@@ -6,6 +6,8 @@ import (
 	"bufio"
 	"encoding/json"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -76,6 +78,14 @@ func (l *Library) Record(a Activity) {
 	}
 	l.activity.mu.Lock()
 	defer l.activity.mu.Unlock()
+	// Bounded log (R-026): at maxActivityBytes the file becomes
+	// activity.1.jsonl (the one before becomes .2; older ones go).
+	if st, err := os.Stat(l.activity.path); err == nil && st.Size() > maxActivityBytes {
+		_ = os.Rename(l.activity.older(1), l.activity.older(2))
+		if err := os.Rename(l.activity.path, l.activity.older(1)); err != nil {
+			l.Log.Warn("activity log rotation", "err", err)
+		}
+	}
 	f, err := os.OpenFile(l.activity.path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, filePerm)
 	if err != nil {
 		l.Log.Warn("activity log", "err", err)
@@ -85,22 +95,24 @@ func (l *Library) Record(a Activity) {
 	f.Write(append(b, '\n'))
 }
 
+// maxActivityBytes bounds activity.jsonl before it is rotated.
+const maxActivityBytes = 5 << 20
+
+func (a *activityLog) older(i int) string {
+	return strings.TrimSuffix(a.path, ".jsonl") + "." + strconv.Itoa(i) + ".jsonl"
+}
+
 // RecentActivity returns the newest n entries, optionally for one repo.
+// The current file is read first; the previous one only if needed.
 func (l *Library) RecentActivity(n int, repoID string) []Activity {
 	l.activity.mu.Lock()
 	defer l.activity.mu.Unlock()
-	f, err := os.Open(l.activity.path)
-	if err != nil {
-		return nil
-	}
-	defer f.Close()
 	var all []Activity
-	sc := bufio.NewScanner(f)
-	sc.Buffer(make([]byte, 64*1024), 1<<20)
-	for sc.Scan() {
-		var a Activity
-		if json.Unmarshal(sc.Bytes(), &a) == nil && (repoID == "" || a.RepoID == repoID) {
-			all = append(all, a)
+	for _, p := range []string{l.activity.path, l.activity.older(1)} {
+		part := readActivity(p, repoID)
+		all = append(part, all...)
+		if len(all) >= n {
+			break
 		}
 	}
 	if len(all) > n {
@@ -110,4 +122,22 @@ func (l *Library) RecentActivity(n int, repoID string) []Activity {
 		all[i], all[j] = all[j], all[i]
 	}
 	return all
+}
+
+func readActivity(p, repoID string) []Activity {
+	f, err := os.Open(p)
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+	var out []Activity
+	sc := bufio.NewScanner(f)
+	sc.Buffer(make([]byte, 64*1024), 1<<20)
+	for sc.Scan() {
+		var a Activity
+		if json.Unmarshal(sc.Bytes(), &a) == nil && (repoID == "" || a.RepoID == repoID) {
+			out = append(out, a)
+		}
+	}
+	return out
 }

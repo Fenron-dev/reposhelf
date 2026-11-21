@@ -42,3 +42,14 @@ func TestPythonPlatforms(t *testing.T) {
 		t.Error("CUDA on, still the CPU index")
 	}
 }
+
+func TestValidImage(t *testing.T) {
+	for in, want := range map[string]bool{
+		"golang:1.24": true, "ghcr.io/cirruslabs/flutter:stable": true, "alpine@sha256:abc": true,
+		"--privileged": false, "-v": false, "python:3 --rm": false, "": false, "$IMAGE": false,
+	} {
+		if ValidImage(in) != want {
+			t.Errorf("ValidImage(%q) = %v", in, !want)
+		}
+	}
+}

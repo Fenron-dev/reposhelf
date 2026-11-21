@@ -51,6 +51,14 @@ type Target struct {
 
 var namePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$`)
 
+// imageRef is the form of a Docker image reference (registry/name:tag or
+// @sha256:…). Names come from files of the repository: one starting with
+// "-" would be read by docker as an option (R-022).
+var imageRef = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._/:@-]{0,254}$`)
+
+// ValidImage reports whether s can be passed to docker as an image.
+func ValidImage(s string) bool { return imageRef.MatchString(s) }
+
 // Validate checks a definition.
 func (d Definition) Validate() error {
 	seen := map[string]bool{}
@@ -62,6 +70,8 @@ func (d Definition) Validate() error {
 			return fmt.Errorf("targets[%d]: duplicate name %q", i, t.Name)
 		case t.Image == "":
 			return fmt.Errorf("targets[%d]: image missing", i)
+		case !ValidImage(t.Image):
+			return fmt.Errorf("targets[%d]: invalid image name %q", i, t.Image)
 		case len(t.Commands) == 0:
 			return fmt.Errorf("targets[%d]: commands missing", i)
 		}

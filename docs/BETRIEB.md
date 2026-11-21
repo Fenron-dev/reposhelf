@@ -207,6 +207,8 @@ wieder entfernt). Auf der Build-Seite lädt „In Docker laden“ es in den Dock
 Instanz – auf Unraid erscheint es dann unter „Docker → Add Container“ als
 `reposhelf/<owner>-<name>:<version>`. Woanders: Datei herunterladen, `docker load -i <datei>`.
 Aufbewahrung wie andere Build-Ergebnisse (`retention.builds_keep`).
+Der Image-Bau (`docker build` mit BuildKit) kennt keine Speicher-/CPU-Grenze; die
+Grenzen aus den Runner-Einstellungen gelten nur für die übrigen Builds.
 
 **Build-Kapseln** („Baubar halten“) sichern pro Version alle Abhängigkeiten
 (Go, Rust, Dart/Flutter, Node mit `package-lock.json`, Python, Docker-Basis-Images)
@@ -233,6 +235,9 @@ der anderen Seite; vergleichen. Pro gekoppelter Instanz wählst du, was
 einem Intervall. Hat sich ein Feld auf beiden Seiten geändert, erscheint ein
 Konflikt zum Entscheiden. Gekoppelte Instanzen mit Runner-Rolle können – wenn
 freigegeben – Builds übernehmen.
+
+Beide Instanzen brauchen mindestens v0.5.4 (Schutz gegen wiederholte Anfragen); nach
+zehn falschen Kopplungsversuchen verfällt der Code, dann einen neuen anzeigen lassen.
 
 Jede Instanz hat einen eigenen Schlüssel in `.reposhelf/instance.key` (nur für
 den Besitzer lesbar). Gespeichert wird von der Gegenseite nur ihr öffentlicher

@@ -453,7 +453,7 @@ func (s *Server) repoRaw(w http.ResponseWriter, r *http.Request) {
 		ct = mime.TypeByExtension(strings.ToLower(path.Ext(p)))
 	} else if !utf8.Valid(b) {
 		ct = "application/octet-stream"
-		w.Header().Set("Content-Disposition", "attachment; filename=\""+path.Base(p)+"\"")
+		w.Header().Set("Content-Disposition", attachment(path.Base(p)))
 	}
 	w.Header().Set("Content-Type", ct)
 	w.Header().Set("Content-Security-Policy", "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox")
@@ -466,7 +466,7 @@ func (s *Server) repoAsset(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	w.Header().Set("Content-Disposition", "attachment; filename=\""+strings.ReplaceAll(r.URL.Query().Get("name"), `"`, "")+"\"")
+	w.Header().Set("Content-Disposition", attachment(r.URL.Query().Get("name")))
 	w.Header().Set("Content-Type", "application/octet-stream")
 	http.ServeFile(w, r, p)
 }
@@ -479,7 +479,7 @@ func (s *Server) repoAction(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	w.Header().Set("Content-Disposition", "attachment; filename=\""+strings.ReplaceAll(name, `"`, "")+".zip\"")
+	w.Header().Set("Content-Disposition", attachment(name+".zip"))
 	w.Header().Set("Content-Type", "application/zip")
 	http.ServeFile(w, r, p)
 }
@@ -1461,7 +1461,7 @@ func ServeFileSafe(w http.ResponseWriter, r *http.Request, root, rel string) {
 		http.NotFound(w, r)
 		return
 	}
-	w.Header().Set("Content-Disposition", "attachment; filename=\""+filepath.Base(p)+"\"")
+	w.Header().Set("Content-Disposition", attachment(filepath.Base(p)))
 	http.ServeFile(w, r, p)
 }
 
@@ -1486,4 +1486,19 @@ func platformOpts(chosen []string) []platformOpt {
 		out = append(out, platformOpt{Value: p, Label: platformLabels[p], Checked: slices.Contains(chosen, p)})
 	}
 	return out
+}
+
+// attachment is a Content-Disposition for a download. File names come from
+// repositories: quotes, line breaks and non-ASCII are encoded (R-025).
+func attachment(name string) string {
+	name = strings.Map(func(r rune) rune {
+		if r < 0x20 || r == 0x7f || r == '/' || r == '\\' {
+			return '_'
+		}
+		return r
+	}, name)
+	if v := mime.FormatMediaType("attachment", map[string]string{"filename": name}); v != "" {
+		return v
+	}
+	return "attachment"
 }
