@@ -12,9 +12,9 @@
 
 ## Aktueller Stand
 
-- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.5.2` (T-9.11–T-9.20, R-001–R-010) zum Test bei Dennis
-- **Letzte Änderung:** 2026-11-11 · Prüfbericht `docs/PRUEFBERICHT-2026-11.md`: 17 Befunde (R-011–R-027), 18 Funktionsvorschläge (F-019)
-- **Nächster Schritt:** R-011, R-013, R-014 (hoch) beheben – wartet auf Dennis' Auftrag; Dennis testet `v0.5.2`; F-019 entscheiden
+- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.5.3` (T-9.11–T-9.20, R-001–R-014) zum Test bei Dennis
+- **Letzte Änderung:** 2026-11-21 · Schwere Befunde behoben: R-011 (DNS-Rebinding), R-012 (API-CSRF), R-013 (Geheimnisse), R-014 (act)
+- **Nächster Schritt:** Dennis testet `v0.5.3`; offen: R-015–R-027 (mittel/gering), F-019 entscheiden
 
 ## Übergabe-Notiz
 
@@ -107,6 +107,15 @@ Wunsch, ohne Codeänderung. Bericht: `docs/PRUEFBERICHT-2026-11.md`; Befunde R-0
 V-1–V-18 als F-019. `govulncheck` lief lokal (`go run golang.org/x/vuln/cmd/govulncheck@latest ./...`):
 nur die Go-Version selbst betroffen. Befunde sind `offen` – Beheben erst nach Auftrag.
 
+**2026-11-21 · Claude Code (R-011–R-014):** Lokales Vertrauen braucht jetzt einen lokalen
+`Host`-Kopf (`localhost`, Loopback-IP, `server.public_url`); das Desktop-Fenster markiert
+seine Anfragen mit `server.MarkLocal`. Wer RepoShelf über einen anderen Namen am selben
+Rechner aufruft (z. B. `meinpc.local:7373`), muss sich jetzt anmelden oder diesen Namen als
+`public_url` eintragen. API: POSTs mit fremder Herkunft oder ohne JSON → 403. Geheimnisse
+nur mit `buildable.secrets` (Repo-Einstellungen, nur Verwalter). `act` ohne Docker-Socket
+(`--container-daemon-socket -`), unsichere Workflows abgelehnt, Spiegel-Workflows warten
+auf Bestätigung. Die Platte war zwischendurch voll; `go clean -cache` gab 5 GB frei.
+
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
   (T-1.13), der Hinzufügen-Dialog zeigt die erwartete Größe.
@@ -162,10 +171,10 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | R-008 | macOS: Papierkorb per Umbenennen ohne „Zurücklegen“; `/usr/bin/trash` (ab macOS 15) nutzen | `internal/systrash/trash_darwin.go` | Hinweis | erledigt `9364dc0` | Claude Code · 2026-11-11 | T-9.16–T-9.18 |
 | R-009 | Kapsel: Der Build-Container (root) legt `.reposhelf-capsule/` in der Arbeitskopie an; das Toolchain-Image konnte danach dort nicht abgelegt werden (Python, Prüflauf v0.5.1) | `internal/runner/capsule.go` saveToolchain | mittel | erledigt `51de8ce` | Prüflauf `smoke.yml` · 2026-11-11 | T-9.12 |
 | R-010 | Nach jedem Push schreibt `refreshStats` `repo.yaml` neu, obwohl sich nur Statistik (upstream.json) ändert – eine gleichzeitige Handänderung geht verloren | `internal/core/sync.go` refreshStats | gering | erledigt `51de8ce` | Claude Code · 2026-11-11 | Invariante 6 |
-| R-011 | Lokales Vertrauen ohne Prüfung des Host-Kopfs: per DNS-Rebinding handelt eine fremde Webseite als lokaler Verwalter (alles lesen, Tokens anlegen, lokale Ordner übernehmen, Builds starten) | `internal/server/server.go` isLocal/resolve; `internal/web/web.go` sameOrigin | hoch | in Arbeit (Claude Code, 2026-11-12) | Claude Code · 2026-11-11 | Prüfbericht |
-| R-012 | REST-API prüft weder Herkunft noch Inhaltstyp: fremde Seiten können für den lokal vertrauten Nutzer Repos aufnehmen und Abgleiche starten (CSRF) | `internal/api/api.go` POST /api/repos, /api/sync | mittel | in Arbeit (Claude Code, 2026-11-12) | Claude Code · 2026-11-11 | Prüfbericht |
-| R-013 | Das Build-Ziel im (fremden) Repo bestimmt, welche `REPOSHELF_SECRET_*` in den Container gehen – Geheimnisse an fremden Code mit Netzzugang | `internal/runner/exec.go:83` | hoch | in Arbeit (Claude Code, 2026-11-12) | Claude Code · 2026-11-11 | Prüfbericht |
-| R-014 | `act` bindet standardmäßig den Docker-Anschluss ein, Workflows dürfen Container-Optionen/Laufwerke setzen: fremder Workflow kann den Host-Docker steuern (D-008); Annahme gegen act 0.2.97 bestätigen | `internal/runner/exec.go` runAct | hoch | in Arbeit (Claude Code, 2026-11-12) | Claude Code · 2026-11-11 | Prüfbericht |
+| R-011 | Lokales Vertrauen ohne Prüfung des Host-Kopfs: per DNS-Rebinding handelt eine fremde Webseite als lokaler Verwalter (alles lesen, Tokens anlegen, lokale Ordner übernehmen, Builds starten) | `internal/server/server.go` isLocal/resolve; `internal/web/web.go` sameOrigin | hoch | erledigt `0d67fac` | Claude Code · 2026-11-11 | Prüfbericht |
+| R-012 | REST-API prüft weder Herkunft noch Inhaltstyp: fremde Seiten können für den lokal vertrauten Nutzer Repos aufnehmen und Abgleiche starten (CSRF) | `internal/api/api.go` POST /api/repos, /api/sync | mittel | erledigt `0d67fac` | Claude Code · 2026-11-11 | Prüfbericht |
+| R-013 | Das Build-Ziel im (fremden) Repo bestimmt, welche `REPOSHELF_SECRET_*` in den Container gehen – Geheimnisse an fremden Code mit Netzzugang | `internal/runner/exec.go:83` | hoch | erledigt `8b0f428` (`buildable.secrets`) | Claude Code · 2026-11-11 | Prüfbericht |
+| R-014 | `act` bindet standardmäßig den Docker-Anschluss ein, Workflows dürfen Container-Optionen/Laufwerke setzen: fremder Workflow kann den Host-Docker steuern (D-008); Annahme gegen act 0.2.97 bestätigen | `internal/runner/exec.go` runAct | hoch | erledigt `395ecd2` | Claude Code · 2026-11-11 | Prüfbericht |
 | R-015 | Artefakt-Muster folgen Verweisen, die der Build-Container anlegt: Dateien des Hosts landen in den Artefakten | `internal/runner/exec.go` collect | mittel | offen | Claude Code · 2026-11-11 | Prüfbericht |
 | R-016 | Submodule aus `.gitmodules` werden ungefragt und rekursiv als Spiegel aufgenommen (bis 20 je Abgleich): fremde Daten lösen Downloads aus, auch ins Heimnetz; Platte kann volllaufen | `internal/core/extras.go` syncSubmodules | mittel | offen | Claude Code · 2026-11-11 | Prüfbericht |
 | R-017 | Go 1.27.3 hat GO-2026-6859 (Absturz des HTTP/1-Servers), behoben in 1.27.4; `govulncheck` fehlt in der CI | `go.mod`, `.github/workflows/ci.yml` | mittel | offen | Claude Code · 2026-11-11 | Prüfbericht |
@@ -173,7 +182,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | R-019 | Weiterleitung nach Anmeldung: `next=/\evil.example` besteht die Prüfung (Browser lesen `/\` wie `//`) | `internal/server/server.go` login | gering | offen | Claude Code · 2026-11-11 | Prüfbericht |
 | R-020 | Sitzungen: abgelaufene werden nie entfernt; Cookie hinter HTTPS-Proxy ohne „Secure“ | `internal/server/server.go` | gering | offen | Claude Code · 2026-11-11 | Prüfbericht |
 | R-021 | Kopplung: 40-Bit-Code mit mitgeschicktem HMAC-Nachweis ist durchprobierbar (Umleiten im LAN); signierte Anfragen ohne Einmalnummer wiederholbar | `internal/peer/peer.go` | gering | offen | Claude Code · 2026-11-11 | Prüfbericht |
-| R-022 | Geheimnisse als `-e NAME=wert` in der Prozessliste; Image-Namen aus Repo-Dateien ungeprüft an docker (führendes `-`) | `internal/runner/exec.go`, `capsule.go` | gering | offen | Claude Code · 2026-11-11 | Prüfbericht |
+| R-022 | Geheimnisse als `-e NAME=wert` in der Prozessliste; Image-Namen aus Repo-Dateien ungeprüft an docker (führendes `-`) | `internal/runner/exec.go`, `capsule.go` | gering | teilweise `8b0f428` (Geheimnisse über die Umgebung; Image-Namen offen) | Claude Code · 2026-11-11 | Prüfbericht |
 | R-023 | Datenschutz: README-Bilder werden von fremden Servern geladen (IP-Adresse geht an Dritte; Bilder fehlen offline) | `internal/web/web.go` CSP img-src | gering | offen | Claude Code · 2026-11-11 | Prüfbericht |
 | R-024 | Git-Härtung fehlt: `fetch.fsckObjects`, `GIT_ALLOW_PROTOCOL`, Einfluss der globalen Git-Konfiguration; „dubious ownership“ auf FAT/exFAT prüfen (portabel) | `internal/gitcli/gitcli.go` | Hinweis | offen | Claude Code · 2026-11-11 | Prüfbericht |
 | R-025 | Dateinamen aus Repos ungequotet in `Content-Disposition` | `internal/web/handlers.go` repoRaw, ServeFileSafe | Hinweis | offen | Claude Code · 2026-11-11 | Prüfbericht |
@@ -331,6 +340,8 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 ## Verlauf
 
 Neueste oben. Eine Zeile pro Sitzung.
+
+- 2026-11-21 · Claude Code · R-011–R-014 behoben (DNS-Rebinding, API-CSRF, Geheimnisse nur nach Freigabe, act abgedichtet); Release `v0.5.3`
 
 - 2026-11-11 · Claude Code · Prüfung des Projekts (Sicherheit, Probleme, Optimierungen, fehlende Funktionen): `docs/PRUEFBERICHT-2026-11.md`, Befunde R-011–R-027, Vorschläge in F-019; kein Code geändert
 
