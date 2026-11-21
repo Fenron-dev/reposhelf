@@ -211,6 +211,11 @@ func (m *Manager) runAct(ctx context.Context, b *artifact.Build, log io.Writer) 
 	if workflow == "" {
 		return fmt.Errorf("%w: %s", ErrTarget, wfFile)
 	}
+	if raw, err := os.ReadFile(filepath.Join(work, filepath.FromSlash(workflow))); err != nil {
+		return err
+	} else if reason := unsafeWorkflow(raw); reason != "" {
+		return fmt.Errorf("%w: Workflow abgelehnt – %s. Solche Angaben könnten dem Lauf Zugriff auf den Rechner geben; mit GitHub Actions bauen oder den Workflow anpassen", ErrTarget, reason)
+	}
 	arts := filepath.Join(b.Dir, artifact.ArtifactsDir)
 	if err := os.MkdirAll(arts, 0o755); err != nil {
 		return err
@@ -223,7 +228,11 @@ func (m *Manager) runAct(ctx context.Context, b *artifact.Build, log io.Writer) 
 	if cfg.CPULimit != "" {
 		opts += " --cpus " + cfg.CPULimit
 	}
+	// "--container-daemon-socket -": act would otherwise mount the host's
+	// Docker socket into every job container – whoever controls the
+	// workflow would control this machine's Docker (R-014, D-008).
 	args := []string{"-W", workflow, "-j", job, "--artifact-server-path", arts, "--container-options", opts,
+		"--container-daemon-socket", "-",
 		"-P", "ubuntu-latest=catthehacker/ubuntu:act-latest", "--rm"}
 	fmt.Fprintf(log, "act %s, Job %s\n", workflow, job)
 	if err := m.command(ctx, log, work, m.Act, args...); err != nil {
@@ -239,6 +248,45 @@ func (m *Manager) runAct(ctx context.Context, b *artifact.Build, log io.Writer) 
 		return nil
 	})
 	return nil
+}
+
+// unsafeWorkflow names what in a workflow could reach outside its
+// containers when run with act: own container options or volumes of a job
+// or of its services ("" if nothing). All jobs count: act also runs the
+// jobs the chosen one needs.
+func unsafeWorkflow(raw []byte) string {
+	var wf struct {
+		Jobs map[string]struct {
+			Container any            `yaml:"container"`
+			Services  map[string]any `yaml:"services"`
+		} `yaml:"jobs"`
+	}
+	if err := yaml.Unmarshal(raw, &wf); err != nil {
+		return "nicht lesbar"
+	}
+	risky := func(v any) string {
+		m, ok := v.(map[string]any)
+		if !ok {
+			return ""
+		}
+		for _, k := range []string{"options", "volumes"} {
+			if _, has := m[k]; has {
+				return k
+			}
+		}
+		return ""
+	}
+	for name, j := range wf.Jobs {
+		if k := risky(j.Container); k != "" {
+			return fmt.Sprintf("Job %s setzt container.%s", name, k)
+		}
+		for sn, sv := range j.Services {
+			if k := risky(sv); k != "" {
+				return fmt.Sprintf("Job %s, Dienst %s setzt %s", name, sn, k)
+			}
+		}
+	}
+	return ""
 }
 
 func fileSum(p string) (string, error) {

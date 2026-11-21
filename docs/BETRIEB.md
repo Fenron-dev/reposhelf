@@ -195,7 +195,9 @@ Runner-Rolle in den Einstellungen einschalten (braucht Docker). Ziele kommen aus
   Geheimnisse bekommt ein Build nur, wenn du sie in den Repo-Einstellungen unter
   „Baubar halten“ für dieses Repo freigibst (Verwalter) – die Build-Datei im Repo
   allein genügt nicht. Bei fremden Repos nichts freigeben.
-- Linux-Jobs aus `.github/workflows` (mit `act`, im Docker-Image enthalten),
+- Linux-Jobs aus `.github/workflows` (mit `act`, im Docker-Image enthalten; ohne Zugriff
+  auf den Docker des Rechners. Workflows mit eigenen Container-Optionen oder Laufwerken
+  werden abgelehnt, Workflows fremder Repos (Spiegel) warten immer auf Bestätigung),
 - GitHub Actions als externer Runner (Workflows mit `workflow_dispatch`, Artefakte
   werden ins Archiv geholt; braucht `REPOSHELF_GITHUB_TOKEN`).
 
