@@ -279,6 +279,9 @@ func (l *Library) syncExtras(ctx context.Context, r *Repo, auth *gitcli.Auth, re
 	}
 	l.suggestRelations(ctx, r)
 	l.detectModels(ctx, r)
+	if err := l.syncReadmeAssets(ctx, r); err != nil {
+		notes = append(notes, err.Error())
+	}
 	return notes
 }
 

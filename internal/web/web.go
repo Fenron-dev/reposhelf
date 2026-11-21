@@ -4,6 +4,7 @@ package web
 
 import (
 	"bytes"
+	"context"
 	"embed"
 	"errors"
 	"fmt"
@@ -21,6 +22,7 @@ import (
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
+	"github.com/yuin/goldmark/renderer"
 	"github.com/yuin/goldmark/renderer/html"
 	gtext "github.com/yuin/goldmark/text"
 	"github.com/yuin/goldmark/util"
@@ -92,6 +94,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /repo/{id}/blob/{path...}", read(s.repoBlob))
 	mux.Handle("GET /repo/{id}/raw/{path...}", read(s.repoRaw))
 	mux.Handle("GET /repo/{id}/asset", read(s.repoAsset))
+	mux.Handle("GET /repo/{id}/readme-asset/{name}", read(s.readmeAsset))
 	mux.Handle("GET /repo/{id}/action", read(s.repoAction))
 	mux.Handle("POST /repo/{id}/sync", write(s.repoSync))
 	mux.Handle("POST /repo/{id}/tags", write(s.repoTags))
@@ -158,7 +161,7 @@ func cacheStatic(h http.Handler) http.Handler {
 func securityHeaders(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hd := w.Header()
-		hd.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'")
+		hd.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'")
 		hd.Set("X-Content-Type-Options", "nosniff")
 		hd.Set("Referrer-Policy", "same-origin")
 		h.ServeHTTP(w, r)
@@ -386,15 +389,18 @@ func withMsg(to, key, msg string) string {
 // point into the code view of repoID, relative images to the raw view.
 func (s *Server) renderMarkdown(src []byte, repoID, ref, baseDir string) template.HTML {
 	var buf bytes.Buffer
+	rw := &linkRewriter{repoID: repoID, ref: ref, base: baseDir}
+	opts := []renderer.Option{html.WithXHTML()}
+	if repoID == "" {
+		opts = append(opts, html.WithHardWraps()) // free notes
+	} else if r, err := s.Lib.Get(context.Background(), repoID); err == nil {
+		rw.assets = s.Lib.ReadmeAssets(r)
+	}
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.GFM, extension.Footnote),
-		goldmark.WithParserOptions(parser.WithAutoHeadingID(), parser.WithASTTransformers(
-			util.Prioritized(&linkRewriter{repoID: repoID, ref: ref, base: baseDir}, 100))),
-		goldmark.WithRendererOptions(html.WithXHTML()),
+		goldmark.WithParserOptions(parser.WithAutoHeadingID(), parser.WithASTTransformers(util.Prioritized(rw, 100))),
+		goldmark.WithRendererOptions(opts...),
 	)
-	if repoID == "" {
-		md = s.md
-	}
 	if err := md.Convert(src, &buf); err != nil {
 		return template.HTML("<pre>" + template.HTMLEscapeString(string(src)) + "</pre>")
 	}
@@ -403,7 +409,13 @@ func (s *Server) renderMarkdown(src []byte, repoID, ref, baseDir string) templat
 
 type linkRewriter struct {
 	repoID, ref, base string
+	// assets are the README images kept by RepoShelf (V-4); other images
+	// from foreign servers are not loaded (privacy, R-023).
+	assets map[string]core.ReadmeAsset
 }
+
+// externalImage stands in for an image that was not kept.
+const externalImage = "/static/external-image.svg"
 
 func (t *linkRewriter) Transform(doc *ast.Document, _ gtext.Reader, _ parser.Context) {
 	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
@@ -412,9 +424,22 @@ func (t *linkRewriter) Transform(doc *ast.Document, _ gtext.Reader, _ parser.Con
 		}
 		switch v := n.(type) {
 		case *ast.Link:
-			v.Destination = []byte(t.rewrite(string(v.Destination), "blob"))
+			if t.repoID != "" {
+				v.Destination = []byte(t.rewrite(string(v.Destination), "blob"))
+			}
 		case *ast.Image:
-			v.Destination = []byte(t.rewrite(string(v.Destination), "raw"))
+			dest := string(v.Destination)
+			switch {
+			case strings.HasPrefix(dest, "https://") || strings.HasPrefix(dest, "http://") || strings.HasPrefix(dest, "//"):
+				if a, ok := t.assets[dest]; ok && t.repoID != "" {
+					v.Destination = []byte("/repo/" + t.repoID + "/readme-asset/" + url.PathEscape(a.File))
+				} else {
+					v.Destination = []byte(externalImage)
+					v.Title = []byte("Externes Bild, nicht gesichert: " + dest)
+				}
+			case t.repoID != "":
+				v.Destination = []byte(t.rewrite(dest, "raw"))
+			}
 		}
 		return ast.WalkContinue, nil
 	})

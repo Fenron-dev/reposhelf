@@ -124,6 +124,13 @@ Systems (D-032). Nur am Rechner selbst, nicht übers Netz oder per MCP. CLI:
 Releases (Standard: 5) – bei Projekten mit vielen Plattform-Builds können das
 schnell Hunderte MB sein. Einstellbar global, je Sammlung und je Repo.
 
+**README-Bilder:** Bilder, die ein README von fremden Servern einbindet (Logos,
+Screenshots, Badges), sichert RepoShelf beim Abgleich mit (höchstens 30 je Repo, je
+5 MB, nur Bilder) und zeigt sie von dort an – auch wenn das Original verschwindet. Nicht
+gesicherte Bilder erscheinen als Platzhalter „Externes Bild“: Beim Ansehen eines README
+erfährt kein fremder Server deine Adresse. Adressen im eigenen Netz lädt RepoShelf nie.
+Abgelegt unter `meta/…/readme-assets/`.
+
 ## 3. Ordnen
 
 - **Schlagwörter** mit Hierarchie (`ttrpg/tool`); Filter `ttrpg/*`; global

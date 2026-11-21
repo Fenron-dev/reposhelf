@@ -460,6 +460,28 @@ func (s *Server) repoRaw(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
+// readmeAsset serves an image a README embeds, kept by RepoShelf (V-4).
+// SVGs can carry scripts: the sandbox keeps them from running when opened
+// directly.
+func (s *Server) readmeAsset(w http.ResponseWriter, r *http.Request) {
+	p, a, err := s.Lib.ReadmeAssetPath(r.Context(), r.PathValue("id"), r.PathValue("name"))
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	f, err := os.Open(p)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	defer f.Close()
+	hd := w.Header()
+	hd.Set("Content-Type", a.Type)
+	hd.Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
+	hd.Set("Cache-Control", "private, max-age=86400")
+	http.ServeContent(w, r, "", a.Fetched, f)
+}
+
 func (s *Server) repoAsset(w http.ResponseWriter, r *http.Request) {
 	p, err := s.Lib.AssetPath(r.Context(), r.PathValue("id"), r.URL.Query().Get("tag"), r.URL.Query().Get("name"))
 	if err != nil {
