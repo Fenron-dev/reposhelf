@@ -12,9 +12,9 @@
 
 ## Aktueller Stand
 
-- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.6.0` (alles seit v0.2.0, dazu T-9.21–T-9.24) zum Test bei Dennis
+- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.6.1` (alles seit v0.2.0, dazu T-9.21–T-9.24, R-028/R-029) zum Test bei Dennis
 - **Letzte Änderung:** 2026-11-22 · README in `docs/`/`.github/` und HTML in READMEs (R-028, R-029)
-- **Nächster Schritt:** Dennis testet `v0.6.0` (README-Korrektur auf `main`, noch ohne Release); offen: T-9.25
+- **Nächster Schritt:** Dennis testet `v0.6.1` (README-Korrektur); R-030 auf `main`, noch ohne Release; offen: T-9.25
 
 ## Übergabe-Notiz
 
@@ -136,7 +136,8 @@ V-2: Meldungen des Betriebssystems in der Desktop-App (Wails v2 hat dafür keine
 Links/Bilder gelten ab dessen Ordner. Markdown wird mit HTML gerendert und danach als Ganzes
 von `internal/htmlsafe` gefiltert (Positivliste, ids mit `user-content-`, Links/Bilder über
 Hooks in `web.linkRewriter`). Wer Elemente oder Attribute freigibt: nur in `htmlsafe.allowed`,
-mit Test in `htmlsafe_test.go`. Neu offen: T-9.25 (Hinweisblöcke).
+mit Test in `htmlsafe_test.go`. Neu offen: T-9.25 (Hinweisblöcke). Release `v0.6.1`: Prüflauf grün,
+CI rot wegen GO-2026-6860 in `x/net` (R-030) – behoben auf `main`, braucht ein neues Release.
 
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
@@ -212,6 +213,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | R-027 | Laufzeit-Image-Bau ohne Ressourcengrenze; ZIP-Import mit `.git` holt per `git fetch` aus fremdem Ordner | `internal/runner/image.go`, `internal/core/zipimport.go` | Hinweis | erledigt `4f01614` (ZIP neutralisiert; Image-Bau ohne Grenze dokumentiert) | Claude Code · 2026-11-11 | Prüfbericht |
 | R-028 | README wird nur im Hauptordner gesucht; GitHub zeigt auch `.github/README.md` und `docs/README.md` (z. B. sherlock-project/sherlock: „keine README“) | `internal/gitcli/read.go` Readme | mittel | erledigt `6a54ad9` (Reihenfolge wie GitHub: `.github/`, Hauptordner, `docs/`) | Dennis · 2026-11-22 | Test v0.6.0 |
 | R-029 | HTML in READMEs (`<img>`, `<p align>`, `<details>`) wird ganz verworfen: Logos und Bilder fehlen, obwohl GitHub sie zeigt | `internal/web/web.go` renderMarkdown, `internal/core/readmeassets.go` | mittel | erledigt `6a54ad9` (HTML wird gerendert und von `internal/htmlsafe` auf eine Positivliste gefiltert; `<img>`-Bilder werden mitgesichert) | Dennis · 2026-11-22 | Test v0.6.0 |
+| R-030 | `golang.org/x/net` v0.60.0 hat GO-2026-6860 (quadratischer Aufwand im HTML-Parser); seit R-029 parst `internal/htmlsafe` fremde READMEs damit – präparierte README bremst Seite und Abgleich aus | `go.mod`, `internal/htmlsafe/htmlsafe.go:90` | mittel | erledigt `185f458` (x/net v0.62.0) | CI govulncheck · 2026-11-22 | R-029, v0.6.1 |
 
 ---
 
@@ -370,6 +372,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-22 · Claude Code · Release `v0.6.1` (Prüflauf grün); R-030 `x/net` v0.62.0 (govulncheck)
 - 2026-11-22 · Claude Code · R-028 README in `docs/`/`.github/`, R-029 HTML in READMEs gefiltert darstellen (`internal/htmlsafe`); T-9.25 eingetragen
 - 2026-11-21 · Claude Code · T-9.21 Integritätsprüfung, T-9.22 Benachrichtigungen, T-9.23 README-Bilder mitsichern (R-023), T-9.24 Wiederbeleben; Release `v0.6.0`, Prüflauf und CI grün
 
