@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Fenron-dev/reposhelf/internal/assetclass"
 	"github.com/Fenron-dev/reposhelf/internal/atomicfile"
 	"github.com/Fenron-dev/reposhelf/internal/safepath"
 	"github.com/Fenron-dev/reposhelf/internal/sources"
@@ -53,6 +54,8 @@ type ReleaseReport struct {
 	Deduped    int
 	// Skipped lists assets above the size limit.
 	Skipped []string
+	// Filtered counts files left out by the choice of files (D-035).
+	Filtered int
 }
 
 // encodeName turns a version or asset name from the network into a safe
@@ -82,31 +85,42 @@ func encodeName(name string) string {
 }
 
 // EstimateReleaseSize sums the asset sizes RepoShelf would download for
-// the newest keep releases (shown in the add dialog, T-1.13).
-func EstimateReleaseSize(rels []sources.Release, keep int, maxAssetMB int) (int64, int) {
+// the newest keep releases and the pinned ones, with the choice of files
+// (shown in the add dialog, T-1.13, D-035).
+func EstimateReleaseSize(rels []sources.Release, keep int, maxAssetMB int, files assetclass.Filter, pinned []string) (int64, int) {
 	sort.SliceStable(rels, func(i, j int) bool { return timeOf(rels[i].Published).After(timeOf(rels[j].Published)) })
 	var total int64
-	files, n := 0, 0
+	count, n := 0, 0
 	limit := int64(maxAssetMB) << 20
 	for _, r := range rels {
-		if r.Draft || n >= keep {
+		if r.Draft {
 			continue
 		}
-		n++
-		for _, a := range r.Assets {
-			if limit > 0 && a.Size > limit {
+		isPinned := slices.Contains(pinned, r.Tag)
+		if !isPinned {
+			if n >= keep {
+				continue
+			}
+			n++
+		}
+		sel := files.Select(assetNames(r.Assets))
+		for i, a := range r.Assets {
+			if !sel[i] || (limit > 0 && a.Size > limit) {
 				continue
 			}
 			total += a.Size
-			files++
+			count++
 		}
 	}
-	return total, files
+	return total, count
 }
 
-// releasesKeep returns how many releases keep their assets.
-func (l *Library) releasesKeep(r *Repo) int {
-	return l.EffectiveRetention(r).ReleasesKeep
+func assetNames(as []sources.Asset) []string {
+	out := make([]string, len(as))
+	for i, a := range as {
+		out[i] = a.Name
+	}
+	return out
 }
 
 func (l *Library) syncReleases(ctx context.Context, r *Repo) (ReleaseReport, error) {
@@ -120,8 +134,8 @@ func (l *Library) syncReleases(ctx context.Context, r *Repo) (ReleaseReport, err
 		return rep, err
 	}
 	sort.SliceStable(rels, func(i, j int) bool { return timeOf(rels[i].Published).After(timeOf(rels[j].Published)) })
-	keep := l.releasesKeep(r)
-	pinned := r.R().Retention.Pinned
+	ret := l.EffectiveRetention(r)
+	keep, pinned := ret.ReleasesKeep, ret.Pinned
 	known := l.knownHashes(r)
 
 	if err := os.MkdirAll(r.Paths.Releases, dirPerm); err != nil {
@@ -145,8 +159,13 @@ func (l *Library) syncReleases(ctx context.Context, r *Repo) (ReleaseReport, err
 			kept++
 		}
 		if wantAssets {
-			for _, a := range rel.Assets {
+			sel := ret.Files.Select(assetNames(rel.Assets))
+			for i, a := range rel.Assets {
 				if slices.ContainsFunc(sr.Stored, func(s StoredAsset) bool { return s.Name == a.Name }) {
+					continue
+				}
+				if !sel[i] {
+					rep.Filtered++
 					continue
 				}
 				if limit := int64(l.Config().Retention.MaxAssetMB) << 20; limit > 0 && a.Size > limit {

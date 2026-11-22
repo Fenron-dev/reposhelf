@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Fenron-dev/reposhelf/internal/assetclass"
 	"github.com/Fenron-dev/reposhelf/internal/atomicfile"
 	"github.com/Fenron-dev/reposhelf/internal/gitcli"
 	"github.com/Fenron-dev/reposhelf/internal/layout"
@@ -26,11 +27,14 @@ import (
 // Kinds of cleanup candidates (KONZEPT 6.10).
 const (
 	ItemReleaseAssets = "release_assets"
-	ItemBackup        = "force_push_backup"
-	ItemSnapshot      = "snapshot"
-	ItemCapsule       = "capsule"
-	ItemBuild         = "build"
-	ItemRepo          = "repo"
+	// ItemReleaseFiles are stored files of a release that no longer match
+	// the choice of files (D-035).
+	ItemReleaseFiles = "release_files"
+	ItemBackup       = "force_push_backup"
+	ItemSnapshot     = "snapshot"
+	ItemCapsule      = "capsule"
+	ItemBuild        = "build"
+	ItemRepo         = "repo"
 )
 
 // CleanupItem is something a rule (or the user) proposes to move to the
@@ -109,6 +113,7 @@ func (l *Library) CleanupPlan(ctx context.Context) ([]CleanupItem, error) {
 				Label: e.Key, Reason: "zum Löschen vorgemerkt", Size: e.SizeBytes, Path: r.Paths.Meta})
 		}
 		items = append(items, l.releaseCandidates(r, ret)...)
+		items = append(items, l.releaseFileCandidates(r, ret)...)
 		items = append(items, l.refCandidates(ctx, r, gitcli.BackupNamespace, ItemBackup, time.Duration(ret.ForcePushBackupsKeepFor), now, false)...)
 		items = append(items, l.refCandidates(ctx, r, SnapshotNamespace, ItemSnapshot, time.Duration(ret.SnapshotsKeepFor), now, true)...)
 		items = append(items, l.capsuleCandidates(r, ret)...)
@@ -149,6 +154,78 @@ func (l *Library) releaseCandidates(r *Repo, ret Retention) []CleanupItem {
 		})
 	}
 	return items
+}
+
+// unwantedFiles returns the stored files of rel that the choice of files
+// leaves out. Companions are judged with their main file, so the names of
+// all files of the release are looked at.
+func unwantedFiles(rel StoredRelease, files assetclass.Filter) []StoredAsset {
+	if files.Empty() || len(rel.Stored) == 0 {
+		return nil
+	}
+	names := assetNames(rel.Assets)
+	for _, a := range rel.Stored {
+		if !slices.Contains(names, a.Name) {
+			names = append(names, a.Name)
+		}
+	}
+	sel := files.Select(names)
+	var out []StoredAsset
+	for _, a := range rel.Stored {
+		if i := slices.Index(names, a.Name); i >= 0 && !sel[i] {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+
+// releaseFileCandidates proposes, per release that keeps its files, those
+// that do not match the choice of files (D-035). Releases beyond the
+// number to keep are proposed as a whole by releaseCandidates.
+func (l *Library) releaseFileCandidates(r *Repo, ret Retention) []CleanupItem {
+	var items []CleanupItem
+	reason := "passt nicht zur Auswahl des Repos"
+	if ret.Profile != "" {
+		reason = "passt nicht zum Release-Profil " + ret.Profile
+	}
+	kept := 0
+	for _, rel := range l.listReleases(r) {
+		pinned := slices.Contains(ret.Pinned, rel.Tag)
+		if !pinned {
+			if kept >= ret.ReleasesKeep {
+				continue
+			}
+			kept++
+		}
+		bad := unwantedFiles(rel, ret.Files)
+		if len(bad) == 0 {
+			continue
+		}
+		var size int64
+		for _, a := range bad {
+			if a.SameAs == "" {
+				size += a.Size
+			}
+		}
+		items = append(items, CleanupItem{
+			ID: itemID(ItemReleaseFiles, r.R().ID, rel.Tag), Kind: ItemReleaseFiles, RepoID: r.R().ID, Key: r.Entry.Key,
+			Label:  fmt.Sprintf("Release %s: %d Dateien", rel.Tag, len(bad)),
+			Reason: reason, Size: size, Since: timeOf(rel.Published), Path: rel.Dir,
+		})
+	}
+	return items
+}
+
+// UnwantedFiles lists the cleanup proposals of one repository's files
+// that no longer match its choice (for the dialog after a change).
+func (l *Library) UnwantedFiles(ctx context.Context, ref string) ([]CleanupItem, error) {
+	r, err := l.Get(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+	items := l.releaseFileCandidates(r, l.EffectiveRetention(r))
+	st := l.readCleanupState()
+	return slices.DeleteFunc(items, func(it CleanupItem) bool { return slices.Contains(st.Kept, it.ID) }), nil
 }
 
 // refCandidates proposes backups/snapshots older than keepFor. keepNewest
@@ -350,6 +427,29 @@ func (l *Library) trashItem(ctx context.Context, it CleanupItem, actor string) e
 		if err := writeRelease(it.Path, rel); err != nil {
 			return err
 		}
+	case ItemReleaseFiles:
+		r, err := l.Get(ctx, it.RepoID)
+		if err != nil {
+			return err
+		}
+		rel, err := readRelease(it.Path)
+		if err != nil {
+			return err
+		}
+		bad := unwantedFiles(rel, l.EffectiveRetention(r).Files)
+		for _, a := range bad {
+			if a.SameAs == "" {
+				if err := move(filepath.Join(it.Path, a.File)); err != nil {
+					return err
+				}
+			}
+		}
+		rel.Stored = slices.DeleteFunc(rel.Stored, func(a StoredAsset) bool {
+			return slices.ContainsFunc(bad, func(b StoredAsset) bool { return b.Name == a.Name })
+		})
+		if err := writeRelease(it.Path, rel); err != nil {
+			return err
+		}
 	case ItemBackup, ItemSnapshot:
 		r, err := l.Get(ctx, it.RepoID)
 		if err != nil {
@@ -488,7 +588,7 @@ func (l *Library) Restore(ctx context.Context, id, actor string) error {
 			return err
 		}
 	}
-	if te.Kind == ItemReleaseAssets {
+	if te.Kind == ItemReleaseAssets || te.Kind == ItemReleaseFiles {
 		l.restoreReleaseManifest(te)
 	}
 	if err := os.RemoveAll(dir); err != nil { // only our manifest and empty payload remain

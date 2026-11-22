@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/Fenron-dev/reposhelf/internal/assetclass"
 	"github.com/Fenron-dev/reposhelf/internal/atomicfile"
 	"github.com/Fenron-dev/reposhelf/internal/layout"
 	"github.com/Fenron-dev/reposhelf/internal/repometa"
@@ -32,6 +33,12 @@ type Preview struct {
 	// default retention (T-1.13); -1 if unknown.
 	ReleaseBytes int64
 	ReleaseFiles int
+	// Releases are the newest releases (to pin some), Offer what systems,
+	// processors and formats they contain (D-035); Estimate the download
+	// with the default profile.
+	Releases []sources.Release
+	Offer    assetclass.Offer
+	Estimate ReleaseEstimate
 	// NoToken is set when the host does not show the repository and no
 	// token is set: it may be private (T-9.10).
 	NoToken bool
@@ -77,9 +84,15 @@ func (l *Library) preview(ctx context.Context, link string, estimate bool) (Prev
 				pv.Large = ask > 0 && m.Size > ask
 			}
 			if estimate && p.Provider != sources.KindHuggingFace {
-				if rels, err := api.Releases(ctx, p.Source); err == nil {
-					cfg := l.Config().Retention
-					pv.ReleaseBytes, pv.ReleaseFiles = EstimateReleaseSize(rels, cfg.ReleasesKeep, cfg.MaxAssetMB)
+				if rels, err := l.previewReleases(ctx, api, p.Source); err == nil {
+					pv.Estimate = l.EstimateChoice(rels, ReleaseChoice{})
+					pv.ReleaseBytes, pv.ReleaseFiles = pv.Estimate.Bytes, pv.Estimate.Files
+					var names []string
+					for _, r := range rels {
+						names = append(names, assetNames(r.Assets)...)
+					}
+					pv.Offer = assetclass.Describe(names)
+					pv.Releases = rels[:min(len(rels), maxPreviewReleases)]
 				}
 			}
 			for _, t := range m.Topics {
@@ -119,6 +132,9 @@ type AddRequest struct {
 	// ConfirmLarge confirms downloading a model above the size limit
 	// (D-025). Agents cannot set it: a person decides.
 	ConfirmLarge bool
+	// Releases chooses the release files, the number of releases and
+	// pinned versions (D-035); zero = the default profile.
+	Releases ReleaseChoice
 	// seed fills the new repository before its first sync (files of a
 	// local folder, T-9.17).
 	seed func(*Repo) error
@@ -182,6 +198,12 @@ func (l *Library) Add(ctx context.Context, req AddRequest) (*Repo, error) {
 		// A model is its files: LFS is required, the rest does not exist.
 		r.Include = repometa.Include{LFS: true}
 	}
+	if err := l.ValidateChoice(req.Releases); err != nil {
+		return nil, err
+	}
+	r.ReleaseFiles = req.Releases.Files
+	r.Retention.ReleasesKeep = req.Releases.Keep
+	r.Retention.Pinned = cleanList(req.Releases.Pinned)
 	r.Tags = cleanList(req.Tags)
 	r.Collections = cleanList(req.Collections)
 	r.Buildable.Enabled = req.Buildable

@@ -24,6 +24,13 @@ var identityKeys = map[reflect.Type][]string{
 	reflect.TypeFor[Relation](): {"type", "target"},
 }
 
+// RegisterIdentity names the identifying keys of list entries of type t
+// in other files written with this package (reposhelf.yaml). Call it from
+// an init function only.
+func RegisterIdentity(t reflect.Type, keys ...string) {
+	identityKeys[deref(t)] = keys
+}
+
 // merge returns orig updated with the values of upd, which is the fresh
 // encoding of a value of type t. Keys that t knows are taken from upd (and
 // dropped if upd has none); keys t does not know are kept. Unchanged nodes

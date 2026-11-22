@@ -194,6 +194,9 @@ func runAdd(args []string, sys system) int {
 	large := fset.Bool("large", false, "")
 	model := fset.String("model", "", "")
 	move := fset.Bool("move", false, "")
+	profile := fset.String("profile", "", "")
+	keep := fset.Int("keep", -1, "")
+	pin := fset.String("pin", "", "")
 	pos, code, ok := parseArgs(fset, args, 1, -1, sys)
 	if !ok {
 		return code
@@ -239,6 +242,15 @@ func runAdd(args []string, sys system) int {
 		inc.Wiki = *wiki
 		inc.Actions = *actions
 		req.Include = &inc
+		// Release files (D-035): a profile, the number of releases and
+		// versions to keep; without, the default profile applies.
+		if *profile != "" {
+			req.Releases.Files = &repometa.ReleaseFiles{Profile: *profile}
+		}
+		if *keep >= 0 {
+			req.Releases.Keep = keep
+		}
+		req.Releases.Pinned = splitList(*pin)
 		fmt.Fprintf(sys.stdout, msgAdding, url)
 		r, err := lib.Add(ctx, req)
 		if err != nil {

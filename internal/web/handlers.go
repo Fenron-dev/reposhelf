@@ -248,7 +248,13 @@ type repoData struct {
 	Platforms []platformOpt
 	// ReviveHosts can receive this repository (V-5).
 	ReviveHosts []string
-	HF          *core.HFUsage
+	// ReleaseForm chooses the release files; Unwanted are stored files
+	// that no longer match, AskUnwanted shows the dialog (D-035).
+	ReleaseForm  *releaseForm
+	Unwanted     []core.CleanupItem
+	UnwantedSize int64
+	AskUnwanted  bool
+	HF           *core.HFUsage
 }
 
 type crumb struct{ Name, URL string }
@@ -318,6 +324,9 @@ func (s *Server) repoPage(w http.ResponseWriter, r *http.Request) {
 	d.Tab = r.URL.Query().Get("tab")
 	if d.Tab == "settings" && d.CanAdmin {
 		d.ReviveHosts = s.Lib.PublishHosts(r.Context())
+	}
+	if d.Tab == "settings" && d.CanWrite {
+		s.fillReleaseFiles(r, &d)
 	}
 	if d.Tab == "" {
 		d.Tab = "overview"
@@ -761,6 +770,8 @@ type addData struct {
 	Error       string
 	Intervals   []string
 	Defaults    config.Config
+	// Release is the choice of release files (D-035).
+	Release *releaseForm
 }
 
 func (s *Server) addPage(w http.ResponseWriter, r *http.Request) {
@@ -789,6 +800,11 @@ func (s *Server) fillPreview(r *http.Request, d *addData) {
 	default:
 		if pv, err := s.Lib.Preview(r.Context(), d.URL); err == nil {
 			d.Preview = &pv
+			if len(pv.Releases) > 0 {
+				if rels, err := s.Lib.ReleasesOf(r.Context(), d.URL); err == nil {
+					d.Release = s.addReleaseForm(rels, nil, false)
+				}
+			}
 		} else {
 			d.Error = ErrText(err)
 		}
@@ -833,6 +849,11 @@ func (s *Server) addSubmit(w http.ResponseWriter, r *http.Request) {
 		Submodules: f.Get("submodules") == "on", Issues: f.Get("issues") == "on", Wiki: f.Get("wiki") == "on",
 		Actions: f.Get("actions") == "on"}
 	req.Include = &inc
+	if f.Get(fShown) != "" && inc.Releases {
+		if rels, err := s.Lib.ReleasesOf(r.Context(), req.URL); err == nil {
+			req.Releases = s.newReleaseForm("add", "", rels, f, false).choice(s.Lib.Config())
+		}
+	}
 	repo, err := s.Lib.Add(r.Context(), req)
 	if err != nil {
 		s.failErr(w, r, err)
@@ -1280,6 +1301,8 @@ type settingsData struct {
 	Warnings         []string
 	// TokenOK and TokenError are shown in the access card (T-9.10).
 	TokenOK, TokenError string
+	// Profiles are the release profiles (D-035).
+	Profiles []profileRow
 }
 
 func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
@@ -1289,6 +1312,7 @@ func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 	d.NotifyKinds = notifyKinds(d.Cfg.Notify.Off)
 	d.WebhookSet, d.WebhookFromEnv = s.Lib.NotifyWebhook()
 	d.IntegrityRunning = s.Lib.IntegrityRunning()
+	d.Profiles = s.profileRows(r)
 	s.render(w, r, "settings", "Einstellungen", "settings", d)
 }
 

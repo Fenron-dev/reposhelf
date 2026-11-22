@@ -26,6 +26,8 @@ Repos:
        --tags a,b   --collection x   --buildable   --no-releases   --issues   --wiki
        --actions           GitHub-Actions-Artefakte mitsichern (neueste Läufe, Anzahl: retention.actions_keep)
        --large             großes Hugging-Face-Modell bestätigen (über retention.ask_above_mb)
+       --profile NAME      Release-Profil (welche Release-Dateien; sonst die Vorgabe)
+       --keep N            so viele neueste Releases behalten   --pin v1.2,v1.3  diese Versionen behalten
   add <ordner>             Lokalen Ordner übernehmen (z. B. bereits geladenes Modell):
        --model org/name    mit Hugging-Face-Modell verknüpfen (sonst aus dem HF-Cache erkannt
                            oder rein lokal)   --move  Original danach in den Papierkorb

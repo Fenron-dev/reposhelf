@@ -14,7 +14,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Fenron-dev/reposhelf/internal/assetclass"
 	"github.com/Fenron-dev/reposhelf/internal/atomicfile"
+	"github.com/Fenron-dev/reposhelf/internal/config"
 	"github.com/Fenron-dev/reposhelf/internal/layout"
 	"github.com/Fenron-dev/reposhelf/internal/repometa"
 	"github.com/Fenron-dev/reposhelf/internal/safepath"
@@ -477,6 +479,10 @@ type Retention struct {
 	SnapshotsKeepFor        repometa.Duration
 	ForcePushBackupsKeepFor repometa.Duration
 	CapsulesKeep            int
+	// Files chooses the release files (D-035); Profile names the profile
+	// it comes from ("" = the repository's own choice).
+	Files   assetclass.Filter
+	Profile string
 	// From names where each value came from (for the UI).
 	From map[string]string
 }
@@ -519,6 +525,21 @@ func (l *Library) EffectiveRetention(r *Repo) Retention {
 			out.CapsulesKeep, out.From["capsules_keep"] = *cr.CapsulesKeep, "Sammlung "+c.Name
 		}
 	}
+	// The release profile is chosen for this repository, so it comes
+	// before its collections (D-035).
+	prof, own := l.releaseProfile(r)
+	if own {
+		out.Files, out.From["release_files"] = r.R().ReleaseFiles.Filter(), "Repo"
+	} else {
+		out.Profile, out.Files, out.From["release_files"] = prof.Name, prof.Filter(), "Profil "+prof.Name
+		if rf := r.R().ReleaseFiles; rf != nil {
+			out.Files.Include = append(slices.Clone(out.Files.Include), rf.Include...)
+			out.Files.Exclude = append(slices.Clone(out.Files.Exclude), rf.Exclude...)
+		}
+		if prof.ReleasesKeep != nil {
+			out.ReleasesKeep, out.From["releases_keep"] = *prof.ReleasesKeep, "Profil "+prof.Name
+		}
+	}
 	rr := r.R().Retention
 	if rr.ReleasesKeep != nil {
 		out.ReleasesKeep, out.From["releases_keep"] = *rr.ReleasesKeep, "Repo"
@@ -539,6 +560,27 @@ func (l *Library) EffectiveRetention(r *Repo) Retention {
 		out.CapsulesKeep, out.From["capsules_keep"] = *r.R().Buildable.CapsulesKeep, "Repo"
 	}
 	return out
+}
+
+// releaseProfile returns the release profile of r; own is true when the
+// repository has a choice of its own instead. An unknown profile name
+// (deleted in the settings) falls back to the default profile.
+func (l *Library) releaseProfile(r *Repo) (config.ReleaseProfile, bool) {
+	cfg := l.Config()
+	rf := r.R().ReleaseFiles
+	if rf != nil && rf.Profile == "" && (len(rf.OS) > 0 || len(rf.Arch) > 0 || len(rf.Formats) > 0) {
+		return config.ReleaseProfile{}, true
+	}
+	if rf != nil && rf.Profile != "" {
+		if p, ok := cfg.Profile(rf.Profile); ok {
+			return p, false
+		}
+	}
+	if p, ok := cfg.Profile(cfg.DefaultReleaseProfile); ok {
+		return p, false
+	}
+	p, _ := cfg.Profile(config.StandardProfile)
+	return p, false
 }
 
 // Pin adds a version to retention.pinned (T-3.2): its assets, snapshots

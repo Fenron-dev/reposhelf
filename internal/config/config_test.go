@@ -114,6 +114,11 @@ func TestLoadErrors(t *testing.T) {
 		{name: "invalid env value", env: map[string]string{EnvListen: "nonsense"}, wantErr: ErrInvalid},
 		{name: "malformed yaml", file: "server: [unclosed\n"},
 		{name: "wrong type", file: "schema: eins\n"},
+		{name: "profile unknown os", file: "release_profiles:\n  - name: A\n    os: [plan9]\n", wantErr: ErrInvalid},
+		{name: "profile twice", file: "release_profiles:\n  - name: A\n  - name: A\n", wantErr: ErrInvalid},
+		{name: "profile named Standard", file: "release_profiles:\n  - name: Standard\n", wantErr: ErrInvalid},
+		{name: "profile empty name", file: "release_profiles:\n  - os: [linux]\n", wantErr: ErrInvalid},
+		{name: "default profile unknown", file: "default_release_profile: B\n", wantErr: ErrInvalid},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -192,5 +197,51 @@ func TestSaveKeepsUnknownAndComments(t *testing.T) {
 	// New file in an empty folder.
 	if err := Save(t.TempDir(), Default()); err != nil {
 		t.Error(err)
+	}
+}
+
+// TestReleaseProfiles: profiles load, Standard always exists (D-035).
+func TestReleaseProfiles(t *testing.T) {
+	raw := "release_profiles:\n  - name: Desktop\n    releases_keep: 2\n    os: [windows, linux]\n    arch: [x64]\n    formats: [linux/appimage]\ndefault_release_profile: Desktop\n"
+	l, err := Load(dataDirWith(t, raw), noEnv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := l.Config
+	p, ok := c.Profile("Desktop")
+	if !ok || *p.ReleasesKeep != 2 || len(p.Filter().OS) != 2 || c.DefaultReleaseProfile != "Desktop" {
+		t.Errorf("profile = %+v %v", p, ok)
+	}
+	if s, ok := c.Profile(""); !ok || s.Name != StandardProfile || !s.Filter().Empty() {
+		t.Errorf("standard = %+v", s)
+	}
+	if _, ok := c.Profile("Nope"); ok {
+		t.Error("unknown profile found")
+	}
+	if n := c.ProfileNames(); len(n) != 2 || n[0] != StandardProfile {
+		t.Errorf("names = %v", n)
+	}
+	if len(l.Warnings) != 0 {
+		t.Errorf("warnings = %v", l.Warnings)
+	}
+}
+
+// TestSaveProfilesKeepUnknown: unknown keys inside a profile follow it
+// when profiles are removed or reordered.
+func TestSaveProfilesKeepUnknown(t *testing.T) {
+	raw := "release_profiles:\n  - name: A\n    future: 1\n  - name: B\n    other: 2\n"
+	dir := dataDirWith(t, raw)
+	l, err := Load(dir, noEnv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := l.Config
+	cfg.ReleaseProfiles = cfg.ReleaseProfiles[1:]
+	if err := Save(dir, cfg); err != nil {
+		t.Fatal(err)
+	}
+	out, _ := os.ReadFile(filepath.Join(dir, FileName))
+	if !strings.Contains(string(out), "other: 2") || strings.Contains(string(out), "future: 1") {
+		t.Errorf("saved:\n%s", out)
 	}
 }

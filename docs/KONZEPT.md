@@ -408,6 +408,12 @@ Quelle: Fallstrick-Kapitel im VaultApp-Konzept (LW-Manager).
 - **Papierkorb:** Einträge 30 Tage wiederherstellbar (konfigurierbar), danach
   endgültige Löschung – ebenfalls erst nach Bestätigung.
 - Vorschau „Was würde die nächste Bereinigung entfernen?“ jederzeit abrufbar.
+- **Release-Dateien auswählen (D-035):** nach Betriebssystem, Prozessor und Format
+  (am Dateinamen erkannt) plus Namensmuster; gebündelt in **Release-Profilen**
+  (Standard fest, eines als Vorgabe). Ebenen für die Zahl der Releases:
+  global → Sammlung → Profil → Repo. Beim Hinzufügen lassen sich bestimmte Versionen
+  behalten (angeheftet). Nicht mehr passende, schon geladene Dateien werden nach einer
+  Änderung im Dialog bzw. unter „Aufräumen“ vorgeschlagen.
 
 ### 6.11 Baubar halten (Build-Kapseln)
 

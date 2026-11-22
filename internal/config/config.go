@@ -23,11 +23,15 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
+	"strings"
 	"time"
+	"unicode"
 
 	"go.yaml.in/yaml/v3"
 
+	"github.com/Fenron-dev/reposhelf/internal/assetclass"
 	"github.com/Fenron-dev/reposhelf/internal/atomicfile"
 	"github.com/Fenron-dev/reposhelf/internal/repometa"
 )
@@ -66,6 +70,65 @@ type Config struct {
 	Retention Retention `yaml:"retention"`
 	Runner    Runner    `yaml:"runner"`
 	Notify    Notify    `yaml:"notify"`
+	// ReleaseProfiles are named choices of release files (D-035); the
+	// built-in StandardProfile (all files) is not listed.
+	ReleaseProfiles []ReleaseProfile `yaml:"release_profiles"`
+	// DefaultReleaseProfile is used by repositories without a choice of
+	// their own; "" = StandardProfile.
+	DefaultReleaseProfile string `yaml:"default_release_profile"`
+}
+
+// StandardProfile is the built-in release profile: all files, the global
+// number of releases (the behaviour before D-035).
+const StandardProfile = "Standard"
+
+// maxProfileName bounds a profile name (also checked in repo.yaml).
+const maxProfileName = 64
+
+// ReleaseProfile chooses release files by operating system, processor and
+// format, and how many releases keep them (D-035).
+type ReleaseProfile struct {
+	Name string `yaml:"name"`
+	// ReleasesKeep: nil = the global retention.releases_keep.
+	ReleasesKeep *int     `yaml:"releases_keep"`
+	OS           []string `yaml:"os,flow"`
+	Arch         []string `yaml:"arch,flow"`
+	Formats      []string `yaml:"formats,flow"`
+	Include      []string `yaml:"include,flow"`
+	Exclude      []string `yaml:"exclude,flow"`
+}
+
+func init() {
+	// Profiles keep their unknown keys when the list changes.
+	repometa.RegisterIdentity(reflect.TypeFor[ReleaseProfile](), "name")
+}
+
+// Filter is the profile's choice of files.
+func (p ReleaseProfile) Filter() assetclass.Filter {
+	return assetclass.Filter{OS: p.OS, Arch: p.Arch, Formats: p.Formats, Include: p.Include, Exclude: p.Exclude}
+}
+
+// Profile returns the profile called name; ok is false for unknown names.
+// StandardProfile always exists.
+func (c Config) Profile(name string) (ReleaseProfile, bool) {
+	if name == "" || name == StandardProfile {
+		return ReleaseProfile{Name: StandardProfile}, true
+	}
+	for _, p := range c.ReleaseProfiles {
+		if p.Name == name {
+			return p, true
+		}
+	}
+	return ReleaseProfile{}, false
+}
+
+// ProfileNames lists StandardProfile and the configured profiles.
+func (c Config) ProfileNames() []string {
+	out := []string{StandardProfile}
+	for _, p := range c.ReleaseProfiles {
+		out = append(out, p.Name)
+	}
+	return out
 }
 
 // Notify configures notifications (V-2). The webhook address itself is a
@@ -310,6 +373,29 @@ func validate(cfg Config) error {
 	}
 	if cfg.Sync.DefaultInterval < repometa.Duration(5*time.Minute) {
 		return fmt.Errorf("%w: sync.default_interval must be at least 5m", ErrInvalid)
+	}
+	return validateProfiles(cfg)
+}
+
+func validateProfiles(cfg Config) error {
+	seen := map[string]bool{StandardProfile: true}
+	for _, p := range cfg.ReleaseProfiles {
+		name := strings.TrimSpace(p.Name)
+		switch {
+		case name == "" || name != p.Name || len(name) > maxProfileName || strings.ContainsFunc(name, unicode.IsControl):
+			return fmt.Errorf("%w: release_profiles: invalid name %q", ErrInvalid, p.Name)
+		case seen[name]:
+			return fmt.Errorf("%w: release_profiles: %q exists twice (or is the built-in profile)", ErrInvalid, name)
+		case p.ReleasesKeep != nil && *p.ReleasesKeep < 0:
+			return fmt.Errorf("%w: release_profiles %q: releases_keep must not be negative", ErrInvalid, name)
+		}
+		seen[name] = true
+		if probs := p.Filter().Problems(); len(probs) > 0 {
+			return fmt.Errorf("%w: release_profiles %q: %s", ErrInvalid, name, strings.Join(probs, "; "))
+		}
+	}
+	if d := cfg.DefaultReleaseProfile; d != "" && !seen[d] {
+		return fmt.Errorf("%w: default_release_profile %q is not a profile", ErrInvalid, d)
 	}
 	return nil
 }

@@ -24,7 +24,7 @@
   <fieldset><legend>Mitsichern</legend>
     <label class="check"><input type="checkbox" checked disabled> Code &amp; alle Branches (immer)</label>
     <label class="check"><input type="checkbox" name="releases" checked> Releases &amp; Dateien</label>
-    <div id="release-size" class="small muted">{{with $d.Preview}}{{if ge .ReleaseBytes 0}}Neueste {{$d.Defaults.Retention.ReleasesKeep}} Releases: {{.ReleaseFiles}} Dateien, etwa <strong>{{size .ReleaseBytes}}</strong>{{if $d.Defaults.Retention.MaxAssetMB}} (Dateien über {{$d.Defaults.Retention.MaxAssetMB}} MB werden übersprungen){{end}}{{end}}{{end}}</div>
+    <div class="small muted">Welche Release-Dateien geladen werden, wählst du oben unter „Release-Dateien“, sobald der Link erkannt ist.{{if $d.Defaults.Retention.MaxAssetMB}} Dateien über {{$d.Defaults.Retention.MaxAssetMB}} MB werden übersprungen.{{end}}</div>
     <label class="check"><input type="checkbox" name="lfs" checked> Git LFS</label>
     <label class="check"><input type="checkbox" name="submodules" checked> Submodule (werden eigene Spiegel)</label>
     <label class="check"><input type="checkbox" name="issues"> Issues</label>
@@ -43,7 +43,6 @@
     {{range $d.Collections}}{{if not .Smart}}<label class="check"><input type="checkbox" name="collection" value="{{.ID}}"> {{.Name}}</label>{{end}}{{end}}
   </fieldset>
   {{end}}
-  <p class="small muted">Aufbewahrung: neueste {{$d.Defaults.Retention.ReleasesKeep}} Releases (globaler Standard; Sammlungen können abweichen).</p>
 
   <div class="row-end">
     <a class="btn" href="/">Abbrechen</a>
@@ -108,10 +107,10 @@
   {{end}}
   {{if ge .ModelBytes 0}}<div class="small {{if .Large}}warn{{else}}muted{{end}}">Modell: etwa <strong>{{size .ModelBytes}}</strong> (Dateien in Git LFS){{if .Large}} – mehr als die Grenze für Nachfragen{{end}}</div>
   {{if .Large}}<label class="check"><input type="checkbox" name="large_ok" required> Ja, {{size .ModelBytes}} herunterladen</label>{{end}}{{end}}
-  {{if ge .ReleaseBytes 0}}<div class="small {{if gt .ReleaseBytes 524288000}}warn{{else}}muted{{end}}">Release-Dateien der neuesten Versionen: {{.ReleaseFiles}} Dateien, etwa {{size .ReleaseBytes}}{{if gt .ReleaseBytes 524288000}} – viel Platz; „Releases &amp; Dateien“ ggf. abwählen oder in den Einstellungen eine Höchstgröße setzen{{end}}</div>{{end}}
   <div class="small muted">Wird gespeichert unter <span class="mono">meta/{{.Parsed.Source.Key}}/repo.yaml</span></div>
 </div>
 {{end}}{{end}}
+{{with .Release}}{{template "release-choice" .}}{{end}}
 {{end}}
 
 {{define "tags"}}{{template "head" .}}
@@ -319,6 +318,22 @@
 </div>
 <div><button class="btn btn-primary" type="submit">Speichern</button></div>
 </form>
+
+<div class="card stack" id="release-profile">
+  <h2 class="h3">Release-Profile</h2>
+  <p class="small muted">Welche Release-Dateien geladen werden (Betriebssystem, Prozessor, Format) und wie viele Releases sie behalten. Repos ohne eigene Auswahl folgen der Vorgabe; beim Hinzufügen wählst du ein anderes Profil oder passt die Auswahl an.</p>
+  <div class="table-wrap"><table class="list small">
+    <thead><tr><th>Profil</th><th>Auswahl</th><th>Releases</th><th>Repos</th><th></th></tr></thead>
+    <tbody>{{range $d.Profiles}}<tr><td><strong>{{.Name}}</strong>{{if .Default}} <span class="small muted">(Vorgabe)</span>{{end}}</td><td>{{.Summary}}</td><td>{{.Keep}}</td><td>{{.Uses}}</td>
+      <td>{{if ne .Name "Standard"}}<a class="btn btn-small" href="/settings/profile?name={{queryEsc .Name}}">Bearbeiten</a>{{else}}<span class="muted">fest</span>{{end}}</td></tr>{{end}}</tbody>
+  </table></div>
+  <form method="post" action="/settings/profile/default" class="row-wrap">
+    <label>Vorgabe für neue Repos <select name="default">{{range $d.Profiles}}<option value="{{.Name}}"{{if .Default}} selected{{end}}>{{.Name}}</option>{{end}}</select></label>
+    <button class="btn" type="submit">Übernehmen</button>
+    <a class="btn" href="/settings/profile">+ Neues Profil</a>
+  </form>
+  <p class="small muted">Ändert sich die Auswahl, bleiben schon geladene Dateien erhalten; was nicht mehr passt, schlägt „Aufräumen“ vor.</p>
+</div>
 
 <div class="card stack" id="zugaenge">
   <h2 class="h3">Zugänge zu Git-Hosts</h2>
