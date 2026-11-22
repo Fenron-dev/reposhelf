@@ -365,6 +365,9 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.23 | V-4 README-Bilder beim Abgleich mitsichern und lokal ausliefern; fremde Bilder sonst nicht laden (behebt R-023) | erledigt | Claude Code | 2026-11-21 | D-034; `0f2b94e` – `meta/…/readme-assets/`, CSP ohne fremde Bilder |
 | T-9.24 | V-5 Repo wiederbeleben: Spiegel mit einem Klick zu GitHub oder Gitea/Forgejo hochladen (Repo anlegen, alle Branches/Tags, Releases mit Dateien) | erledigt | Claude Code | 2026-11-21 | D-034; `fefc576` – Repo → Einstellungen → Wiederbeleben (nur Verwalter) |
 | T-9.25 | GitHub-Hinweisblöcke in READMEs (`> [!NOTE]`, `> [!WARNING]` …) als farbige Hinweise darstellen statt als Zitat mit `[!WARNING]` | offen | | | aufgefallen bei R-029 (sherlock) |
+| T-9.26 | Release-Dateien nach Betriebssystem, Prozessor und Format auswählen (Erkennung am Dateinamen, Begleitdateien folgen, Muster); nur passende Dateien laden | in Arbeit | Claude Code | 2026-11-22 | D-035 |
+| T-9.27 | Release-Profile in den Einstellungen (Standard fest, Vorgabe wählbar); beim Hinzufügen Profil, Anzahl Versionen und bestimmte Versionen (angeheftet) wählen, mit Größenschätzung | in Arbeit | Claude Code | 2026-11-22 | D-035 |
+| T-9.28 | Dialog nach Änderung der Auswahl: nicht mehr passende Dateien in den Papierkorb oder Auswahl anpassen; sonst Vorschlag unter „Aufräumen“ | in Arbeit | Claude Code | 2026-11-22 | D-035 |
 
 ---
 
