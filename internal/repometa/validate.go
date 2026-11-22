@@ -20,7 +20,9 @@ const (
 	// minSyncInterval protects upstream hosts and API limits (60/h without
 	// token) from overly eager schedules.
 	minSyncInterval = 5 * time.Minute
-	maxPort         = 65535
+	// maxProfileName bounds the name of a release profile (D-035).
+	maxProfileName = 64
+	maxPort        = 65535
 	// minTargetSegments is host/owner/name.
 	minTargetSegments = 3
 )
@@ -93,6 +95,17 @@ func (r *Repo) Validate() error {
 	v.list("collections", r.Collections, validSegment)
 	v.relations(r)
 	v.retention(r.Retention)
+	if f := r.ReleaseFiles; f != nil {
+		for _, p := range f.Filter().Problems() {
+			v.add("release_files", p)
+		}
+		if f.Profile != "" && (len(f.OS) > 0 || len(f.Arch) > 0 || len(f.Formats) > 0) {
+			v.add("release_files", "profile and own os/arch/formats exclude each other")
+		}
+		if f.Profile != "" && (strings.TrimSpace(f.Profile) != f.Profile || hasControl(f.Profile) || len(f.Profile) > maxProfileName) {
+			v.add("release_files.profile", "must be a profile name")
+		}
+	}
 
 	for _, n := range r.Buildable.Secrets {
 		if !SecretName.MatchString(n) {

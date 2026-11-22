@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/Fenron-dev/reposhelf/internal/assetclass"
 )
 
 // CurrentSchema is the repo.yaml schema version this binary reads and writes.
@@ -30,9 +32,12 @@ type Repo struct {
 	Collections    []string        `yaml:"collections"`
 	Relations      []Relation      `yaml:"relations"`
 	Retention      Retention       `yaml:"retention"`
-	Buildable      Buildable       `yaml:"buildable"`
-	License        License         `yaml:"license"`
-	Created        time.Time       `yaml:"created"`
+	// ReleaseFiles chooses which release files are kept (D-035); nil =
+	// the default profile of the settings.
+	ReleaseFiles *ReleaseFiles `yaml:"release_files,omitempty"`
+	Buildable    Buildable     `yaml:"buildable"`
+	License      License       `yaml:"license"`
+	Created      time.Time     `yaml:"created"`
 }
 
 // Source identifies where the repository comes from.
@@ -166,6 +171,24 @@ type Retention struct {
 	Pinned           []string         `yaml:"pinned"`
 	Snapshots        SnapshotRule     `yaml:"snapshots"`
 	ForcePushBackups ForcePushBackups `yaml:"force_push_backups"`
+}
+
+// ReleaseFiles chooses the release files of a repository by operating
+// system, processor and format (D-035). With Profile set, the profile of
+// the settings decides and only Include/Exclude may add to it; without,
+// the lists here are the choice (empty = all files).
+type ReleaseFiles struct {
+	Profile string   `yaml:"profile,omitempty"`
+	OS      []string `yaml:"os,omitempty,flow"`
+	Arch    []string `yaml:"arch,omitempty,flow"`
+	Formats []string `yaml:"formats,omitempty,flow"`
+	Include []string `yaml:"include,omitempty,flow"`
+	Exclude []string `yaml:"exclude,omitempty,flow"`
+}
+
+// Filter is the choice of the repository's own lists.
+func (f ReleaseFiles) Filter() assetclass.Filter {
+	return assetclass.Filter{OS: f.OS, Arch: f.Arch, Formats: f.Formats, Include: f.Include, Exclude: f.Exclude}
 }
 
 // SnapshotRule configures periodic ref snapshots.

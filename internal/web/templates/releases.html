@@ -1,0 +1,103 @@
+{{define "release-choice"}}{{$f := .}}{{if .Offer.OS}}
+<fieldset class="release-choice stack" hx-post="{{.Action}}" hx-trigger="change" hx-target="this" hx-swap="outerHTML" hx-include="closest form">
+  <legend>Release-Dateien</legend>
+  <input type="hidden" name="rel_shown" value="1">
+  {{if ne .Mode "profile"}}
+  <label>Profil
+    <select name="rel_profile">
+      <option value=""{{if eq .Profile ""}} selected{{end}}>Vorgabe ({{.Default}})</option>
+      {{range .Profiles}}<option value="{{.}}"{{if eq $f.Profile .}} selected{{end}}>{{.}}</option>{{end}}
+      <option value="-"{{if eq .Profile "-"}} selected{{end}}>Eigene Auswahl für dieses Repo</option>
+    </select>
+  </label>
+  {{if and .Own (ne .Profile "-")}}<p class="small muted">Weicht vom Profil ab – wird als eigene Auswahl des Repos gespeichert.</p>{{end}}
+  {{end}}
+  <div class="choice-grid">
+    <div class="stack-tight"><strong class="small">Betriebssystem</strong>
+      {{range .Offer.OS}}<label class="check"><input type="checkbox" name="rel_os" value="{{.}}"{{if index $f.OS .}} checked{{end}}> {{osText .}}</label>{{end}}
+    </div>
+    {{if .Offer.Arch}}<div class="stack-tight"><strong class="small">Prozessor</strong>
+      {{range .Offer.Arch}}<label class="check"><input type="checkbox" name="rel_arch" value="{{.}}"{{if index $f.Arch .}} checked{{end}}> {{archText .}}</label>{{end}}
+      <p class="small muted">Dateien ohne Prozessor im Namen und macOS-„universal“ passen immer.</p>
+    </div>{{end}}
+  </div>
+  {{range $os := .Offer.OS}}{{$fm := index $f.Offer.Formats $os}}
+    {{if index $f.OS $os}}<div class="stack-tight"><strong class="small">{{osText $os}} – Formate</strong>
+      <div class="chips">{{range $fm}}{{$k := printf "%s/%s" $os .}}<label class="check"><input type="checkbox" name="rel_format" value="{{$k}}"{{if index $f.Format $k}} checked{{end}}> {{formatText .}}</label>{{end}}</div>
+    </div>
+    {{else}}{{range $fm}}{{$k := printf "%s/%s" $os .}}{{if index $f.Format $k}}<input type="hidden" name="rel_format" value="{{$k}}">{{end}}{{end}}{{end}}
+  {{end}}
+  <p class="small muted">Signaturen und Prüfsummen einer Datei (.asc, .sig, .sha256 …) kommen automatisch mit.</p>
+  <details{{if or .Include .Exclude}} open{{end}}><summary class="small">Bestimmte Dateien zusätzlich laden oder ausschließen</summary>
+    <div class="stack">
+      <label>Zusätzlich laden <span class="small muted">(Muster, durch Komma getrennt, z. B. <span class="mono">*-portable.zip</span>)</span> <input name="rel_include" value="{{.Include}}" class="mono" spellcheck="false"></label>
+      <label>Nie laden <span class="small muted">(Muster)</span> <input name="rel_exclude" value="{{.Exclude}}" class="mono" spellcheck="false"></label>
+    </div>
+  </details>
+  {{if eq .Mode "add"}}
+  <label>Neueste Releases behalten <input name="rel_keep" class="short" inputmode="numeric" value="{{.Keep}}"> <span class="small muted">Vorgabe: {{.KeepFrom}}; ältere bleiben ohne Dateien in der Liste</span></label>
+  {{end}}
+  {{if and (eq .Mode "add") .Releases}}
+  <details{{if .Pinned}} open{{end}}><summary class="small">Bestimmte Versionen behalten (wie Favoriten){{if .Pinned}} – {{len .Pinned}} gewählt{{end}}</summary>
+    <p class="small muted">Etwa die letzte Version vor einem Bruch. Ihre Dateien bleiben unabhängig von der Anzahl oben; die Auswahl der Plattformen gilt auch für sie.</p>
+    <div class="pin-list">{{range $i, $r := .Releases}}{{if lt $i 100}}<label class="check"><input type="checkbox" name="rel_pin" value="{{$r.Tag}}"{{if index $f.Pinned $r.Tag}} checked{{end}}> <span class="mono">{{$r.Tag}}</span> <span class="small muted">{{with $r.Published}}{{date .}} · {{end}}{{len $r.Assets}} Dateien</span></label>{{end}}{{end}}</div>
+  </details>
+  {{end}}
+  {{with .Estimate}}<div class="small {{if gt .Bytes 524288000}}warn{{else}}muted{{end}}">{{if eq $f.Mode "repo"}}Mit dieser Auswahl: neueste {{.Keep}} Releases{{else}}Neueste {{.Keep}} Releases{{end}}{{if $f.Pinned}} und {{len $f.Pinned}} festgehaltene{{end}}: <strong>{{.Files}} Dateien, etwa {{size .Bytes}}</strong>{{if lt .Files .AllFiles}} statt {{.AllFiles}} Dateien, {{size .AllBytes}} ohne Auswahl{{end}}</div>{{end}}
+</fieldset>
+{{end}}{{end}}
+
+{{define "repo-release-files"}}{{$d := .}}{{$id := .Repo.R.ID}}
+<form method="post" action="/repo/{{$id}}/release-files" class="card stack" id="release-files">
+  <h2 class="h3">Release-Dateien</h2>
+  <p class="small muted">Welche Dateien der Releases geladen werden. Angeheftete Versionen behalten ihre Dateien unabhängig von der Anzahl; die Auswahl gilt auch für sie.</p>
+  {{template "release-choice" .ReleaseForm}}
+  {{if .Unwanted}}<div class="alert small">{{len .Unwanted}} Releases enthalten gespeicherte Dateien, die nicht mehr zur Auswahl passen ({{size .UnwantedSize}}). <a href="/repo/{{$id}}?tab=settings&amp;unwanted=1#release-files">Ansehen</a></div>{{end}}
+  <div><button class="btn btn-primary" type="submit">Auswahl speichern</button></div>
+</form>
+{{if .AskUnwanted}}
+<div class="modal-backdrop">
+<div class="card dialog stack modal" role="dialog" aria-modal="true" aria-labelledby="unwanted-title">
+  <h2 class="h3" id="unwanted-title">Gespeicherte Dateien passen nicht mehr</h2>
+  <p class="small">Diese Dateien wurden früher geladen und passen nicht zur neuen Auswahl – zusammen {{size .UnwantedSize}}:</p>
+  <ul class="small">{{range .Unwanted}}<li>{{.Label}} · {{size .Size}} <span class="muted">({{.Reason}})</span></li>{{end}}</ul>
+  {{if .CanAdmin}}
+  <form method="post" action="/repo/{{$id}}/unwanted" class="row-end">
+    {{range .Unwanted}}<input type="hidden" name="item" value="{{.ID}}">{{end}}
+    <a class="btn" href="/repo/{{$id}}?tab=settings#release-files">Auswahl anpassen</a>
+    <button class="btn" type="submit" name="action" value="keep">Behalten</button>
+    <button class="btn btn-primary" type="submit" name="action" value="trash">In den Papierkorb</button>
+  </form>
+  <p class="small muted">Aus dem Papierkorb lässt sich alles wiederherstellen. Ohne Entscheidung bleiben die Dateien und erscheinen unter „Aufräumen“.</p>
+  {{else}}
+  <div class="row-end"><a class="btn btn-primary" href="/repo/{{$id}}?tab=settings#release-files">Auswahl anpassen</a></div>
+  <p class="small muted">Die Dateien bleiben. Ein Verwalter kann sie unter „Aufräumen“ in den Papierkorb geben.</p>
+  {{end}}
+</div>
+</div>
+{{end}}
+{{end}}
+
+{{define "profile"}}{{template "head" .}}{{$d := .Data}}
+<div class="dialog-page">
+<form method="post" action="/settings/profile" class="card dialog stack">
+  <h1>{{if $d.New}}Neues Release-Profil{{else}}Release-Profil „{{$d.Name}}“{{end}}</h1>
+  {{if $d.New}}<label>Name <input name="name" required maxlength="64" placeholder="z. B. Desktop" autofocus></label>
+  {{else}}<input type="hidden" name="orig" value="{{$d.Name}}"><p class="small muted">Der Name bleibt fest – Repos verweisen auf ihn.</p>{{end}}
+  <label>Neueste Releases behalten <input name="keep" class="short" inputmode="numeric" value="{{$d.Keep}}" placeholder="{{$d.Global}}"> <span class="small muted">leer = global ({{$d.Global}})</span></label>
+  {{template "release-choice" $d.Form}}
+  <p class="small muted">Alles angehakt heißt „alle“ – auch für Systeme oder Formate, die ein Projekt später neu anbietet. Bietet ein Projekt ein gewähltes Format nicht an, lädt es für dieses System nichts.</p>
+  <div class="row-end">
+    <a class="btn" href="/settings#release-profile">Abbrechen</a>
+    <button class="btn btn-primary" type="submit">Speichern</button>
+  </div>
+</form>
+{{if not $d.New}}
+<form method="post" action="/settings/profile/delete" class="card dialog row-wrap">
+  <input type="hidden" name="name" value="{{$d.Name}}">
+  <span class="small muted">Repos, die dieses Profil nutzen, folgen danach der Vorgabe.</span>
+  <button class="btn btn-danger" type="submit">Profil entfernen</button>
+</form>
+{{end}}
+</div>
+{{template "foot" .}}{{end}}

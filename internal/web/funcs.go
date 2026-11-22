@@ -40,6 +40,25 @@ var (
 	}
 )
 
+// Labels of the choice of release files (D-035).
+var (
+	osText = map[string]string{
+		"windows": "Windows", "macos": "macOS", "linux": "Linux", "bsd": "BSD", "android": "Android", "ios": "iOS",
+		"any": "Plattformunabhängig (Prüfsummen, Quellcode, Web …)",
+	}
+	archText = map[string]string{
+		"x64": "x64 (Intel/AMD, 64 Bit)", "arm64": "ARM64 (Apple Silicon, Snapdragon, Raspberry Pi 4/5)", "x86": "x86 (32 Bit)",
+		"arm": "ARM 32 Bit", "riscv64": "RISC-V", "other": "Sonstige (s390x, PowerPC …)",
+	}
+	formatText = map[string]string{
+		"appimage": "AppImage", "deb": ".deb (Debian, Ubuntu)", "rpm": ".rpm (Fedora, openSUSE)", "flatpak": "Flatpak",
+		"snap": "Snap", "archpkg": "Arch-Paket", "msi": "Installer (.msi)", "msix": "MSIX/Store", "exe": "Programm/Installer (.exe)",
+		"dmg": "Abbild (.dmg)", "pkg": "Installer (.pkg)", "apk": "APK", "aab": "App-Bundle (.aab)", "ipa": "IPA",
+		"archive": "Archiv/portabel (zip, tar.gz …)", "script": "Installationsskript", "symbols": "Debug-Symbole",
+		"source": "Quellcode", "other": "Sonstige",
+	}
+)
+
 func (s *Server) funcs() template.FuncMap {
 	return template.FuncMap{
 		"size":        humanSize,
@@ -53,6 +72,9 @@ func (s *Server) funcs() template.FuncMap {
 		"relText":     func(s string) string { return orKey(relText, s) },
 		"relBackText": func(s string) string { return orKey(relBackText, s) },
 		"relSource":   func(s string) string { return orKey(relSourceText, s) },
+		"osText":      func(s string) string { return orKey(osText, s) },
+		"archText":    func(s string) string { return orKey(archText, s) },
+		"formatText":  func(s string) string { return orKey(formatText, s) },
 		"join":        strings.Join,
 		"has":         func(list []string, v string) bool { return slices.Contains(list, v) },
 		"hasPrefix":   strings.HasPrefix,

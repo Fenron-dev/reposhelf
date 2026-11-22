@@ -113,6 +113,11 @@ created: 2026-11-08T10:00:00Z
 | `retention.snapshots.every` | Dauer | nein | `null` (erben) | > 0 |
 | `retention.snapshots.keep_for` | Dauer | nein | `null` (erben) | > 0 |
 | `retention.force_push_backups.keep_for` | Dauer | nein | `null` (erben) | > 0 |
+| `release_files.profile` | Text | nein | – (Vorgabe-Profil) | Name eines Release-Profils aus `reposhelf.yaml` (D-035); nicht zusammen mit eigenen `os`/`arch`/`formats`. Unbekannter Name → Vorgabe-Profil |
+| `release_files.os` | Liste | nein | `[]` (alle) | eigene Auswahl: `windows`, `macos`, `linux`, `bsd`, `android`, `ios`, `any` (plattformunabhängig) |
+| `release_files.arch` | Liste | nein | `[]` (alle) | `x64`, `arm64`, `x86`, `arm`, `riscv64`, `other`; Dateien ohne Prozessor im Namen und macOS-„universal“ passen immer |
+| `release_files.formats` | Liste | nein | `[]` (alle) | `system/format`, z. B. `linux/appimage`, `windows/msi`; ein System ohne Eintrag behält alle Formate. Formate: `appimage`, `deb`, `rpm`, `flatpak`, `snap`, `archpkg`, `msi`, `msix`, `exe`, `dmg`, `pkg`, `apk`, `aab`, `ipa`, `archive`, `script`, `symbols`, `source`, `other` |
+| `release_files.include` / `.exclude` | Liste | nein | `[]` | Namensmuster (`*`, `?`, Groß/klein egal); `include` gewinnt immer, `exclude` vor dem Rest; auch zusammen mit `profile` (ergänzen das Profil) |
 | `buildable.enabled` | ja/nein | nein | `false` | |
 | `buildable.capsules_keep` | Zahl | nein | `null` (erben) | ≥ 0 |
 | `buildable.platforms` | Liste | nein | `[]` | Python-Pakete zusätzlich für diese Plattformen sichern (D-026): `linux/amd64`, `linux/arm64`, `windows/amd64`, `darwin/arm64`, `darwin/amd64` |
@@ -169,6 +174,7 @@ bleiben, auch wenn die Liste umsortiert wird.
 |---|---|---|
 | 1 | T-0.3 | erste Version |
 | 1 | 2026-11-08 | ergänzt (ohne neue Nummer, nur optionale Felder mit Standardwert): `include.actions`, `retention.actions_keep` – ältere Dateien ohne diese Felder bleiben gültig |
+| 1 | 2026-11-22 | ergänzt (ohne neue Nummer, optional): `release_files` (D-035) – fehlt es, gilt das Vorgabe-Profil; ältere Dateien bleiben gültig und werden ohne das Feld geschrieben |
 
 Neue Schema-Version:
 

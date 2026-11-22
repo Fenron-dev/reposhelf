@@ -9,11 +9,13 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/Fenron-dev/reposhelf/internal/config"
 	"github.com/Fenron-dev/reposhelf/internal/repometa"
 	"github.com/Fenron-dev/reposhelf/internal/sources"
 	"github.com/Fenron-dev/reposhelf/internal/store"
@@ -605,5 +607,106 @@ func TestActionsArtifacts(t *testing.T) {
 	rep2, _ := l2.Sync(ctx, r2.R().ID, "t")
 	if !strings.Contains(strings.Join(rep2.Notes, " "), "Token") {
 		t.Errorf("notes = %v", rep2.Notes)
+	}
+}
+
+// TestReleaseFiles: a profile limits the downloaded files; changing the
+// choice proposes the files that no longer match, trash and restore work
+// per file (D-035).
+func TestReleaseFiles(t *testing.T) {
+	ctx := context.Background()
+	f := testutil.NewForge(t)
+	up := f.NewRepo("o", "app")
+	files := func(names ...string) map[string]string {
+		m := map[string]string{}
+		for _, n := range names {
+			m[n] = "content of " + n
+		}
+		return m
+	}
+	up.AddReleaseFiles("v0.8", "2025-01-01T00:00:00Z", files("app-0.8-windows-x64.msi"))
+	up.AddReleaseFiles("v0.9", "2025-06-01T00:00:00Z", files("app-0.9-linux-x86_64.AppImage", "app-0.9-windows-x64.msi"))
+	up.AddReleaseFiles("v1", "2026-01-01T00:00:00Z", files("app-1.0-linux-x86_64.AppImage", "app-1.0-linux-x86_64.AppImage.asc",
+		"app-1.0-linux-aarch64.AppImage", "app-1.0-linux-x86_64.deb", "app-1.0-windows-x64.msi", "SHA256SUMS.txt"))
+	l, _ := openLib(t, f)
+	cfg := l.Config()
+	one := 1
+	cfg.ReleaseProfiles = []config.ReleaseProfile{{Name: "Linux", ReleasesKeep: &one, OS: []string{"linux", "any"}, Arch: []string{"x64"}, Formats: []string{"linux/appimage"}}}
+	cfg.DefaultReleaseProfile = "Linux"
+	if err := l.SaveConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+
+	// The estimate of the add dialog follows the default profile; the
+	// pinned v0.9 keeps only its files that match the choice too.
+	est, err := l.EstimateLink(ctx, f.URL("o", "app"), ReleaseChoice{Pinned: []string{"v0.9"}})
+	if err != nil || est.Keep != 1 || est.Profile != "Linux" || est.Files != 4 || est.AllFiles != 8 {
+		t.Fatalf("estimate = %+v, %v", est, err)
+	}
+
+	r, err := l.Add(ctx, AddRequest{URL: f.URL("o", "app"), Wait: true, Releases: ReleaseChoice{Pinned: []string{"v0.9"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored := func(tag string) []string {
+		t.Helper()
+		var out []string
+		rels, _ := l.Releases(ctx, r.R().ID)
+		for _, rel := range rels {
+			if rel.Tag == tag {
+				for _, a := range rel.Stored {
+					out = append(out, a.Name)
+				}
+			}
+		}
+		slices.Sort(out)
+		return out
+	}
+	if got := stored("v1"); !slices.Equal(got, []string{"SHA256SUMS.txt", "app-1.0-linux-x86_64.AppImage", "app-1.0-linux-x86_64.AppImage.asc"}) {
+		t.Errorf("v1 = %v", got)
+	}
+	if got := stored("v0.9"); !slices.Equal(got, []string{"app-0.9-linux-x86_64.AppImage"}) {
+		t.Errorf("pinned v0.9 = %v", got)
+	}
+	if got := stored("v0.8"); len(got) != 0 {
+		t.Errorf("v0.8 = %v", got)
+	}
+	if plan, _ := l.UnwantedFiles(ctx, r.R().ID); len(plan) != 0 {
+		t.Errorf("unwanted right after sync: %+v", plan)
+	}
+
+	// Narrow the choice for this repository: the AppImage signature and
+	// the checksum list no longer match.
+	own := &repometa.ReleaseFiles{OS: []string{"linux"}, Arch: []string{"x64"}, Formats: []string{"linux/appimage"}, Exclude: []string{"*.asc"}}
+	if _, err := l.SetReleaseFiles(ctx, r.R().ID, own, nil, "t"); err != nil {
+		t.Fatal(err)
+	}
+	items, err := l.UnwantedFiles(ctx, r.R().ID)
+	if err != nil || len(items) != 1 || items[0].Kind != ItemReleaseFiles || !strings.Contains(items[0].Label, "v1: 2 Dateien") {
+		t.Fatalf("unwanted = %+v, %v", items, err)
+	}
+	if n, err := l.MoveToTrash(ctx, []string{items[0].ID}, "t"); err != nil || n != 1 {
+		t.Fatalf("trash = %d, %v", n, err)
+	}
+	if got := stored("v1"); !slices.Equal(got, []string{"app-1.0-linux-x86_64.AppImage"}) {
+		t.Errorf("after trash = %v", got)
+	}
+	trash, _ := l.Trash()
+	if len(trash) != 1 {
+		t.Fatalf("trash = %+v", trash)
+	}
+	if err := l.Restore(ctx, trash[0].ID, "t"); err != nil {
+		t.Fatal(err)
+	}
+	if got := stored("v1"); len(got) != 3 {
+		t.Errorf("after restore = %v", got)
+	}
+
+	// Back to a profile; an unknown one is refused.
+	if _, err := l.SetReleaseFiles(ctx, r.R().ID, &repometa.ReleaseFiles{Profile: "Gibtsnicht"}, nil, "t"); !errors.Is(err, ErrInvalid) {
+		t.Errorf("unknown profile = %v", err)
+	}
+	if ret := l.EffectiveRetention(r); ret.Profile != "Linux" || ret.ReleasesKeep != 1 || ret.From["releases_keep"] != "Profil Linux" {
+		t.Errorf("retention = %+v", ret)
 	}
 }

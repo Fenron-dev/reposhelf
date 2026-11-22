@@ -37,6 +37,10 @@ func TestValidateAcceptsValid(t *testing.T) {
 		},
 		"override":  func(r *Repo) { r.StatusOverride = ptrTo(UpstreamArchived) },
 		"keep zero": func(r *Repo) { r.Retention.ReleasesKeep = ptrTo(0) },
+		"release files": func(r *Repo) {
+			r.ReleaseFiles = &ReleaseFiles{OS: []string{"linux", "any"}, Arch: []string{"x64"}, Formats: []string{"linux/appimage"}}
+		},
+		"release profile": func(r *Repo) { r.ReleaseFiles = &ReleaseFiles{Profile: "Nur Desktop", Exclude: []string{"*.asc"}} },
 		"host with port": func(r *Repo) {
 			r.Source.Host = "gitea.local:3000"
 			r.Source.URL = "http://gitea.local:3000/Fenron-dev/Fero"
@@ -62,6 +66,10 @@ func TestValidateRejects(t *testing.T) {
 		mutate      func(r *Repo)
 	}{
 		{"schema", "schema", func(r *Repo) { r.Schema = 2 }},
+		{"release os", "release_files", func(r *Repo) { r.ReleaseFiles = &ReleaseFiles{OS: []string{"plan9"}} }},
+		{"release pattern", "release_files", func(r *Repo) { r.ReleaseFiles = &ReleaseFiles{Include: []string{"[x"}} }},
+		{"profile and own", "release_files", func(r *Repo) { r.ReleaseFiles = &ReleaseFiles{Profile: "A", OS: []string{"linux"}} }},
+		{"profile name", "release_files.profile", func(r *Repo) { r.ReleaseFiles = &ReleaseFiles{Profile: " A"} }},
 		{"id empty", "id", func(r *Repo) { r.ID = "" }},
 		{"id lower case", "id", func(r *Repo) { r.ID = strings.ToLower(r.ID) }},
 		{"id with I", "id", func(r *Repo) { r.ID = "01JC8QH3K7Z9X2M4N6P8R0T2VI" }},

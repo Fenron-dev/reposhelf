@@ -452,3 +452,31 @@ Bericht und werden bei Bedarf als eigene Aufgaben angelegt.
 **Begründung:** Wunsch von Dennis; deckt sich mit der Empfehlung des Berichts.
 
 **Folgen:** Aufgaben T-9.21–T-9.24.
+
+### D-035 · Release-Dateien nach Plattform auswählen, Release-Profile
+2026-11-22 · gültig (Wunsch von Dennis)
+
+**Entscheidung:**
+1. Welche Release-Dateien geladen werden, wählt man nach **Betriebssystem**, **Prozessor**
+   und je Betriebssystem nach **Format** (AppImage, deb, msi, portabel …). RepoShelf erkennt
+   das am Dateinamen; angeboten wird nur, was die Releases eines Repos enthalten.
+   Begleitdateien (Signaturen, Prüfsummen, `.zsync`) folgen ihrer Hauptdatei. Zusätzlich
+   lassen sich Dateien per Namensmuster ein- oder ausschließen.
+2. **Release-Profile** unter Einstellungen bündeln eine Auswahl und die Zahl der behaltenen
+   Releases. „Standard“ ist fest eingebaut und entspricht dem bisherigen Verhalten (alle
+   Dateien, globale Zahl). Eines der Profile ist Vorgabe für neue Repos; beim Hinzufügen
+   wählt man ein anderes oder passt die Auswahl für das Repo an. Ein Repo verweist auf sein
+   Profil: Ändert man das Profil, folgen alle Repos, die es nutzen.
+3. Beim Hinzufügen lassen sich **bestimmte Versionen behalten** (z. B. die letzte vor einem
+   Bruch); sie werden wie angeheftete Versionen (Favoriten) behandelt. Die
+   Plattform-Auswahl gilt auch für sie.
+4. Passen nach einer Änderung gespeicherte Dateien nicht mehr zur Auswahl, fragt ein
+   **Dialog**: Dateien in den Papierkorb geben oder Auswahl/Profil anpassen. Ohne Antwort
+   bleiben sie und erscheinen als Vorschlag unter „Aufräumen“ (Invariante 2).
+
+**Begründung:** Große Projekte liefern je Release Dutzende Dateien für Plattformen, die man
+nicht braucht (PhotoCraft: 52 Dateien, etwa 15 Linux-Pakete, ca. 5 GB je Release).
+
+**Folgen:** Neues optionales Feld `release_files` in `repo.yaml` (ohne neue Schemanummer),
+`release_profiles` und `default_release_profile` in `reposhelf.yaml`. Aufgaben T-9.26–T-9.28.
+

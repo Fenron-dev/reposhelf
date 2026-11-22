@@ -122,7 +122,31 @@ Systems (D-032). Nur am Rechner selbst, nicht übers Netz oder per MCP. CLI:
 
 **Achtung Speicher:** „Releases mitsichern“ lädt die Dateien der neuesten
 Releases (Standard: 5) – bei Projekten mit vielen Plattform-Builds können das
-schnell Hunderte MB sein. Einstellbar global, je Sammlung und je Repo.
+schnell Hunderte MB sein. Einstellbar global, je Sammlung, je Release-Profil und je Repo.
+
+**Release-Dateien auswählen (D-035):** Viele Projekte liefern je Release Dutzende
+Dateien (PhotoCraft: 52, darunter etwa 15 Linux-Pakete). Beim Hinzufügen zeigt der
+Block „Release-Dateien“, was die Releases enthalten, und lässt nach **Betriebssystem**,
+**Prozessor** und je System nach **Format** wählen (AppImage, .deb, Installer, portabel
+…); darunter steht, wie viel das lädt – mit und ohne Auswahl. RepoShelf erkennt das am
+Dateinamen; Dateien ohne Prozessor im Namen und macOS-„universal“ passen zu jeder
+Prozessor-Wahl, Signaturen und Prüfsummen (`.asc`, `.sig`, `.sha256`, `.zsync`) folgen
+ihrer Datei. Unter „Bestimmte Dateien“ lassen sich Muster ergänzen (`*-portable.zip`
+zusätzlich, `*.oci*` nie). Ebenfalls dort: wie viele neueste Releases ihre Dateien
+behalten und **bestimmte Versionen behalten** (z. B. die letzte vor einem Bruch) – sie
+werden angeheftet wie Favoriten; die Plattform-Auswahl gilt auch für sie.
+
+**Release-Profile** (Einstellungen → Release-Profile) bündeln eine Auswahl und die Zahl
+der Releases. „Standard“ ist fest (alle Dateien, globale Zahl); eines der Profile ist
+die **Vorgabe** für neue Repos. Ein Repo verweist auf sein Profil: Wer das Profil
+ändert, ändert es für alle Repos, die es nutzen. Weicht die Auswahl eines Repos vom
+Profil ab, wird sie als eigene Auswahl des Repos gespeichert (`release_files` in
+`repo.yaml`). Ändern lässt sich das jederzeit in Repo → Einstellungen → Release-Dateien.
+
+Passen nach einer Änderung schon geladene Dateien nicht mehr, fragt ein Dialog: **in
+den Papierkorb** (wiederherstellbar), **behalten** (nicht mehr vorschlagen) oder die
+Auswahl anpassen. Ohne Antwort bleiben sie und erscheinen unter „Aufräumen“. CLI:
+`reposhelf add <link> --profile Desktop --keep 3 --pin v1.2`.
 
 **README-Bilder:** Bilder, die ein README von fremden Servern einbindet (Logos,
 Screenshots, Badges), sichert RepoShelf beim Abgleich mit (höchstens 30 je Repo, je

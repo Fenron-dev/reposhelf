@@ -123,6 +123,7 @@
   <div class="card">{{template "activity-list" (dict "Acts" $d.Activity "Names" (dict))}}</div>
 {{else if eq $d.Tab "settings"}}
   {{template "repo-settings" $d}}
+  {{if $d.ReleaseForm}}{{template "repo-release-files" $d}}{{end}}
   {{if $d.CanAdmin}}{{template "repo-revive" $d}}{{end}}
 {{end}}
 </section>

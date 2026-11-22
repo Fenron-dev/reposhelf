@@ -299,3 +299,30 @@ func TestSchemaDocExample(t *testing.T) {
 		t.Errorf("example is not in canonical form:\n%s", out)
 	}
 }
+
+// TestReleaseFiles: files of the previous version (without release_files)
+// stay as they are; the new field is written, read back and keeps
+// unknown keys inside it (D-035).
+func TestReleaseFiles(t *testing.T) {
+	d := mustParse(t, mustReadFixture(t, "schema1-hand.yaml"))
+	if d.Repo.ReleaseFiles != nil {
+		t.Fatal("old file has release files")
+	}
+	assertNotContains(t, mustMarshal(t, d), "release_files")
+
+	d.Repo.ReleaseFiles = &ReleaseFiles{OS: []string{"windows", "linux"}, Arch: []string{"x64"}, Formats: []string{"linux/appimage"}, Include: []string{"*-portable.zip"}}
+	out := mustMarshal(t, d)
+	assertContains(t, out, "release_files:\n  os: [windows, linux]\n  arch: [x64]\n  formats: [linux/appimage]\n  include: ['*-portable.zip']")
+	withUnknown := bytes.Replace(out, []byte("  arch: [x64]\n"), []byte("  arch: [x64]\n  future: 1\n"), 1)
+	again := mustParse(t, withUnknown)
+	if f := again.Repo.ReleaseFiles; f == nil || len(f.OS) != 2 || f.Formats[0] != "linux/appimage" {
+		t.Fatalf("read back = %+v", f)
+	}
+	again.Repo.ReleaseFiles.Arch = nil
+	assertContains(t, mustMarshal(t, again), "  future: 1")
+
+	again.Repo.ReleaseFiles = &ReleaseFiles{Profile: "Desktop"}
+	out = mustMarshal(t, again)
+	assertContains(t, out, "  profile: Desktop\n", "  future: 1")
+	assertNotContains(t, out, "linux/appimage")
+}

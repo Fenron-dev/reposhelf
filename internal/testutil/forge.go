@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -235,6 +236,27 @@ func (r *Repo) AddRelease(tag, published string, assetName, content string) {
 	key := r.Owner + "/" + r.Name
 	rel := map[string]any{"tag_name": tag, "name": "Version " + tag, "body": "Änderungen in " + tag, "published_at": published,
 		"assets": []map[string]any{{"name": assetName, "size": len(content), "browser_download_url": f.Server.URL + "/files/" + path}}}
+	f.Releases[key] = append([]map[string]any{rel}, f.Releases[key]...)
+}
+
+// AddReleaseFiles publishes a release with several assets (name → content).
+func (r *Repo) AddReleaseFiles(tag, published string, files map[string]string) {
+	f := r.f
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	names := make([]string, 0, len(files))
+	for n := range files {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	var assets []map[string]any
+	for _, n := range names {
+		path := fmt.Sprintf("%s/%s/%s/%s", r.Owner, r.Name, tag, n)
+		f.Files[path] = []byte(files[n])
+		assets = append(assets, map[string]any{"name": n, "size": len(files[n]), "browser_download_url": f.Server.URL + "/files/" + path})
+	}
+	key := r.Owner + "/" + r.Name
+	rel := map[string]any{"tag_name": tag, "name": "Version " + tag, "body": "Änderungen in " + tag, "published_at": published, "assets": assets}
 	f.Releases[key] = append([]map[string]any{rel}, f.Releases[key]...)
 }
 
