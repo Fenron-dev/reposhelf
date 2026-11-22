@@ -19,18 +19,16 @@ import (
 	"time"
 
 	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer"
 	"github.com/yuin/goldmark/renderer/html"
-	gtext "github.com/yuin/goldmark/text"
-	"github.com/yuin/goldmark/util"
 
 	"github.com/Fenron-dev/reposhelf/internal/auth"
 	"github.com/Fenron-dev/reposhelf/internal/buildinfo"
 	"github.com/Fenron-dev/reposhelf/internal/core"
 	"github.com/Fenron-dev/reposhelf/internal/gitcli"
+	"github.com/Fenron-dev/reposhelf/internal/htmlsafe"
 	"github.com/Fenron-dev/reposhelf/internal/sources"
 	"github.com/Fenron-dev/reposhelf/internal/store"
 )
@@ -395,23 +393,33 @@ func withMsg(to, key, msg string) string {
 // renderMarkdown turns repository Markdown into safe HTML. Relative links
 // point into the code view of repoID, relative images to the raw view.
 func (s *Server) renderMarkdown(src []byte, repoID, ref, baseDir string) template.HTML {
-	var buf bytes.Buffer
 	rw := &linkRewriter{repoID: repoID, ref: ref, base: baseDir}
-	opts := []renderer.Option{html.WithXHTML()}
-	if repoID == "" {
+	if repoID != "" {
+		if r, err := s.Lib.Get(context.Background(), repoID); err == nil {
+			rw.assets = s.Lib.ReadmeAssets(r)
+		}
+	}
+	return rw.render(src)
+}
+
+// render turns Markdown into safe HTML. HTML in READMEs is rendered
+// (centred logos, <img width>, <details>) and then cleaned as a whole by
+// htmlsafe, which also points links and images into RepoShelf (R-029).
+func (t *linkRewriter) render(src []byte) template.HTML {
+	opts := []renderer.Option{html.WithXHTML(), html.WithUnsafe()}
+	if t.repoID == "" {
 		opts = append(opts, html.WithHardWraps()) // free notes
-	} else if r, err := s.Lib.Get(context.Background(), repoID); err == nil {
-		rw.assets = s.Lib.ReadmeAssets(r)
 	}
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.GFM, extension.Footnote),
-		goldmark.WithParserOptions(parser.WithAutoHeadingID(), parser.WithASTTransformers(util.Prioritized(rw, 100))),
+		goldmark.WithParserOptions(parser.WithAutoHeadingID()),
 		goldmark.WithRendererOptions(opts...),
 	)
+	var buf bytes.Buffer
 	if err := md.Convert(src, &buf); err != nil {
-		return template.HTML("<pre>" + template.HTMLEscapeString(string(src)) + "</pre>")
+		return template.HTML("<pre>" + template.HTMLEscapeString(string(src)) + "</pre>") //nolint:gosec // escaped
 	}
-	return template.HTML(buf.String()) //nolint:gosec // goldmark without WithUnsafe escapes raw HTML and filters dangerous URLs
+	return template.HTML(htmlsafe.Clean(buf.String(), htmlsafe.Options{Link: t.link, Image: t.image})) //nolint:gosec // cleaned to an allowlist
 }
 
 type linkRewriter struct {
@@ -424,32 +432,26 @@ type linkRewriter struct {
 // externalImage stands in for an image that was not kept.
 const externalImage = "/static/external-image.svg"
 
-func (t *linkRewriter) Transform(doc *ast.Document, _ gtext.Reader, _ parser.Context) {
-	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		if !entering {
-			return ast.WalkContinue, nil
+// link points relative links of a repository's Markdown into RepoShelf.
+func (t *linkRewriter) link(dest string) string {
+	if t.repoID == "" {
+		return dest
+	}
+	return t.rewrite(dest, "blob")
+}
+
+// image serves kept images from RepoShelf and replaces other foreign ones.
+func (t *linkRewriter) image(dest string) (string, string) {
+	switch {
+	case strings.HasPrefix(dest, "https://") || strings.HasPrefix(dest, "http://") || strings.HasPrefix(dest, "//"):
+		if a, ok := t.assets[dest]; ok && t.repoID != "" {
+			return "/repo/" + t.repoID + "/readme-asset/" + url.PathEscape(a.File), ""
 		}
-		switch v := n.(type) {
-		case *ast.Link:
-			if t.repoID != "" {
-				v.Destination = []byte(t.rewrite(string(v.Destination), "blob"))
-			}
-		case *ast.Image:
-			dest := string(v.Destination)
-			switch {
-			case strings.HasPrefix(dest, "https://") || strings.HasPrefix(dest, "http://") || strings.HasPrefix(dest, "//"):
-				if a, ok := t.assets[dest]; ok && t.repoID != "" {
-					v.Destination = []byte("/repo/" + t.repoID + "/readme-asset/" + url.PathEscape(a.File))
-				} else {
-					v.Destination = []byte(externalImage)
-					v.Title = []byte("Externes Bild, nicht gesichert: " + dest)
-				}
-			case t.repoID != "":
-				v.Destination = []byte(t.rewrite(dest, "raw"))
-			}
-		}
-		return ast.WalkContinue, nil
-	})
+		return externalImage, "Externes Bild, nicht gesichert: " + dest
+	case t.repoID != "":
+		return t.rewrite(dest, "raw"), ""
+	}
+	return dest, ""
 }
 
 func (t *linkRewriter) rewrite(dest, kind string) string {
@@ -464,6 +466,11 @@ func (t *linkRewriter) rewrite(dest, kind string) string {
 	}
 	out := "/repo/" + t.repoID + "/" + kind + full + "?ref=" + url.QueryEscape(t.ref)
 	if frag != "" {
+		// Headings of rendered Markdown carry the htmlsafe prefix; line
+		// anchors of code files (#L12) do not.
+		if kind == "blob" && isMarkdown(full) && !strings.HasPrefix(frag, htmlsafe.IDPrefix) {
+			frag = htmlsafe.IDPrefix + frag
+		}
 		out += "#" + frag
 	}
 	return out

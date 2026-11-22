@@ -167,6 +167,41 @@ func TestMirrorProtectsHistory(t *testing.T) {
 	}
 }
 
+// TestReadmeDirs: like GitHub, a README in .github/ wins over the root,
+// and one in docs/ is found when the root has none (R-028).
+func TestReadmeDirs(t *testing.T) {
+	ctx := context.Background()
+	g := testGit(t)
+	up := newUpstream(t, g)
+	os.MkdirAll(filepath.Join(up.dir, "docs"), 0o755)
+	up.commit("docs/README.md", "# docs\n", "docs")
+	mirror := filepath.Join(t.TempDir(), "m.git")
+	g.InitBare(ctx, mirror, up.dir)
+	readme := func() (string, string) {
+		t.Helper()
+		if _, err := g.Mirror(ctx, mirror, up.dir, nil, time.Now()); err != nil {
+			t.Fatal(err)
+		}
+		name, b, err := g.Readme(ctx, mirror, "HEAD", 1000)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return name, string(b)
+	}
+	if name, b := readme(); name != "docs/README.md" || b != "# docs\n" {
+		t.Errorf("docs only = %q %q", name, b)
+	}
+	up.commit("readme.rst", "root\n", "root")
+	if name, _ := readme(); name != "readme.rst" {
+		t.Errorf("root over docs = %q", name)
+	}
+	os.MkdirAll(filepath.Join(up.dir, ".github"), 0o755)
+	up.commit(".github/README.md", "# gh\n", "gh")
+	if name, _ := readme(); name != ".github/README.md" {
+		t.Errorf(".github first = %q", name)
+	}
+}
+
 func TestReadFunctions(t *testing.T) {
 	ctx := context.Background()
 	g := testGit(t)

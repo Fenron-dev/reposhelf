@@ -3,6 +3,7 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -21,11 +22,11 @@ import (
 	"time"
 
 	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
-	"github.com/yuin/goldmark/text"
+	gmhtml "github.com/yuin/goldmark/renderer/html"
 
 	"github.com/Fenron-dev/reposhelf/internal/atomicfile"
+	"github.com/Fenron-dev/reposhelf/internal/htmlsafe"
 )
 
 // ---- README images kept with the repository (V-4, T-9.23, R-023) ----
@@ -103,21 +104,23 @@ func publicIP(ip net.IP) bool {
 	return true
 }
 
-// readmeImageURLs lists the absolute http(s) images of a Markdown text.
+// readmeImageURLs lists the absolute http(s) images of a Markdown text,
+// also those in HTML tags (<img src>), as they are shown (R-029).
 func readmeImageURLs(src []byte) []string {
-	doc := goldmark.New(goldmark.WithExtensions(extension.GFM)).Parser().Parse(text.NewReader(src))
+	var buf bytes.Buffer
+	md := goldmark.New(goldmark.WithExtensions(extension.GFM), goldmark.WithRendererOptions(gmhtml.WithUnsafe()))
+	if md.Convert(src, &buf) != nil {
+		return nil
+	}
 	var out []string
 	seen := map[string]bool{}
-	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		if img, ok := n.(*ast.Image); ok && entering {
-			u := string(img.Destination)
-			if (strings.HasPrefix(u, "https://") || strings.HasPrefix(u, "http://")) && !seen[u] && len(out) < maxReadmeImages {
-				seen[u] = true
-				out = append(out, u)
-			}
+	htmlsafe.Clean(buf.String(), htmlsafe.Options{Image: func(u string) (string, string) {
+		if (strings.HasPrefix(u, "https://") || strings.HasPrefix(u, "http://")) && !seen[u] && len(out) < maxReadmeImages {
+			seen[u] = true
+			out = append(out, u)
 		}
-		return ast.WalkContinue, nil
-	})
+		return u, ""
+	}})
 	return out
 }
 
