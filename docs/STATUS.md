@@ -13,8 +13,8 @@
 ## Aktueller Stand
 
 - **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.6.2` (alles seit v0.2.0, dazu T-9.21–T-9.24, R-028–R-030) zum Test bei Dennis
-- **Letzte Änderung:** 2026-11-22 · README in `docs/`/`.github/` und HTML in READMEs (R-028, R-029)
-- **Nächster Schritt:** Dennis testet `v0.6.2`; offen: T-9.25
+- **Letzte Änderung:** 2026-11-22 · Release-Dateien nach Plattform auswählen, Release-Profile (D-035, T-9.26–T-9.28)
+- **Nächster Schritt:** Dennis testet `v0.6.2`; T-9.26–T-9.28 auf `main`, noch ohne Release; offen: T-9.25
 
 ## Übergabe-Notiz
 
@@ -138,6 +138,18 @@ von `internal/htmlsafe` gefiltert (Positivliste, ids mit `user-content-`, Links/
 Hooks in `web.linkRewriter`). Wer Elemente oder Attribute freigibt: nur in `htmlsafe.allowed`,
 mit Test in `htmlsafe_test.go`. Neu offen: T-9.25 (Hinweisblöcke). Release `v0.6.1`: Prüflauf grün,
 CI rot wegen GO-2026-6860 in `x/net` (R-030) – behoben in `v0.6.2` (Prüflauf und CI grün).
+
+**2026-11-22 · Claude Code (T-9.26–T-9.28, D-035):** Dateinamen-Erkennung in
+`internal/assetclass` (keine Abhängigkeiten; Tests mit echten Namen von PhotoCraft,
+Electron, Obsidian, Ollama, Zed, ripgrep). Wirksame Auswahl in `core.EffectiveRetention`
+(`Files`, `Profile`; Reihenfolge Zahl: global → Sammlung → Profil → Repo). Abgleich filtert in
+`syncReleases`; nicht mehr passende Dateien sind Aufräum-Vorschläge `release_files`
+(`retention.go`). Oberfläche: ein Block `release-choice` (`web/releasechoice.go`,
+`templates/releases.html`) für Hinzufügen, Repo-Einstellungen und Profil-Editor; ob ein Repo
+dem Profil folgt oder eine eigene Auswahl hat, entscheidet, was die Häkchen auswählen. Die
+Release-Liste des Hinzufügen-Dialogs wird 10 Minuten zwischengespeichert (API-Grenze).
+Profilnamen sind nach dem Anlegen fest (Repos verweisen darauf). Im Browser mit PhotoCraft
+geprüft (Profil „Desktop“: 33 statt 156 Dateien, 1,8 statt 8,7 GB).
 
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
@@ -365,9 +377,9 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.23 | V-4 README-Bilder beim Abgleich mitsichern und lokal ausliefern; fremde Bilder sonst nicht laden (behebt R-023) | erledigt | Claude Code | 2026-11-21 | D-034; `0f2b94e` – `meta/…/readme-assets/`, CSP ohne fremde Bilder |
 | T-9.24 | V-5 Repo wiederbeleben: Spiegel mit einem Klick zu GitHub oder Gitea/Forgejo hochladen (Repo anlegen, alle Branches/Tags, Releases mit Dateien) | erledigt | Claude Code | 2026-11-21 | D-034; `fefc576` – Repo → Einstellungen → Wiederbeleben (nur Verwalter) |
 | T-9.25 | GitHub-Hinweisblöcke in READMEs (`> [!NOTE]`, `> [!WARNING]` …) als farbige Hinweise darstellen statt als Zitat mit `[!WARNING]` | offen | | | aufgefallen bei R-029 (sherlock) |
-| T-9.26 | Release-Dateien nach Betriebssystem, Prozessor und Format auswählen (Erkennung am Dateinamen, Begleitdateien folgen, Muster); nur passende Dateien laden | in Arbeit | Claude Code | 2026-11-22 | D-035 |
-| T-9.27 | Release-Profile in den Einstellungen (Standard fest, Vorgabe wählbar); beim Hinzufügen Profil, Anzahl Versionen und bestimmte Versionen (angeheftet) wählen, mit Größenschätzung | in Arbeit | Claude Code | 2026-11-22 | D-035 |
-| T-9.28 | Dialog nach Änderung der Auswahl: nicht mehr passende Dateien in den Papierkorb oder Auswahl anpassen; sonst Vorschlag unter „Aufräumen“ | in Arbeit | Claude Code | 2026-11-22 | D-035 |
+| T-9.26 | Release-Dateien nach Betriebssystem, Prozessor und Format auswählen (Erkennung am Dateinamen, Begleitdateien folgen, Muster); nur passende Dateien laden | erledigt | Claude Code | 2026-11-22 | D-035; `65b3053` – `internal/assetclass` |
+| T-9.27 | Release-Profile in den Einstellungen (Standard fest, Vorgabe wählbar); beim Hinzufügen Profil, Anzahl Versionen und bestimmte Versionen (angeheftet) wählen, mit Größenschätzung | erledigt | Claude Code | 2026-11-22 | D-035; `65b3053` – Einstellungen → Release-Profile; CLI `add --profile --keep --pin` |
+| T-9.28 | Dialog nach Änderung der Auswahl: nicht mehr passende Dateien in den Papierkorb oder Auswahl anpassen; sonst Vorschlag unter „Aufräumen“ | erledigt | Claude Code | 2026-11-22 | D-035; `65b3053` – Repo → Einstellungen → Release-Dateien |
 
 ---
 
@@ -375,6 +387,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-22 · Claude Code · T-9.26–T-9.28 Release-Dateien nach Plattform, Release-Profile, Dialog für nicht mehr passende Dateien (D-035)
 - 2026-11-22 · Claude Code · Release `v0.6.2` mit R-030, Prüflauf und CI grün
 - 2026-11-22 · Claude Code · Release `v0.6.1` (Prüflauf grün); R-030 `x/net` v0.62.0 (govulncheck)
 - 2026-11-22 · Claude Code · R-028 README in `docs/`/`.github/`, R-029 HTML in READMEs gefiltert darstellen (`internal/htmlsafe`); T-9.25 eingetragen
