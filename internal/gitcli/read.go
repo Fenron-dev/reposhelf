@@ -117,23 +117,45 @@ func (g *Git) ReadFile(ctx context.Context, repo, rev, filePath string, limit in
 // readmeNames in order of preference.
 var readmeNames = []string{"readme.md", "readme.markdown", "readme", "readme.txt", "readme.rst", "readme.org"}
 
-// Readme finds and reads the README in the root of rev. name is "" if
-// there is none.
+// readmeDirs are searched in GitHub's order, so the README shown is the
+// one people see on the host (sherlock keeps it in docs/).
+var readmeDirs = []string{".github", "", "docs"}
+
+// Readme finds and reads the README of rev: in .github/, the root or
+// docs/, like GitHub. name is its path ("docs/README.md"), "" if there
+// is none.
 func (g *Git) Readme(ctx context.Context, repo, rev string, limit int64) (name string, content []byte, err error) {
-	entries, err := g.ListTree(ctx, repo, rev, "")
+	root, err := g.ListTree(ctx, repo, rev, "")
 	if err != nil {
 		return "", nil, err
 	}
-	byLower := map[string]string{}
-	for _, e := range entries {
-		if e.Type == "blob" {
-			byLower[strings.ToLower(e.Name)] = e.Name
+	dirs := map[string]bool{"": true}
+	for _, e := range root {
+		if e.Type == "tree" {
+			dirs[e.Name] = true
 		}
 	}
-	for _, n := range readmeNames {
-		if real, ok := byLower[n]; ok {
-			b, err := g.ReadFile(ctx, repo, rev, real, limit)
-			return real, b, err
+	for _, dir := range readmeDirs {
+		if !dirs[dir] {
+			continue
+		}
+		entries := root
+		if dir != "" {
+			if entries, err = g.ListTree(ctx, repo, rev, dir); err != nil {
+				return "", nil, err
+			}
+		}
+		byLower := map[string]string{}
+		for _, e := range entries {
+			if e.Type == "blob" {
+				byLower[strings.ToLower(e.Name)] = e.Path
+			}
+		}
+		for _, n := range readmeNames {
+			if p, ok := byLower[n]; ok {
+				b, err := g.ReadFile(ctx, repo, rev, p, limit)
+				return p, b, err
+			}
 		}
 	}
 	return "", nil, nil

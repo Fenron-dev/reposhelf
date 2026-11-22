@@ -86,3 +86,16 @@ func TestReadmeImages(t *testing.T) {
 		t.Error("path outside the index served")
 	}
 }
+
+// TestReadmeImageURLsHTML: images in HTML tags are kept too, each once
+// and only absolute http(s) ones (R-029).
+func TestReadmeImageURLsHTML(t *testing.T) {
+	src := "<p align=\"center\"><img src=\"images/logo.png\"/></p>\n\n" +
+		"<div><a href=\"https://s.example/go\"><img src=\"https://s.example/banner\" width=\"100%\"></a></div>\n\n" +
+		"![x](https://s.example/banner) ![y](https://i.example/y.png) <img src=\"javascript:x\">\n"
+	got := readmeImageURLs([]byte(src))
+	want := []string{"https://s.example/banner", "https://i.example/y.png"}
+	if strings.Join(got, " ") != strings.Join(want, " ") {
+		t.Errorf("urls = %v, want %v", got, want)
+	}
+}

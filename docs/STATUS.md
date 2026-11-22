@@ -13,8 +13,8 @@
 ## Aktueller Stand
 
 - **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.6.0` (alles seit v0.2.0, dazu T-9.21–T-9.24) zum Test bei Dennis
-- **Letzte Änderung:** 2026-11-21 · Integritätsprüfung, Benachrichtigungen, README-Bilder mitsichern, Wiederbeleben (D-034)
-- **Nächster Schritt:** Dennis testet `v0.6.0`; keine offenen Aufgaben, Befunde oder Fragen
+- **Letzte Änderung:** 2026-11-22 · README in `docs/`/`.github/` und HTML in READMEs (R-028, R-029)
+- **Nächster Schritt:** Dennis testet `v0.6.0` (README-Korrektur auf `main`, noch ohne Release); offen: T-9.25
 
 ## Übergabe-Notiz
 
@@ -131,6 +131,13 @@ Wiederbeleben `internal/core/revive.go` + `internal/sources/publish.go`. Der
 macOS-Schlüsselbund speichert jetzt beliebige Werte (Übergabe als Hex). Noch offen bei
 V-2: Meldungen des Betriebssystems in der Desktop-App (Wails v2 hat dafür keine API).
 
+**2026-11-22 · Claude Code (R-028, R-029):** README-Suche in `gitcli.Readme` folgt GitHub
+(`.github/`, Hauptordner, `docs/`); der Name ist jetzt ein Pfad (`docs/README.md`), relative
+Links/Bilder gelten ab dessen Ordner. Markdown wird mit HTML gerendert und danach als Ganzes
+von `internal/htmlsafe` gefiltert (Positivliste, ids mit `user-content-`, Links/Bilder über
+Hooks in `web.linkRewriter`). Wer Elemente oder Attribute freigibt: nur in `htmlsafe.allowed`,
+mit Test in `htmlsafe_test.go`. Neu offen: T-9.25 (Hinweisblöcke).
+
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
   (T-1.13), der Hinzufügen-Dialog zeigt die erwartete Größe.
@@ -203,6 +210,8 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | R-025 | Dateinamen aus Repos ungequotet in `Content-Disposition` | `internal/web/handlers.go` repoRaw, ServeFileSafe | Hinweis | erledigt `ccc00ea` | Claude Code · 2026-11-11 | Prüfbericht |
 | R-026 | `activity.jsonl` wächst unbegrenzt und wird je Abruf ganz gelesen | `internal/core/events.go` RecentActivity | gering | erledigt `4f01614` | Claude Code · 2026-11-11 | Prüfbericht |
 | R-027 | Laufzeit-Image-Bau ohne Ressourcengrenze; ZIP-Import mit `.git` holt per `git fetch` aus fremdem Ordner | `internal/runner/image.go`, `internal/core/zipimport.go` | Hinweis | erledigt `4f01614` (ZIP neutralisiert; Image-Bau ohne Grenze dokumentiert) | Claude Code · 2026-11-11 | Prüfbericht |
+| R-028 | README wird nur im Hauptordner gesucht; GitHub zeigt auch `.github/README.md` und `docs/README.md` (z. B. sherlock-project/sherlock: „keine README“) | `internal/gitcli/read.go` Readme | mittel | erledigt `6a54ad9` (Reihenfolge wie GitHub: `.github/`, Hauptordner, `docs/`) | Dennis · 2026-11-22 | Test v0.6.0 |
+| R-029 | HTML in READMEs (`<img>`, `<p align>`, `<details>`) wird ganz verworfen: Logos und Bilder fehlen, obwohl GitHub sie zeigt | `internal/web/web.go` renderMarkdown, `internal/core/readmeassets.go` | mittel | erledigt `6a54ad9` (HTML wird gerendert und von `internal/htmlsafe` auf eine Positivliste gefiltert; `<img>`-Bilder werden mitgesichert) | Dennis · 2026-11-22 | Test v0.6.0 |
 
 ---
 
@@ -353,6 +362,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.22 | V-2 Benachrichtigungen: neue Version, Original weg/archiviert, Force-Push, Abgleich dauerhaft fehlgeschlagen, Integritätsschaden – Meldungen in der Oberfläche, Webhook (ntfy, Discord, allgemein), Desktop-Meldung | erledigt | Claude Code | 2026-11-21 | D-034; `8a94f26` – Meldungen-Seite, Webhook ntfy/Discord/JSON (Adresse im Schlüsselbund bzw. `REPOSHELF_NOTIFY_URL`); Betriebssystem-Meldungen der Desktop-App noch nicht |
 | T-9.23 | V-4 README-Bilder beim Abgleich mitsichern und lokal ausliefern; fremde Bilder sonst nicht laden (behebt R-023) | erledigt | Claude Code | 2026-11-21 | D-034; `0f2b94e` – `meta/…/readme-assets/`, CSP ohne fremde Bilder |
 | T-9.24 | V-5 Repo wiederbeleben: Spiegel mit einem Klick zu GitHub oder Gitea/Forgejo hochladen (Repo anlegen, alle Branches/Tags, Releases mit Dateien) | erledigt | Claude Code | 2026-11-21 | D-034; `fefc576` – Repo → Einstellungen → Wiederbeleben (nur Verwalter) |
+| T-9.25 | GitHub-Hinweisblöcke in READMEs (`> [!NOTE]`, `> [!WARNING]` …) als farbige Hinweise darstellen statt als Zitat mit `[!WARNING]` | offen | | | aufgefallen bei R-029 (sherlock) |
 
 ---
 
@@ -360,6 +370,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-22 · Claude Code · R-028 README in `docs/`/`.github/`, R-029 HTML in READMEs gefiltert darstellen (`internal/htmlsafe`); T-9.25 eingetragen
 - 2026-11-21 · Claude Code · T-9.21 Integritätsprüfung, T-9.22 Benachrichtigungen, T-9.23 README-Bilder mitsichern (R-023), T-9.24 Wiederbeleben; Release `v0.6.0`, Prüflauf und CI grün
 
 - 2026-11-21 · Dennis · F-019 entschieden: V-1, V-2, V-4, V-5 (D-034) → T-9.21–T-9.24

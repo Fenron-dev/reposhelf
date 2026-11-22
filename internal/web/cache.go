@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"path"
 	"sync"
 	"time"
 
@@ -115,7 +116,7 @@ func (s *Server) overviewFor(ctx context.Context, repo *core.Repo) overview {
 	if name, b, err := s.Lib.Git.Readme(ctx, mirror, "HEAD", maxView); err == nil && name != "" {
 		ov.ReadmeName = name
 		if isMarkdown(name) {
-			ov.Readme = s.renderMarkdown(b, repo.R().ID, "HEAD", "")
+			ov.Readme = s.renderMarkdown(b, repo.R().ID, "HEAD", path.Dir(name))
 		} else {
 			ov.Readme = template.HTML("<pre>" + template.HTMLEscapeString(string(b)) + "</pre>") //nolint:gosec // escaped
 		}
