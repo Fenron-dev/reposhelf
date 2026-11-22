@@ -12,9 +12,9 @@
 
 ## Aktueller Stand
 
-- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.6.1` (alles seit v0.2.0, dazu T-9.21–T-9.24, R-028/R-029) zum Test bei Dennis
+- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.6.2` (alles seit v0.2.0, dazu T-9.21–T-9.24, R-028–R-030) zum Test bei Dennis
 - **Letzte Änderung:** 2026-11-22 · README in `docs/`/`.github/` und HTML in READMEs (R-028, R-029)
-- **Nächster Schritt:** Dennis testet `v0.6.1` (README-Korrektur); R-030 auf `main`, noch ohne Release; offen: T-9.25
+- **Nächster Schritt:** Dennis testet `v0.6.2`; offen: T-9.25
 
 ## Übergabe-Notiz
 
@@ -137,7 +137,7 @@ Links/Bilder gelten ab dessen Ordner. Markdown wird mit HTML gerendert und danac
 von `internal/htmlsafe` gefiltert (Positivliste, ids mit `user-content-`, Links/Bilder über
 Hooks in `web.linkRewriter`). Wer Elemente oder Attribute freigibt: nur in `htmlsafe.allowed`,
 mit Test in `htmlsafe_test.go`. Neu offen: T-9.25 (Hinweisblöcke). Release `v0.6.1`: Prüflauf grün,
-CI rot wegen GO-2026-6860 in `x/net` (R-030) – behoben auf `main`, braucht ein neues Release.
+CI rot wegen GO-2026-6860 in `x/net` (R-030) – behoben in `v0.6.2` (Prüflauf und CI grün).
 
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
@@ -372,6 +372,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-22 · Claude Code · Release `v0.6.2` mit R-030, Prüflauf und CI grün
 - 2026-11-22 · Claude Code · Release `v0.6.1` (Prüflauf grün); R-030 `x/net` v0.62.0 (govulncheck)
 - 2026-11-22 · Claude Code · R-028 README in `docs/`/`.github/`, R-029 HTML in READMEs gefiltert darstellen (`internal/htmlsafe`); T-9.25 eingetragen
 - 2026-11-21 · Claude Code · T-9.21 Integritätsprüfung, T-9.22 Benachrichtigungen, T-9.23 README-Bilder mitsichern (R-023), T-9.24 Wiederbeleben; Release `v0.6.0`, Prüflauf und CI grün
