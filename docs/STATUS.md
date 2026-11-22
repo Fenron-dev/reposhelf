@@ -12,9 +12,9 @@
 
 ## Aktueller Stand
 
-- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.6.2` (alles seit v0.2.0, dazu T-9.21–T-9.24, R-028–R-030) zum Test bei Dennis
+- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.7.0` (alles seit v0.2.0, dazu T-9.21–T-9.24, T-9.26–T-9.28, R-028–R-030) zum Test bei Dennis
 - **Letzte Änderung:** 2026-11-22 · Release-Dateien nach Plattform auswählen, Release-Profile (D-035, T-9.26–T-9.28)
-- **Nächster Schritt:** Dennis testet `v0.6.2`; T-9.26–T-9.28 auf `main`, noch ohne Release; offen: T-9.25
+- **Nächster Schritt:** Dennis testet `v0.7.0` (Release-Dateien nach Plattform, Release-Profile); offen: T-9.25
 
 ## Übergabe-Notiz
 
@@ -149,7 +149,8 @@ Electron, Obsidian, Ollama, Zed, ripgrep). Wirksame Auswahl in `core.EffectiveRe
 dem Profil folgt oder eine eigene Auswahl hat, entscheidet, was die Häkchen auswählen. Die
 Release-Liste des Hinzufügen-Dialogs wird 10 Minuten zwischengespeichert (API-Grenze).
 Profilnamen sind nach dem Anlegen fest (Repos verweisen darauf). Im Browser mit PhotoCraft
-geprüft (Profil „Desktop“: 33 statt 156 Dateien, 1,8 statt 8,7 GB).
+geprüft (Profil „Desktop“: 33 statt 156 Dateien, 1,8 statt 8,7 GB). Release `v0.7.0`:
+Release-Lauf, Prüflauf (docker, builds, windows) und CI grün.
 
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
@@ -387,6 +388,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-22 · Claude Code · Release `v0.7.0` mit T-9.26–T-9.28, Prüflauf und CI grün
 - 2026-11-22 · Claude Code · T-9.26–T-9.28 Release-Dateien nach Plattform, Release-Profile, Dialog für nicht mehr passende Dateien (D-035)
 - 2026-11-22 · Claude Code · Release `v0.6.2` mit R-030, Prüflauf und CI grün
 - 2026-11-22 · Claude Code · Release `v0.6.1` (Prüflauf grün); R-030 `x/net` v0.62.0 (govulncheck)
