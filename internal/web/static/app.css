@@ -230,6 +230,15 @@ details.edit summary { cursor: pointer; color: var(--accent); margin: 6px 0; }
 .markdown table { width: auto; margin: 12px 0; }
 .markdown th, .markdown td { border: 1px solid var(--border); padding: 6px 10px; }
 .markdown blockquote { border-left: 3px solid var(--border-strong); margin: 0; padding-left: 12px; color: var(--text-2); }
+/* GitHub alert blocks (> [!NOTE] …, T-9.25); the title carries a symbol too. */
+.markdown blockquote.markdown-alert { --alert: var(--border-strong); border-left-color: var(--alert); background: var(--surface-2); border-radius: 0 8px 8px 0; padding: 8px 12px; margin: 12px 0; color: var(--text); }
+.markdown .markdown-alert > :last-child { margin-bottom: 0; }
+.markdown .markdown-alert-title { margin: 0 0 4px; font-weight: 600; color: var(--alert); }
+.markdown blockquote.markdown-alert-note { --alert: var(--kind-mirror); }
+.markdown blockquote.markdown-alert-tip { --alert: var(--ok); }
+.markdown blockquote.markdown-alert-important { --alert: var(--kind-fork); }
+.markdown blockquote.markdown-alert-warning { --alert: var(--warn); }
+.markdown blockquote.markdown-alert-caution { --alert: var(--error); }
 .untrusted-note { margin-bottom: 8px; }
 .commits { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
 .code-head { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; margin-bottom: 12px; }

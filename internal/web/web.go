@@ -420,7 +420,7 @@ func (t *linkRewriter) render(src []byte) template.HTML {
 		opts = append(opts, html.WithHardWraps()) // free notes
 	}
 	md := goldmark.New(
-		goldmark.WithExtensions(extension.GFM, extension.Footnote),
+		goldmark.WithExtensions(extension.GFM, extension.Footnote, alerts{}),
 		goldmark.WithParserOptions(parser.WithAutoHeadingID()),
 		goldmark.WithRendererOptions(opts...),
 	)
