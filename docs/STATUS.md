@@ -13,8 +13,8 @@
 ## Aktueller Stand
 
 - **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.7.0` (alles seit v0.2.0, dazu T-9.21–T-9.24, T-9.26–T-9.28, R-028–R-030) zum Test bei Dennis
-- **Letzte Änderung:** 2026-11-22 · Release-Dateien nach Plattform auswählen, Release-Profile (D-035, T-9.26–T-9.28)
-- **Nächster Schritt:** Dennis testet `v0.7.0` (Release-Dateien nach Plattform, Release-Profile); offen: T-9.25
+- **Letzte Änderung:** 2026-11-24 · GitHub-Hinweisblöcke in READMEs (T-9.25, auf `main`, noch ohne Release)
+- **Nächster Schritt:** Dennis testet `v0.7.0` (Release-Dateien nach Plattform, Release-Profile); offen: R-031
 
 ## Übergabe-Notiz
 
@@ -152,6 +152,12 @@ Profilnamen sind nach dem Anlegen fest (Repos verweisen darauf). Im Browser mit 
 geprüft (Profil „Desktop“: 33 statt 156 Dateien, 1,8 statt 8,7 GB). Release `v0.7.0`:
 Release-Lauf, Prüflauf (docker, builds, windows) und CI grün.
 
+**2026-11-24 · Claude Code (T-9.25):** Hinweisblöcke (`> [!NOTE]` usw.) erkennt ein
+goldmark-Schritt in `internal/web/alert.go` (nur Zitate auf oberster Ebene, Markierung allein in
+der ersten Zeile, danach Inhalt – wie GitHub); Titel deutsch mit Symbol. `htmlsafe` lässt
+`class` nur mit genau diesen Hinweis-Klassen durch (`classRe`), sonst könnten READMEs das
+Aussehen von RepoShelf-Bedienelementen übernehmen. Neu offen: R-031 (CSS-Zwischenspeicher).
+
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
   (T-1.13), der Hinzufügen-Dialog zeigt die erwartete Größe.
@@ -227,6 +233,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | R-028 | README wird nur im Hauptordner gesucht; GitHub zeigt auch `.github/README.md` und `docs/README.md` (z. B. sherlock-project/sherlock: „keine README“) | `internal/gitcli/read.go` Readme | mittel | erledigt `6a54ad9` (Reihenfolge wie GitHub: `.github/`, Hauptordner, `docs/`) | Dennis · 2026-11-22 | Test v0.6.0 |
 | R-029 | HTML in READMEs (`<img>`, `<p align>`, `<details>`) wird ganz verworfen: Logos und Bilder fehlen, obwohl GitHub sie zeigt | `internal/web/web.go` renderMarkdown, `internal/core/readmeassets.go` | mittel | erledigt `6a54ad9` (HTML wird gerendert und von `internal/htmlsafe` auf eine Positivliste gefiltert; `<img>`-Bilder werden mitgesichert) | Dennis · 2026-11-22 | Test v0.6.0 |
 | R-030 | `golang.org/x/net` v0.60.0 hat GO-2026-6860 (quadratischer Aufwand im HTML-Parser); seit R-029 parst `internal/htmlsafe` fremde READMEs damit – präparierte README bremst Seite und Abgleich aus | `go.mod`, `internal/htmlsafe/htmlsafe.go:90` | mittel | erledigt `185f458` (x/net v0.62.0) | CI govulncheck · 2026-11-22 | R-029, v0.6.1 |
+| R-031 | `/static/` wird eine Stunde zwischengespeichert (`public, max-age=3600`), ohne Versionskennung in der Adresse: nach einem Update zeigt der Browser bis zu einer Stunde alte Styles/Skripte zur neuen Seite (bei T-9.25 gesehen: Hinweisblöcke ohne Farbe) | `internal/web/web.go:166` | niedrig | offen | Claude Code · 2026-11-24 | T-9.25 |
 
 ---
 
@@ -377,7 +384,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.22 | V-2 Benachrichtigungen: neue Version, Original weg/archiviert, Force-Push, Abgleich dauerhaft fehlgeschlagen, Integritätsschaden – Meldungen in der Oberfläche, Webhook (ntfy, Discord, allgemein), Desktop-Meldung | erledigt | Claude Code | 2026-11-21 | D-034; `8a94f26` – Meldungen-Seite, Webhook ntfy/Discord/JSON (Adresse im Schlüsselbund bzw. `REPOSHELF_NOTIFY_URL`); Betriebssystem-Meldungen der Desktop-App noch nicht |
 | T-9.23 | V-4 README-Bilder beim Abgleich mitsichern und lokal ausliefern; fremde Bilder sonst nicht laden (behebt R-023) | erledigt | Claude Code | 2026-11-21 | D-034; `0f2b94e` – `meta/…/readme-assets/`, CSP ohne fremde Bilder |
 | T-9.24 | V-5 Repo wiederbeleben: Spiegel mit einem Klick zu GitHub oder Gitea/Forgejo hochladen (Repo anlegen, alle Branches/Tags, Releases mit Dateien) | erledigt | Claude Code | 2026-11-21 | D-034; `fefc576` – Repo → Einstellungen → Wiederbeleben (nur Verwalter) |
-| T-9.25 | GitHub-Hinweisblöcke in READMEs (`> [!NOTE]`, `> [!WARNING]` …) als farbige Hinweise darstellen statt als Zitat mit `[!WARNING]` | offen | | | aufgefallen bei R-029 (sherlock) |
+| T-9.25 | GitHub-Hinweisblöcke in READMEs (`> [!NOTE]`, `> [!WARNING]` …) als farbige Hinweise darstellen statt als Zitat mit `[!WARNING]` | erledigt | Claude Code | 2026-11-24 | `2e7c68b` (aufgefallen bei R-029, sherlock) |
 | T-9.26 | Release-Dateien nach Betriebssystem, Prozessor und Format auswählen (Erkennung am Dateinamen, Begleitdateien folgen, Muster); nur passende Dateien laden | erledigt | Claude Code | 2026-11-22 | D-035; `65b3053` – `internal/assetclass` |
 | T-9.27 | Release-Profile in den Einstellungen (Standard fest, Vorgabe wählbar); beim Hinzufügen Profil, Anzahl Versionen und bestimmte Versionen (angeheftet) wählen, mit Größenschätzung | erledigt | Claude Code | 2026-11-22 | D-035; `65b3053` – Einstellungen → Release-Profile; CLI `add --profile --keep --pin` |
 | T-9.28 | Dialog nach Änderung der Auswahl: nicht mehr passende Dateien in den Papierkorb oder Auswahl anpassen; sonst Vorschlag unter „Aufräumen“ | erledigt | Claude Code | 2026-11-22 | D-035; `65b3053` – Repo → Einstellungen → Release-Dateien |
@@ -388,6 +395,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-24 · Claude Code · T-9.25 GitHub-Hinweisblöcke in READMEs; R-031 eingetragen (Zwischenspeicher `/static/`)
 - 2026-11-22 · Claude Code · Release `v0.7.0` mit T-9.26–T-9.28, Prüflauf und CI grün
 - 2026-11-22 · Claude Code · T-9.26–T-9.28 Release-Dateien nach Plattform, Release-Profile, Dialog für nicht mehr passende Dateien (D-035)
 - 2026-11-22 · Claude Code · Release `v0.6.2` mit R-030, Prüflauf und CI grün

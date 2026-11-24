@@ -84,3 +84,13 @@ func TestCleanPreNewline(t *testing.T) {
 		t.Errorf("pre = %q", got)
 	}
 }
+
+func TestCleanClass(t *testing.T) {
+	got := Clean(`<blockquote class="markdown-alert markdown-alert-note"><p class="markdown-alert-title">T</p></blockquote>`+
+		`<p class="btn">a</p><div class="markdown-alert">b</div><blockquote class="markdown-alert markdown-alert-x">c</blockquote>`, Options{})
+	want := `<blockquote class="markdown-alert markdown-alert-note"><p class="markdown-alert-title">T</p></blockquote>` +
+		`<p>a</p><div>b</div><blockquote>c</blockquote>`
+	if got != want {
+		t.Errorf("got  %s\nwant %s", got, want)
+	}
+}

@@ -55,13 +55,13 @@ var dropped = map[atom.Atom]bool{
 // ones). Elements neither allowed nor dropped are left out, their content
 // stays.
 var allowed = map[atom.Atom][]string{
-	atom.A: {"href", "name"}, atom.Abbr: nil, atom.B: nil, atom.Blockquote: nil, atom.Br: nil,
+	atom.A: {"href", "name"}, atom.Abbr: nil, atom.B: nil, atom.Blockquote: {"class"}, atom.Br: nil,
 	atom.Caption: nil, atom.Center: nil, atom.Cite: nil, atom.Code: nil, atom.Dd: nil, atom.Del: nil,
 	atom.Details: {"open"}, atom.Dfn: nil, atom.Div: nil, atom.Dl: nil, atom.Dt: nil, atom.Em: nil,
 	atom.Figcaption: nil, atom.Figure: nil, atom.Font: nil,
 	atom.H1: nil, atom.H2: nil, atom.H3: nil, atom.H4: nil, atom.H5: nil, atom.H6: nil,
 	atom.Hr: nil, atom.I: nil, atom.Img: {"src", "alt", "width", "height"}, atom.Input: {"type", "checked"},
-	atom.Ins: nil, atom.Kbd: nil, atom.Li: nil, atom.Mark: nil, atom.Ol: {"start"}, atom.P: nil,
+	atom.Ins: nil, atom.Kbd: nil, atom.Li: nil, atom.Mark: nil, atom.Ol: {"start"}, atom.P: {"class"},
 	atom.Picture: nil, atom.Pre: nil, atom.Q: nil, atom.Rp: nil, atom.Rt: nil, atom.Ruby: nil,
 	atom.S: nil, atom.Samp: nil, atom.Section: nil, atom.Small: nil, atom.Span: nil, atom.Strike: nil,
 	atom.Strong: nil, atom.Sub: nil, atom.Summary: nil, atom.Sup: nil,
@@ -82,6 +82,9 @@ var (
 	styleRe = regexp.MustCompile(`^(?i)\s*text-align:\s*(left|right|center)\s*;?\s*$`)
 	langRe  = regexp.MustCompile(`^[A-Za-z]{1,8}(-[A-Za-z0-9]{1,8})*$`)
 	idRe    = regexp.MustCompile(`^[\p{L}\p{N}_.:-]{1,100}$`)
+	// classRe: only the classes of GitHub alert blocks (T-9.25). Other
+	// classes could borrow the look of RepoShelf's own controls.
+	classRe = regexp.MustCompile(`^markdown-alert(-title| markdown-alert-(note|tip|important|warning|caution))$`)
 )
 
 // Clean returns the cleaned HTML of the fragment s.
@@ -184,6 +187,10 @@ func (o Options) attrs(n *html.Node, extra []string) (out []html.Attribute, keep
 			}
 		case "colspan", "rowspan", "start":
 			if !numRe.MatchString(v) {
+				continue
+			}
+		case "class":
+			if !classRe.MatchString(v) {
 				continue
 			}
 		case "lang":
