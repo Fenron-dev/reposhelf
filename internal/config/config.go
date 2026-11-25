@@ -70,6 +70,7 @@ type Config struct {
 	Retention Retention `yaml:"retention"`
 	Runner    Runner    `yaml:"runner"`
 	Notify    Notify    `yaml:"notify"`
+	Updates   Updates   `yaml:"updates"`
 	// ReleaseProfiles are named choices of release files (D-035); the
 	// built-in StandardProfile (all files) is not listed.
 	ReleaseProfiles []ReleaseProfile `yaml:"release_profiles"`
@@ -138,6 +139,12 @@ type Notify struct {
 	WebhookKind string `yaml:"webhook_kind"`
 	// Off lists the kinds that are not reported (new_version, gone, …).
 	Off []string `yaml:"off,flow"`
+}
+
+// Updates is the check for new RepoShelf versions (V-15, D-036).
+type Updates struct {
+	// Check asks GitHub once a day for the latest release.
+	Check bool `yaml:"check"`
 }
 
 // Instance names this installation (shown in the UI and to paired peers).
@@ -245,7 +252,8 @@ func Default() Config {
 			BuildsKeep:              defaultBuildsKeep,
 			TrashDays:               defaultTrashDays,
 		},
-		Runner: Runner{MaxParallel: 1, Confirm: true, MinFreeGB: defaultMinFreeGB, MemoryLimit: "4g", CPULimit: "2"},
+		Runner:  Runner{MaxParallel: 1, Confirm: true, MinFreeGB: defaultMinFreeGB, MemoryLimit: "4g", CPULimit: "2"},
+		Updates: Updates{Check: true},
 	}
 }
 

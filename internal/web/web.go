@@ -31,6 +31,7 @@ import (
 	"github.com/Fenron-dev/reposhelf/internal/htmlsafe"
 	"github.com/Fenron-dev/reposhelf/internal/sources"
 	"github.com/Fenron-dev/reposhelf/internal/store"
+	"github.com/Fenron-dev/reposhelf/internal/update"
 )
 
 //go:embed templates/*.html
@@ -54,6 +55,9 @@ type Server struct {
 	Logout http.HandlerFunc
 	// CloneBase returns scheme://host for clone URLs of a request.
 	CloneBase func(r *http.Request) string
+	// Updates checks for and installs new RepoShelf versions (V-15);
+	// nil hides the feature.
+	Updates *update.Updater
 
 	tmpl      *template.Template
 	md        goldmark.Markdown
@@ -153,6 +157,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /settings/profile/default", admin(s.profileDefault))
 	mux.Handle("GET /settings/doctor", admin(s.settingsDoctor))
 	mux.Handle("POST /settings/integrity", admin(s.integrityStart))
+	mux.Handle("POST /settings/update", admin(s.updateAction))
 	mux.Handle("GET /settings/tokens", admin(s.settingsTokens))
 	mux.Handle("POST /settings/tokens", admin(s.settingsTokenAction))
 	mux.Handle("GET /repo/{id}/panel", read(s.repoPanel))
@@ -252,6 +257,7 @@ type sidebar struct {
 	Pending            int
 	NextSync           *time.Time
 	Paused             bool
+	Update             string // newer RepoShelf version (V-15)
 }
 
 func (s *Server) render(w http.ResponseWriter, r *http.Request, name, title, nav string, data any) {
@@ -303,6 +309,9 @@ func (s *Server) sidebar(r *http.Request) sidebar {
 	sb.Builds = s.Ext.Builds != nil
 	sb.Peers = s.Ext.Peers != nil
 	sb.NextSync = s.nextSync(r)
+	if tok, _ := s.Identity(r); tok.Has(auth.Admin) {
+		sb.Update = s.updateAvailable()
+	}
 	return sb
 }
 

@@ -124,7 +124,8 @@ jobs:
         working-directory: cmd/reposhelf-desktop
         # Bindings would be generated without the "desktop" tag (stub); the
         # setup page calls the bound method at runtime, which works anyway.
-        run: wails build -platform darwin/universal -trimpath -skipbindings -tags desktop
+        # The version lets the app recognise newer releases (V-15).
+        run: wails build -platform darwin/universal -trimpath -skipbindings -tags desktop -ldflags "-X github.com/Fenron-dev/reposhelf/internal/buildinfo.Version=${GITHUB_REF_NAME#v} -X github.com/Fenron-dev/reposhelf/internal/buildinfo.Commit=${GITHUB_SHA::7}"
       - name: DMG
         run: |
           set -e
@@ -135,12 +136,14 @@ jobs:
           mkdir -p dmg && cp -R cmd/reposhelf-desktop/build/bin/RepoShelf.app dmg/
           cp LICENSE docs/BETRIEB.md dmg/
           hdiutil create -volname RepoShelf -srcfolder dmg -ov -format UDZO RepoShelf-macOS.dmg
+          # Checksum for the self-update (V-15): SHA256SUMS only covers the CLI archives.
+          shasum -a 256 RepoShelf-macOS.dmg > RepoShelf-macOS.dmg.sha256
       - name: Attach to release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           for i in $(seq 1 30); do gh release view "$RELEASE_TAG" >/dev/null 2>&1 && break; sleep 20; done
-          gh release upload "$RELEASE_TAG" RepoShelf-macOS.dmg --clobber
+          gh release upload "$RELEASE_TAG" RepoShelf-macOS.dmg RepoShelf-macOS.dmg.sha256 --clobber
 
   desktop-windows:
     if: startsWith(github.ref, 'refs/tags/v') || inputs.desktop
@@ -154,7 +157,8 @@ jobs:
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.17.1
       - name: Build
         working-directory: cmd/reposhelf-desktop
-        run: wails build -platform windows/amd64 -trimpath -skipbindings -tags desktop
+        shell: bash
+        run: wails build -platform windows/amd64 -trimpath -skipbindings -tags desktop -ldflags "-X github.com/Fenron-dev/reposhelf/internal/buildinfo.Version=${GITHUB_REF_NAME#v} -X github.com/Fenron-dev/reposhelf/internal/buildinfo.Commit=${GITHUB_SHA::7}"
       - name: Portable package with MinGit
         shell: bash
         run: |
@@ -166,10 +170,11 @@ jobs:
           unzip -q mingit.zip -d pkg/RepoShelf/git
           cp LICENSE THIRD_PARTY.md docs/BETRIEB.md pkg/RepoShelf/
           cd pkg && 7z a -bd ../RepoShelf-Windows-portable.zip RepoShelf >/dev/null
+          cd .. && sha256sum RepoShelf-Windows-portable.zip > RepoShelf-Windows-portable.zip.sha256
       - name: Attach to release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           for i in $(seq 1 30); do gh release view "$RELEASE_TAG" >/dev/null 2>&1 && break; sleep 20; done
-          gh release upload "$RELEASE_TAG" RepoShelf-Windows-portable.zip --clobber
+          gh release upload "$RELEASE_TAG" RepoShelf-Windows-portable.zip RepoShelf-Windows-portable.zip.sha256 --clobber

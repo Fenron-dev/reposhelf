@@ -124,9 +124,11 @@ func (a *App) open(dir string) error {
 	peers.SetBuilds(builds)
 	peers.RegisterRemotes(builds)
 	go peers.Schedule(a.ctx)
+	updates := server.NewUpdater(lib, true, nil)
+	go updates.Run(a.ctx)
 	srv, err := server.New(lib, server.Options{Log: log, Ext: web.Extensions{Builds: builds, Peers: peers}, MCPBuilds: runner.MCP{M: builds},
 		ExtraAuth: peers.CheckTemp, Extra: map[string]http.Handler{"/peer/": peers.Handler()},
-		BaseURL: "http://" + lib.Config().Server.Listen})
+		BaseURL: "http://" + lib.Config().Server.Listen, Updates: updates})
 	if err != nil {
 		lib.Close()
 		return err

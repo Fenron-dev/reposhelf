@@ -27,6 +27,7 @@ import (
 	"github.com/Fenron-dev/reposhelf/internal/githttp"
 	"github.com/Fenron-dev/reposhelf/internal/layout"
 	"github.com/Fenron-dev/reposhelf/internal/mcp"
+	"github.com/Fenron-dev/reposhelf/internal/update"
 	"github.com/Fenron-dev/reposhelf/internal/web"
 )
 
@@ -52,6 +53,8 @@ type Options struct {
 	// configured and the request host is not reachable from outside (the
 	// desktop window's internal host).
 	BaseURL string
+	// Updates checks for new RepoShelf versions (V-15); see NewUpdater.
+	Updates *update.Updater
 }
 
 // Server is the HTTP front of a library.
@@ -152,7 +155,7 @@ func New(lib *core.Library, o Options) (*Server, error) {
 	}
 	s := &Server{Lib: lib, Tokens: tokens, Log: o.Log, opts: o, sessions: map[string]session{}, failures: map[string]*failure{}}
 	s.Web = &web.Server{Lib: lib, Tokens: tokens, Identity: s.identity, Log: o.Log, Ext: o.Ext,
-		Login: s.login, Logout: s.logout, CloneBase: s.base}
+		Login: s.login, Logout: s.logout, CloneBase: s.base, Updates: o.Updates}
 	return s, nil
 }
 

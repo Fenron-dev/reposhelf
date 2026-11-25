@@ -161,6 +161,14 @@ func TestLoadSchema1Fixture(t *testing.T) {
 	if len(res.Warnings) != 0 {
 		t.Errorf("Warnings = %q, want none", res.Warnings)
 	}
+	// Files of earlier versions have no updates section: the check is on.
+	if !res.Config.Updates.Check {
+		t.Error("update check off for a file without the updates section")
+	}
+	off, err := Load(dataDirWith(t, "updates:\n  check: false\n"), noEnv)
+	if err != nil || off.Config.Updates.Check {
+		t.Errorf("check: false not read: %+v %v", off.Config.Updates, err)
+	}
 }
 
 func ptr(s string) *string { return &s }

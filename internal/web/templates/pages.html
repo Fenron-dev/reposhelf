@@ -370,6 +370,8 @@
   </form>
 </div>
 
+{{with $d.Update}}{{template "update-card" .}}{{end}}
+
 <div class="card stack" id="integritaet">
   <h2 class="h3">Integrität</h2>
   <p class="small muted">Liest alles, was RepoShelf aufbewahrt, und vergleicht es mit den gespeicherten Prüfsummen: Git-Objekte, Release-Dateien, Actions-Artefakte, große Dateien (LFS), Kapseln, README-Bilder. Läuft automatisch alle {{$c.Retention.IntegrityEvery}} (Einstellung oben, 0 = nur von Hand).</p>
