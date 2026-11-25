@@ -187,7 +187,7 @@
 <p class="muted">Repos mit Beziehungen. Gestrichelt: Vorschläge. Ziehen verschiebt, Klick öffnet.</p>
 <div class="card graph-card"><svg id="graph" role="img" aria-label="Beziehungsgraph" width="100%" height="640"></svg>
 <p id="graph-empty" class="muted" hidden>Noch keine Beziehungen. Sie entstehen von Hand, aus README-Links, Abhängigkeiten, Fork-Herkunft und Wiki-Links in Notizen.</p></div>
-<script src="/static/graph.js" defer></script>
+<script src="{{static "graph.js"}}" defer></script>
 {{template "foot" .}}{{end}}
 
 {{define "activity"}}{{template "head" .}}

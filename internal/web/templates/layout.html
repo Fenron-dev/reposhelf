@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{.Title}} · RepoShelf</title>
-<link rel="stylesheet" href="/static/app.css">
-<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
-<script src="/static/theme.js"></script>
-<script src="/static/htmx.min.js" defer></script>
-<script src="/static/app.js" defer></script>
+<link rel="stylesheet" href="{{static "app.css"}}">
+<link rel="icon" href="{{static "icon.svg"}}" type="image/svg+xml">
+<script src="{{static "theme.js"}}"></script>
+<script src="{{static "htmx.min.js"}}" defer></script>
+<script src="{{static "app.js"}}" defer></script>
 </head>
 <body>
 <div class="nav-progress" aria-hidden="true"></div>
@@ -32,7 +32,7 @@
 {{define "sidebar"}}
 <nav id="sidebar" class="sidebar" aria-label="Hauptnavigation">
   <a class="brand" href="/">
-    <img src="/static/icon.svg" alt="" width="28" height="28">
+    <img src="{{static "icon.svg"}}" alt="" width="28" height="28">
     <span><strong>RepoShelf</strong><small>{{.Sidebar.Instance}}</small></span>
   </a>
   <ul class="nav">

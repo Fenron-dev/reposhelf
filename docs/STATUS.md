@@ -13,8 +13,8 @@
 ## Aktueller Stand
 
 - **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.7.0` (alles seit v0.2.0, dazu T-9.21–T-9.24, T-9.26–T-9.28, R-028–R-030) zum Test bei Dennis
-- **Letzte Änderung:** 2026-11-24 · GitHub-Hinweisblöcke in READMEs (T-9.25, auf `main`, noch ohne Release)
-- **Nächster Schritt:** Dennis testet `v0.7.0` (Release-Dateien nach Plattform, Release-Profile); offen: R-031
+- **Letzte Änderung:** 2026-11-25 · Versionierte Adressen für `/static/` (R-031); mit T-9.25 auf `main`, noch ohne Release
+- **Nächster Schritt:** Dennis testet `v0.7.0` (Release-Dateien nach Plattform, Release-Profile); T-9.25 und R-031 auf `main`, noch ohne Release
 
 ## Übergabe-Notiz
 
@@ -158,6 +158,11 @@ der ersten Zeile, danach Inhalt – wie GitHub); Titel deutsch mit Symbol. `html
 `class` nur mit genau diesen Hinweis-Klassen durch (`classRe`), sonst könnten READMEs das
 Aussehen von RepoShelf-Bedienelementen übernehmen. Neu offen: R-031 (CSS-Zwischenspeicher).
 
+**2026-11-25 · Claude Code (R-031):** `internal/web/static.go`: Hash über alle eingebetteten
+Dateien, Vorlagen verlinken per `{{static "app.css"}}` → `/static/app.css?v=<hash>`
+(`immutable`). Neue Dateien in `static/` immer über `static` verlinken, nie mit fester
+Adresse – sonst gelten sie als unversioniert (`no-cache`, 304 per ETag).
+
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
   (T-1.13), der Hinzufügen-Dialog zeigt die erwartete Größe.
@@ -233,7 +238,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | R-028 | README wird nur im Hauptordner gesucht; GitHub zeigt auch `.github/README.md` und `docs/README.md` (z. B. sherlock-project/sherlock: „keine README“) | `internal/gitcli/read.go` Readme | mittel | erledigt `6a54ad9` (Reihenfolge wie GitHub: `.github/`, Hauptordner, `docs/`) | Dennis · 2026-11-22 | Test v0.6.0 |
 | R-029 | HTML in READMEs (`<img>`, `<p align>`, `<details>`) wird ganz verworfen: Logos und Bilder fehlen, obwohl GitHub sie zeigt | `internal/web/web.go` renderMarkdown, `internal/core/readmeassets.go` | mittel | erledigt `6a54ad9` (HTML wird gerendert und von `internal/htmlsafe` auf eine Positivliste gefiltert; `<img>`-Bilder werden mitgesichert) | Dennis · 2026-11-22 | Test v0.6.0 |
 | R-030 | `golang.org/x/net` v0.60.0 hat GO-2026-6860 (quadratischer Aufwand im HTML-Parser); seit R-029 parst `internal/htmlsafe` fremde READMEs damit – präparierte README bremst Seite und Abgleich aus | `go.mod`, `internal/htmlsafe/htmlsafe.go:90` | mittel | erledigt `185f458` (x/net v0.62.0) | CI govulncheck · 2026-11-22 | R-029, v0.6.1 |
-| R-031 | `/static/` wird eine Stunde zwischengespeichert (`public, max-age=3600`), ohne Versionskennung in der Adresse: nach einem Update zeigt der Browser bis zu einer Stunde alte Styles/Skripte zur neuen Seite (bei T-9.25 gesehen: Hinweisblöcke ohne Farbe) | `internal/web/web.go:166` | niedrig | offen | Claude Code · 2026-11-24 | T-9.25 |
+| R-031 | `/static/` wird eine Stunde zwischengespeichert (`public, max-age=3600`), ohne Versionskennung in der Adresse: nach einem Update zeigt der Browser bis zu einer Stunde alte Styles/Skripte zur neuen Seite (bei T-9.25 gesehen: Hinweisblöcke ohne Farbe) | `internal/web/web.go:166` | niedrig | erledigt `e92f2a6` (Seiten verlinken `/static/…?v=<Inhalts-Hash>`, dauerhaft zwischengespeichert; ohne passende Version `no-cache` mit ETag → 304) | Claude Code · 2026-11-24 | T-9.25 |
 
 ---
 
@@ -395,6 +400,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-25 · Claude Code · R-031 versionierte Adressen für `/static/`, Browser bekommt neue Styles sofort nach Update
 - 2026-11-24 · Claude Code · T-9.25 GitHub-Hinweisblöcke in READMEs; R-031 eingetragen (Zwischenspeicher `/static/`)
 - 2026-11-22 · Claude Code · Release `v0.7.0` mit T-9.26–T-9.28, Prüflauf und CI grün
 - 2026-11-22 · Claude Code · T-9.26–T-9.28 Release-Dateien nach Plattform, Release-Profile, Dialog für nicht mehr passende Dateien (D-035)

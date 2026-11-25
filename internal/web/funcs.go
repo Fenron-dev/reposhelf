@@ -62,6 +62,7 @@ var (
 func (s *Server) funcs() template.FuncMap {
 	return template.FuncMap{
 		"size":        humanSize,
+		"static":      staticURL,
 		"ago":         ago,
 		"dt":          dt,
 		"date":        func(t time.Time) string { return t.Local().Format("02.01.2006") },
