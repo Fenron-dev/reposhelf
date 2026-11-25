@@ -164,6 +164,14 @@ Dateien, Vorlagen verlinken per `{{static "app.css"}}` → `/static/app.css?v=<h
 Adresse – sonst gelten sie als unversioniert (`no-cache`, 304 per ETag). Release `v0.7.1`: Release-Lauf, Prüflauf (docker, builds,
 windows) und CI grün.
 
+**2026-11-25 · Claude Code (T-9.29, D-036):** Speicherplanung in `internal/core/storage.go`:
+ein Messwert pro Tag (Bibliothek, jede Sammlung, freier Platz) in `.reposhelf/usage.jsonl`,
+stündlich aktualisiert aus `enqueueDue` (auch bei pausiertem Abgleich). Zunahme per
+Ausgleichsgerade über 90 Tage, Vorhersage erst ab 7 Tagen Verlauf. Obergrenze
+`max_size_mb` in `collections/<id>.yaml` (Formular in GB); Warnung einmal beim
+Überschreiten (Meldungsart `storage`), gemerkt in `Over`/`Short` des Messwerts. Seite
+`/storage` (`web/storage.go`, `templates/storage.html`) mit SVG-Diagramm ohne Skript.
+
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
   (T-1.13), der Hinzufügen-Dialog zeigt die erwartete Größe.
@@ -394,8 +402,8 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.26 | Release-Dateien nach Betriebssystem, Prozessor und Format auswählen (Erkennung am Dateinamen, Begleitdateien folgen, Muster); nur passende Dateien laden | erledigt | Claude Code | 2026-11-22 | D-035; `65b3053` – `internal/assetclass` |
 | T-9.27 | Release-Profile in den Einstellungen (Standard fest, Vorgabe wählbar); beim Hinzufügen Profil, Anzahl Versionen und bestimmte Versionen (angeheftet) wählen, mit Größenschätzung | erledigt | Claude Code | 2026-11-22 | D-035; `65b3053` – Einstellungen → Release-Profile; CLI `add --profile --keep --pin` |
 | T-9.28 | Dialog nach Änderung der Auswahl: nicht mehr passende Dateien in den Papierkorb oder Auswahl anpassen; sonst Vorschlag unter „Aufräumen“ | erledigt | Claude Code | 2026-11-22 | D-035; `65b3053` – Repo → Einstellungen → Release-Dateien |
-| T-9.29 | V-14 Speicherplanung: Verlauf des Verbrauchs (gesamt, je Sammlung, freier Platz), Vorhersage, Obergrenze je Sammlung mit Warnung | in Arbeit | Claude Code | 2026-11-25 | D-036 |
-| T-9.30 | V-3 „Was ist neu“ oben auf der Bibliothek: neue Releases/Commits seit dem letzten Besuch, Problemfälle, Speicher | offen | | | D-036 |
+| T-9.29 | V-14 Speicherplanung: Verlauf des Verbrauchs (gesamt, je Sammlung, freier Platz), Vorhersage, Obergrenze je Sammlung mit Warnung | erledigt | Claude Code | 2026-11-25 | D-036; `6dc3120` – Seite „Speicher“, `.reposhelf/usage.jsonl`, `max_size_mb` in Sammlungen |
+| T-9.30 | V-3 „Was ist neu“ oben auf der Bibliothek: neue Releases/Commits seit dem letzten Besuch, Problemfälle, Speicher | in Arbeit | Claude Code | 2026-11-25 | D-036 |
 | T-9.31 | V-6 Commits und Vergleich: Verlauf blättern, Änderung eines Commits, zwei Versionen vergleichen | offen | | | D-036 |
 | T-9.32 | V-15 Selbst-Aktualisierung: Prüfung auf neue Version (abschaltbar), portable Programme ersetzen sich nach SHA256-Prüfung, Mac-App lädt DMG, Docker nur Hinweis | offen | | | D-036 |
 
@@ -405,6 +413,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-25 · Claude Code · T-9.29 Speicherplanung (Verlauf, Vorhersage, Obergrenze je Sammlung); D-036, T-9.30–T-9.32 eingetragen
 - 2026-11-25 · Claude Code · Release `v0.7.1` mit T-9.25 und R-031, Prüflauf und CI grün
 - 2026-11-25 · Claude Code · R-031 versionierte Adressen für `/static/`, Browser bekommt neue Styles sofort nach Update
 - 2026-11-24 · Claude Code · T-9.25 GitHub-Hinweisblöcke in READMEs; R-031 eingetragen (Zwischenspeicher `/static/`)
