@@ -234,6 +234,11 @@ func (l *Library) enqueueDue(ctx context.Context) {
 	if l.IntegrityDue() {
 		go func() { _, _ = l.CheckIntegrity(ctx) }() // returns at once if one runs
 	}
+	if l.usageDue() {
+		if err := l.RecordUsage(ctx); err != nil {
+			l.Log.Warn("storage usage", "err", err)
+		}
+	}
 	if l.Config().Sync.Paused {
 		return
 	}

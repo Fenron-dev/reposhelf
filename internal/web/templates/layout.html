@@ -45,6 +45,7 @@
     {{if .Identity.Has "admin"}}<li><a href="/access" {{if eq .Nav "mcp"}}aria-current="page"{{end}}>KI-Zugriff (MCP)</a></li>{{end}}
     <li><a href="/notifications" {{if eq .Nav "notifications"}}aria-current="page"{{end}}>Meldungen{{if .Sidebar.Unread}} <span class="count badge-new">{{.Sidebar.Unread}}</span>{{end}}</a></li>
     <li><a href="/activity" {{if eq .Nav "activity"}}aria-current="page"{{end}}>Verlauf</a></li>
+    <li><a href="/storage" {{if eq .Nav "storage"}}aria-current="page"{{end}}>Speicher</a></li>
   </ul>
   <div class="nav-section">
     <h2>Sammlungen</h2>
@@ -69,7 +70,7 @@
     <div id="jobs" hx-get="/jobs" hx-trigger="load, sse-job from:body, every 20s" hx-swap="innerHTML">{{if .Sidebar.Jobs}}{{.Sidebar.Jobs}} Abgleich(e) laufen{{end}}</div>
     {{if .Sidebar.Paused}}<div class="warn">Automatischer Abgleich pausiert</div>
     {{else if .Sidebar.NextSync}}<div>Nächster Abgleich {{ago .Sidebar.NextSync}}</div>{{end}}
-    <div class="mono">{{size .Sidebar.Size}} · {{.Sidebar.Repos}} Repos</div>
+    <div class="mono"><a class="quiet" href="/storage" title="Speicher und Vorhersage">{{size .Sidebar.Size}}</a> · {{.Sidebar.Repos}} Repos</div>
     <div class="small muted">
       {{if .Authed}}{{.Identity.Name}}{{if ne .Identity.ID "local"}} · <form class="inline" method="post" action="/logout"><button class="linklike" type="submit">Abmelden</button></form>{{end}}{{else}}<a href="/login">Anmelden</a>{{end}}
       · <button class="linklike" type="button" data-theme-toggle>Hell/Dunkel</button> · {{.Version}}

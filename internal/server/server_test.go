@@ -124,7 +124,7 @@ func TestPages(t *testing.T) {
 		"/repo/" + id + "/tree/", "/repo/" + id + "/tree/docs?ref=v1.0", "/repo/" + id + "/blob/main.go",
 		"/repo/" + id + "/blob/docs/guide.md", "/add", "/add?url=" + url.QueryEscape(e.f.URL("x", "y")),
 		"/add/preview?url=" + url.QueryEscape(e.f.URL("fenron", "fero")), "/tags", "/graph", "/graph.json",
-		"/activity", "/notes", "/notes/Neu", "/code", "/code?q=func+main", "/code?q=a(&regex=1", "/cleanup", "/trash", "/settings", "/access", "/collections/new", "/collections/new?smart=1",
+		"/activity", "/storage", "/notes", "/notes/Neu", "/code", "/code?q=func+main", "/code?q=a(&regex=1", "/cleanup", "/trash", "/settings", "/access", "/collections/new", "/collections/new?smart=1",
 		"/search?q=fer", "/jobs", "/login", "/api/repos", "/api/repos/" + id, "/api/tags", "/api/health",
 	} {
 		e.get(p, 200)
@@ -180,6 +180,14 @@ func TestForms(t *testing.T) {
 	e.post("/collections/_new", url.Values{"name": {"Fundus Ökosystem"}, "color": {"#44aa99"}}, 303)
 	e.post("/repo/"+id+"/collections", url.Values{"collection": {"fundus-oekosystem"}}, 303)
 	e.get("/collections/fundus-oekosystem", 200)
+	e.post("/collections/fundus-oekosystem", url.Values{"name": {"Fundus Ökosystem"}, "max_size_gb": {"0,5"}}, 303)
+	if c, _ := e.lib.Collection(context.Background(), "fundus-oekosystem"); c.MaxSizeMB == nil || *c.MaxSizeMB != 512 {
+		t.Errorf("limit not saved: %v", c.MaxSizeMB)
+	}
+	if body := e.get("/storage", 200); !strings.Contains(body, "Fundus Ökosystem") || !strings.Contains(body, "von 512,0 MB") {
+		t.Error("storage page lacks the collection limit")
+	}
+	e.post("/collections/fundus-oekosystem", url.Values{"name": {"Fundus Ökosystem"}, "max_size_gb": {"null"}}, 400)
 	e.post("/collections/_new", url.Values{"name": {"Medien"}, "smart": {"1"}, "logic": {"and"}, "field": {"tag", ""}, "op": {"contains", "equals"}, "value": {"medien/*", ""}}, 303)
 	if body := e.get("/collections/medien", 200); !strings.Contains(body, "fero") {
 		t.Error("smart collection empty")

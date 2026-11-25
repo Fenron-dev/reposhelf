@@ -178,6 +178,10 @@
     <label>Force-Push-Sicherungen behalten <input name="backups_keep_for" class="short" value="{{deref $d.C.Retention.ForcePushBackupsKeepFor}}" placeholder="180d"></label>
     <label>Build-Kapseln behalten <input name="capsules_keep" class="short" value="{{deref $d.C.Retention.CapsulesKeep}}"></label>
   </fieldset>
+  <fieldset><legend>Speicher</legend>
+    <label>Obergrenze in GB <input name="max_size_gb" class="short" inputmode="decimal" value="{{limitGB $d.C.MaxSizeMB}}" placeholder="keine"></label>
+    <p class="small muted">Wachsen die Repos der Sammlung zusammen darüber, warnt RepoShelf (Meldung, Seite „Speicher“). Abgleich und Downloads laufen weiter.</p>
+  </fieldset>
   <div class="row-end"><a class="btn" href="/">Abbrechen</a><button class="btn btn-primary" type="submit">Speichern</button></div>
 </form>
 {{template "foot" .}}{{end}}

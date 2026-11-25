@@ -63,6 +63,10 @@ func (s *Server) funcs() template.FuncMap {
 	return template.FuncMap{
 		"size":        humanSize,
 		"static":      staticURL,
+		"limitGB":     limitGB,
+		"sub":         func(a, b int) int { return a - b },
+		"min":         func(a, b int) int { return min(a, b) },
+		"perMonth":    func(perDay float64) int64 { return int64(perDay * daysPerMonth) },
 		"ago":         ago,
 		"dt":          dt,
 		"date":        func(t time.Time) string { return t.Local().Format("02.01.2006") },

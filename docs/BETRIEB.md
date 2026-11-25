@@ -220,6 +220,19 @@ Schäden erscheinen als Hinweis in der Bibliothek. CLI: `reposhelf check` (Exit 
 Schäden). Ein beschädigter Spiegel lässt sich meist durch einen neuen Abgleich oder aus
 einer gekoppelten Instanz wiederherstellen.
 
+## 4b. Speicher
+
+Die Seite **„Speicher“** (Seitenleiste, oder Klick auf die Größe unten links) zeigt die
+Größe der Bibliothek im Verlauf, den freien Platz auf dem Datenträger, die Zunahme pro
+Monat und wie lange der Platz bei diesem Tempo noch reicht. RepoShelf misst dafür einmal
+am Tag (den heutigen Stand stündlich); eine Vorhersage gibt es nach einer Woche Verlauf.
+Reicht der Platz weniger als 30 Tage, kommt eine Meldung.
+
+Jede Sammlung kann eine **Obergrenze** bekommen (Sammlung → Bearbeiten → „Speicher“, in
+GB). Wächst sie darüber, meldet RepoShelf das einmal – Abgleich und Downloads laufen weiter
+(D-036). Platz schaffen: „Aufräumen“, Release-Profile (nur passende Release-Dateien) oder
+weniger behaltene Versionen in der Sammlung.
+
 ## 5. Agenten und Git
 
 - **Git:** `git clone http://<server>:7373/git/<host>/<owner>/<name>.git`
@@ -318,7 +331,8 @@ RepoShelf-Daten/
 ├── builds/               Build-Ergebnisse und Logs
 ├── collections/          Sammlungen (YAML)
 ├── trash/                Papierkorb mit Manifest
-└── .reposhelf/           Index (neu aufbaubar: reposhelf reindex), Logs, Tokens (nur Hashes)
+└── .reposhelf/           Index (neu aufbaubar: reposhelf reindex), Logs, Tokens (nur Hashes),
+                          Meldungen, Integritätsbericht, Speicherverlauf (usage.jsonl)
 ```
 
 Sichern genügt: alles außer `.reposhelf/index.db`.
