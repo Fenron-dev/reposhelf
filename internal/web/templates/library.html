@@ -16,6 +16,7 @@
   <a class="btn" href="/settings#integritaet">Ansehen</a>
 </div>
 {{end}}
+{{with $d.News}}{{template "news" .}}{{end}}
 {{if $d.ShowRev}}
 <div class="card review-banner" role="region" aria-label="Lösch-Prüfung">
   <strong>{{len $d.Review.Pending}} Einträge sind nach deinen Aufbewahrungsregeln zur Löschung vorgemerkt{{if $d.Review.Due}}, {{len $d.Review.Due}} Papierkorb-Einträge sind älter als die Frist{{end}}.</strong>

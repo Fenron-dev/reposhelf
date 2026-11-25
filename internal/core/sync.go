@@ -144,7 +144,11 @@ func (l *Library) Sync(ctx context.Context, ref, actor string) (SyncReport, erro
 	if rep.Err != nil {
 		detail = "Fehler: " + rep.Err.Error()
 	}
-	l.Record(Activity{Actor: actorOr(actor), Action: "sync", RepoID: r.R().ID, Detail: detail})
+	act := Activity{Actor: actorOr(actor), Action: "sync", RepoID: r.R().ID, Detail: detail}
+	if !firstSync && rep.Err == nil {
+		act.Changes = l.syncChanges(ctx, r, rep)
+	}
+	l.Record(act)
 	return rep, rep.Err
 }
 

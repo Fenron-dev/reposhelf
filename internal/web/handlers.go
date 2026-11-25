@@ -52,6 +52,8 @@ type libraryData struct {
 	// Damaged reports the problems of the last integrity check (V-1).
 	Damaged int
 	Busy    map[string]bool
+	// News is "Was ist neu" (V-3); only on the unfiltered start page.
+	News *newsData
 }
 
 type group struct {
@@ -121,6 +123,9 @@ func (s *Server) library(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("HX-Request") == "true" && r.Header.Get("HX-Target") == "results" {
 		s.partial(w, "results", d)
 		return
+	}
+	if !d.Filtered {
+		d.News = s.news(w, r)
 	}
 	s.render(w, r, "library", "Bibliothek", "library", d)
 }

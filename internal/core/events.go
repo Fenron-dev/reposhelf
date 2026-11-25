@@ -58,6 +58,8 @@ type Activity struct {
 	Action string    `json:"action"`
 	RepoID string    `json:"repo_id,omitempty"`
 	Detail string    `json:"detail,omitempty"`
+	// Changes of a sync, for "Was ist neu" (V-3, T-9.30).
+	Changes *SyncChanges `json:"changes,omitempty"`
 }
 
 const activityFile = "activity.jsonl"
