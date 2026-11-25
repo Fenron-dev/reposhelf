@@ -161,13 +161,6 @@ func (s *Server) Handler() http.Handler {
 	return securityHeaders(sameOrigin(s.freshReview(mux)))
 }
 
-func cacheStatic(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "public, max-age=3600")
-		h.ServeHTTP(w, r)
-	})
-}
-
 // securityHeaders: repository content (READMEs) is foreign data; scripts
 // only from this server, no framing by other sites.
 func securityHeaders(h http.Handler) http.Handler {
