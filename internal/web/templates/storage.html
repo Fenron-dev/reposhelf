@@ -1,0 +1,53 @@
+{{define "storage"}}{{template "head" .}}{{$d := .Data}}{{$r := $d.R}}
+<h1>Speicher</h1>
+<div class="card stack">
+  <div class="stats">
+    <div><span class="small muted">Bibliothek</span><strong class="mono">{{size $r.Now.Total}}</strong></div>
+    <div><span class="small muted">Frei auf dem Datenträger</span><strong class="mono">{{if ge $r.Now.Free 0}}{{size $r.Now.Free}}{{else}}unbekannt{{end}}</strong></div>
+    <div><span class="small muted">Zunahme pro Monat</span><strong class="mono">{{if $r.Forecast}}{{if gt $d.PerMonth 0}}+{{size $d.PerMonth}}{{else}}keine{{end}}{{else}}–{{end}}</strong></div>
+    <div><span class="small muted">Platz reicht noch</span><strong>{{if not $r.Forecast}}–{{else if lt $r.DaysLeft 0}}kein Engpass{{else}}≈ {{$r.DaysLeft}} Tage{{end}}</strong></div>
+  </div>
+  {{if $r.Short}}<p class="warn">▲ Bei der jetzigen Zunahme ist der freie Platz in weniger als {{$r.WarnDays}} Tagen aufgebraucht. Platz schaffen: <a href="/cleanup">Aufräumen</a>, weniger Release-Dateien (Release-Profile) oder ein größerer Datenträger.</p>
+  {{else if not $r.Forecast}}<p class="small muted">Für eine Vorhersage misst RepoShelf mindestens eine Woche lang einmal am Tag die Größe.</p>{{end}}
+</div>
+
+<div class="card stack">
+  <h2>Größe der Bibliothek</h2>
+  {{with $d.Chart}}
+  <svg class="usage-chart" viewBox="0 0 {{.W}} {{.H}}" role="img" aria-label="Größe der Bibliothek von {{.First}} bis {{.Last}}">
+    {{range .Ticks}}<line class="grid" x1="{{$.Data.Chart.Left}}" x2="{{sub $.Data.Chart.W $.Data.Chart.Right}}" y1="{{.Y}}" y2="{{.Y}}"/><text class="tick" x="{{sub $.Data.Chart.Left 8}}" y="{{.Y}}" text-anchor="end" dominant-baseline="middle">{{.Label}}</text>{{end}}
+    <polygon class="area" points="{{.Area}}"/>
+    <polyline class="line" points="{{.Line}}"/>
+    <circle class="end" cx="{{.End.X}}" cy="{{.End.Y}}" r="4"/>
+    {{range .Points}}<circle class="hit" cx="{{.X}}" cy="{{.Y}}" r="9"><title>{{.Label}}</title></circle>{{end}}
+    <text class="tick" x="{{.Left}}" y="{{sub .H 6}}">{{.First}}</text>
+    <text class="tick" x="{{sub .W .Right}}" y="{{sub .H 6}}" text-anchor="end">{{.Last}}</text>
+  </svg>
+  <details><summary class="small">Werte als Tabelle</summary>
+    <div class="table-wrap"><table class="list small">
+      <thead><tr><th scope="col">Tag</th><th scope="col" class="num">Bibliothek</th><th scope="col" class="num">Frei</th></tr></thead>
+      <tbody>{{range $r.History}}<tr><td class="mono">{{.Date}}</td><td class="num mono">{{size .Total}}</td><td class="num mono">{{if ge .Free 0}}{{size .Free}}{{else}}–{{end}}</td></tr>{{end}}</tbody>
+    </table></div>
+  </details>
+  {{else}}<p class="muted">Der Verlauf entsteht ab morgen: RepoShelf misst einmal am Tag (und stündlich den heutigen Stand).</p>{{end}}
+</div>
+
+<div class="card stack">
+  <h2>Sammlungen</h2>
+  {{if $d.Collections}}
+  <div class="table-wrap"><table class="list">
+    <thead><tr><th scope="col">Sammlung</th><th scope="col" class="num">Größe</th><th scope="col">Obergrenze</th><th scope="col" class="num">Zunahme/Monat</th>{{if $.Identity.Has "write"}}<th scope="col"><span class="sr-only">Aktion</span></th>{{end}}</tr></thead>
+    <tbody>{{range $d.Collections}}
+    <tr>
+      <td><a href="/collections/{{.ID}}">{{.Name}}</a></td>
+      <td class="num mono">{{size .Bytes}}</td>
+      <td>{{if .Limit}}<div class="limit"><meter min="0" max="100" low="80" high="100" optimum="0" value="{{min .Percent 100}}" aria-label="{{.Percent}} % der Obergrenze"></meter>
+        <span class="small {{if .Over}}warn{{else}}muted{{end}}">{{if .Over}}▲ über der Grenze · {{end}}{{.Percent}} % von {{size .Limit}}</span></div>{{else}}<span class="muted">–</span>{{end}}</td>
+      <td class="num mono">{{if gt .GrowthPerDay 0.0}}+{{size (perMonth .GrowthPerDay)}}{{else}}–{{end}}</td>
+      {{if $.Identity.Has "write"}}<td><a class="small" href="/collections/{{.ID}}/edit">Obergrenze ändern</a></td>{{end}}
+    </tr>{{end}}</tbody>
+  </table></div>
+  <p class="small muted">Ein Repo in mehreren Sammlungen zählt bei jeder mit. Über der Obergrenze warnt RepoShelf nur; Abgleich und Downloads laufen weiter.</p>
+  {{else}}<p class="muted">Noch keine Sammlungen. Mit einer Obergrenze je Sammlung behältst du große Bereiche (z. B. Modelle) im Blick.</p>{{end}}
+</div>
+{{template "foot" .}}{{end}}

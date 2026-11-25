@@ -127,6 +127,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /graph", read(s.graphPage))
 	mux.Handle("GET /graph.json", read(s.graphJSON))
 	mux.Handle("GET /activity", read(s.activityPage))
+	mux.Handle("GET /storage", read(s.storagePage))
 	mux.Handle("GET /notifications", read(s.notificationsPage))
 	mux.Handle("POST /notifications/read", read(s.notificationsRead))
 	mux.Handle("POST /settings/notify", admin(s.settingsNotify))

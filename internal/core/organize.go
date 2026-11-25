@@ -129,7 +129,10 @@ type Collection struct {
 	Smart *SmartFilter `yaml:"smart"`
 	// Retention overrides the global rules for members (KONZEPT 6.10).
 	Retention CollectionRetention `yaml:"retention"`
-	Created   time.Time           `yaml:"created"`
+	// MaxSizeMB warns when the members together grow beyond it (V-14,
+	// D-036); nil: no limit.
+	MaxSizeMB *int64    `yaml:"max_size_mb,omitempty"`
+	Created   time.Time `yaml:"created"`
 	// Size is filled from the index.
 	Size int `yaml:"-"`
 }
@@ -232,6 +235,9 @@ func (l *Library) SaveCollection(c Collection, actor string) error {
 		if err := c.Smart.Validate(); err != nil {
 			return fmt.Errorf("%w: %w", ErrInvalid, err)
 		}
+	}
+	if c.MaxSizeMB != nil && *c.MaxSizeMB <= 0 {
+		return fmt.Errorf("%w: Obergrenze muss größer als 0 sein", ErrInvalid)
 	}
 	if c.Created.IsZero() {
 		c.Created = l.now().UTC().Truncate(time.Second)

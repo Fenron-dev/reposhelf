@@ -1012,6 +1012,12 @@ func (s *Server) collectionSave(w http.ResponseWriter, r *http.Request) {
 	c.Retention.SnapshotsEvery = optDuration(f.Get("snapshots_every"))
 	c.Retention.ForcePushBackupsKeepFor = optDuration(f.Get("backups_keep_for"))
 	c.Retention.CapsulesKeep = optInt(f.Get("capsules_keep"))
+	limit, err := parseLimitGB(f.Get("max_size_gb"))
+	if err != nil {
+		s.failErr(w, r, err)
+		return
+	}
+	c.MaxSizeMB = limit
 	if f.Get("smart") == "1" {
 		sf := &core.SmartFilter{Logic: f.Get("logic")}
 		fields, ops, vals := f["field"], f["op"], f["value"]
@@ -1618,6 +1624,7 @@ var notifyLabels = map[string]string{
 	core.NotifyVersion: "Neue Version (Tag)", core.NotifyGone: "Original verschwunden", core.NotifyArchived: "Original archiviert",
 	core.NotifyRewritten: "Geschichte umgeschrieben (Force-Push)", core.NotifyFailing: "Abgleich schlägt seit Tagen fehl",
 	core.NotifyIntegrity: "Integritätsprüfung findet Schäden", core.NotifyRevive: "Wiederbeleben fertig oder fehlgeschlagen",
+	core.NotifyStorage: "Sammlung über der Obergrenze, Speicherplatz wird knapp",
 }
 
 func notifyKinds(off []string) []notifyKind {

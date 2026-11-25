@@ -72,6 +72,9 @@ type Library struct {
 	lookupEnv func(string) (string, bool)
 	jobs      *jobs
 	events    *events
+	// usageMu guards usage.jsonl; usageLast is the last refresh (V-14).
+	usageMu   sync.Mutex
+	usageLast time.Time
 }
 
 // Open opens the data folder dir, creating missing subfolders, and loads the
