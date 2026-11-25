@@ -251,6 +251,21 @@ GB). Wächst sie darüber, meldet RepoShelf das einmal – Abgleich und Download
 (D-036). Platz schaffen: „Aufräumen“, Release-Profile (nur passende Release-Dateien) oder
 weniger behaltene Versionen in der Sammlung.
 
+## 4d. Aktualisieren
+
+RepoShelf sieht einmal am Tag bei GitHub nach, ob es eine neue Version gibt (abschaltbar
+unter Einstellungen → „Aktualisierung“, `updates.check` in `reposhelf.yaml`). Gibt es eine,
+erscheint ein Hinweis unten in der Seitenleiste und eine Meldung. Unter „Aktualisierung“:
+
+- **Portables Programm** (Kommandozeile, Windows-App): „Herunterladen und installieren“ lädt
+  die passende Datei, prüft sie gegen die veröffentlichte SHA-256-Prüfsumme und ersetzt das
+  Programm. Die bisherige Version bleibt als `….old` daneben (eine ältere Sicherung geht in
+  den Papierkorb des Systems). Wirksam nach einem Neustart von RepoShelf. Liegt das Programm
+  in einem Ordner ohne Schreibrecht, schlägt das mit einer Meldung fehl.
+- **Mac-App:** Die DMG wird geprüft in „Downloads“ gelegt und geöffnet; RepoShelf dann in
+  „Programme“ ziehen.
+- **Docker/Unraid:** nur der Hinweis – Image neu ziehen und Container neu starten.
+
 ## 5. Agenten und Git
 
 - **Git:** `git clone http://<server>:7373/git/<host>/<owner>/<name>.git`

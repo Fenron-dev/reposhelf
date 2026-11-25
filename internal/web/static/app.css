@@ -355,3 +355,7 @@ table.diff tr.add { background: color-mix(in srgb, var(--ok) 12%, transparent); 
 table.diff tr.del { background: color-mix(in srgb, var(--error) 12%, transparent); }
 table.diff tr.hunk td { color: var(--text-muted); background: var(--surface-2); }
 table.diff tr.note td { color: var(--text-muted); font-style: italic; }
+
+/* Self-update (V-15) */
+.update-new { border-left: 3px solid var(--accent); padding: 4px 0 4px 12px; display: flex; flex-direction: column; gap: 8px; }
+.update-new p { margin: 0; }

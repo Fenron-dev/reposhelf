@@ -1315,6 +1315,8 @@ type settingsData struct {
 	TokenOK, TokenError string
 	// Profiles are the release profiles (D-035).
 	Profiles []profileRow
+	// Update is the self-update card (V-15); nil without updater.
+	Update *updateView
 }
 
 func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
@@ -1325,6 +1327,7 @@ func (s *Server) settingsPage(w http.ResponseWriter, r *http.Request) {
 	d.WebhookSet, d.WebhookFromEnv = s.Lib.NotifyWebhook()
 	d.IntegrityRunning = s.Lib.IntegrityRunning()
 	d.Profiles = s.profileRows(r)
+	d.Update = s.updateView()
 	s.render(w, r, "settings", "Einstellungen", "settings", d)
 }
 
@@ -1631,6 +1634,7 @@ var notifyLabels = map[string]string{
 	core.NotifyRewritten: "Geschichte umgeschrieben (Force-Push)", core.NotifyFailing: "Abgleich schlägt seit Tagen fehl",
 	core.NotifyIntegrity: "Integritätsprüfung findet Schäden", core.NotifyRevive: "Wiederbeleben fertig oder fehlgeschlagen",
 	core.NotifyStorage: "Sammlung über der Obergrenze, Speicherplatz wird knapp",
+	core.NotifyUpdate:  "Neue RepoShelf-Version",
 }
 
 func notifyKinds(off []string) []notifyKind {

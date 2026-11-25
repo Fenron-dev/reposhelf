@@ -94,6 +94,8 @@ func runServe(args []string, sys system) int {
 	opts.Ext.Peers = peers
 	opts.ExtraAuth = peers.CheckTemp
 	opts.Extra = map[string]http.Handler{"/peer/": peers.Handler()}
+	opts.Updates = server.NewUpdater(lib, false, sys.lookupEnv)
+	go opts.Updates.Run(ctx)
 	if Hooks.Server != nil {
 		Hooks.Server(lib, &opts)
 	}

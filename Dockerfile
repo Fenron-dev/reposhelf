@@ -38,6 +38,7 @@ RUN apk add --no-cache git git-lfs openssh-client ca-certificates tzdata docker-
 COPY --from=build /out/reposhelf /usr/local/bin/reposhelf
 ENV REPOSHELF_DATA=/data \
     REPOSHELF_LISTEN=:7373 \
+    REPOSHELF_DOCKER=1 \
     HOME=/data/.reposhelf/home
 # Unraid default user nobody:users.
 USER 99:100

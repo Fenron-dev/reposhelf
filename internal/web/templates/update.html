@@ -1,0 +1,29 @@
+{{define "update-card"}}
+<div class="card stack" id="aktualisierung">
+  <h2 class="h3">Aktualisierung</h2>
+  <p class="small">Diese Version: <span class="mono">{{.Current}}</span>
+    {{if .State.Installed}} · <span class="ok">✓ <span class="mono">{{.State.Installed}}</span> ist installiert – startet mit dem nächsten Neustart von RepoShelf.</span>{{end}}</p>
+  {{if eq .Flavor "dev"}}<p class="small muted">Entwicklungs-Build ohne Versionsnummer – keine Aktualisierung.</p>
+  {{else}}
+  {{with .Available}}
+  <div class="update-new">
+    <p><strong>Neue Version <span class="mono">{{.Tag}}</span></strong>{{if not .Published.IsZero}} <span class="small muted">vom {{date .Published}}</span>{{end}} · <a href="{{.URL}}" rel="noopener noreferrer" target="_blank">Was ist neu?</a></p>
+    {{if and $.CanInstall (not $.State.Installed)}}
+    <form method="post" action="/settings/update"><input type="hidden" name="action" value="install">
+      <button class="btn btn-primary" type="submit">{{if eq $.Flavor "mac-app"}}DMG laden und öffnen{{else}}Herunterladen und installieren{{end}}</button>
+    </form>
+    <p class="small muted">{{if eq $.Flavor "mac-app"}}Die DMG landet geprüft (SHA-256) im Ordner „Downloads“ und öffnet sich; RepoShelf dann in „Programme“ ziehen.{{else}}RepoShelf lädt die neue Version, prüft sie gegen die veröffentlichte SHA-256-Prüfsumme und ersetzt das Programm. Die bisherige Version bleibt als <span class="mono">….old</span> daneben; wirksam nach einem Neustart.{{end}}</p>
+    {{else if eq $.Flavor "docker"}}
+    <p class="small muted">Im Docker-Container: Image neu ziehen (Unraid: „Update“ am Container, sonst <span class="mono">docker pull ghcr.io/fenron-dev/reposhelf:latest</span>) und den Container neu starten. Die Daten in <span class="mono">/data</span> bleiben.</p>
+    {{end}}
+  </div>
+  {{else}}{{if not .State.Checked.IsZero}}<p class="small"><span class="ok">✓</span> Aktuell.</p>{{end}}{{end}}
+  <p class="small muted">{{if .State.Checked.IsZero}}Noch nie geprüft.{{else}}Zuletzt geprüft {{dt .State.Checked}}.{{end}}{{if .State.Error}} <span class="error">{{.State.Error}}</span>{{end}}</p>
+  <form method="post" action="/settings/update" class="row-wrap">
+    <label class="check"><input type="checkbox" name="check" {{if .Check}}checked{{end}}> Einmal am Tag nach neuen Versionen sehen (fragt GitHub)</label>
+    <button class="btn" type="submit">Speichern</button>
+    <button class="btn" type="submit" name="action" value="check">Jetzt prüfen</button>
+  </form>
+  {{end}}
+</div>
+{{end}}

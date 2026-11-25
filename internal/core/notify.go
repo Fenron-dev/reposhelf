@@ -38,10 +38,11 @@ const (
 	NotifyIntegrity = "integrity"   // damage found by the integrity check
 	NotifyRevive    = "revive"      // a revive finished or failed
 	NotifyStorage   = "storage"     // collection over its limit, free space running out
+	NotifyUpdate    = "update"      // a new RepoShelf version
 )
 
 // NotifyKinds lists every kind (all are on unless switched off).
-var NotifyKinds = []string{NotifyVersion, NotifyGone, NotifyArchived, NotifyRewritten, NotifyFailing, NotifyIntegrity, NotifyRevive, NotifyStorage}
+var NotifyKinds = []string{NotifyVersion, NotifyGone, NotifyArchived, NotifyRewritten, NotifyFailing, NotifyIntegrity, NotifyRevive, NotifyStorage, NotifyUpdate}
 
 const (
 	notifyFile = "notifications.jsonl"
