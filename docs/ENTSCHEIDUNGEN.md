@@ -480,3 +480,27 @@ nicht braucht (PhotoCraft: 52 Dateien, etwa 15 Linux-Pakete, ca. 5 GB je Release
 **Folgen:** Neues optionales Feld `release_files` in `repo.yaml` (ohne neue Schemanummer),
 `release_profiles` und `default_release_profile` in `reposhelf.yaml`. Aufgaben T-9.26–T-9.28.
 
+
+### D-036 · Weitere Vorschläge aus dem Prüfbericht: V-14, V-3, V-6, V-15
+2026-11-25 · gültig (F-019, Wunsch von Dennis)
+
+**Entscheidung:** Aus `docs/PRUEFBERICHT-2026-11.md` werden zusätzlich umgesetzt, in dieser
+Reihenfolge:
+1. **V-14 Speicherplanung:** Verlauf des Verbrauchs (Bibliothek, je Sammlung, freier Platz),
+   Vorhersage, wann der Platz ausgeht, und eine Obergrenze je Sammlung. Wird sie
+   überschritten, **warnt** RepoShelf nur (Oberfläche und Benachrichtigung, V-2); Abgleich
+   und Downloads laufen weiter.
+2. **V-3 „Was ist neu“:** ein einklappbarer Block **oben auf der Bibliothek** – neue Releases
+   und Commits seit dem letzten Besuch, Problemfälle, Speicher. Die Repo-Liste bleibt die
+   Startseite.
+3. **V-6 Commits und Vergleich:** Verlauf blättern, Änderung eines Commits ansehen, zwei
+   Versionen (Tags, Branches, Commits) vergleichen.
+4. **V-15 Selbst-Aktualisierung:** RepoShelf prüft auf neue eigene Versionen (abschaltbar)
+   und zeigt einen Hinweis. Portable Programme (Windows-ZIP, Linux-/macOS-Programm) laden auf
+   Klick die neue Version, prüfen sie gegen `SHA256SUMS` und ersetzen sich (die alte bleibt
+   als Sicherung daneben). Bei der Mac-App wird die DMG geladen und geöffnet; im Docker-
+   Container gibt es nur den Hinweis.
+
+**Begründung:** Wunsch von Dennis; Antworten auf die Rückfragen vom 2026-11-25.
+
+**Folgen:** Aufgaben T-9.29–T-9.32.

@@ -14,7 +14,7 @@
 
 - **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.7.1` (alles seit v0.2.0, dazu T-9.21–T-9.28, R-028–R-031) zum Test bei Dennis
 - **Letzte Änderung:** 2026-11-25 · Release `v0.7.1` (T-9.25 Hinweisblöcke, R-031 versionierte Adressen für `/static/`)
-- **Nächster Schritt:** Dennis testet `v0.7.1` (Release-Dateien nach Plattform, Release-Profile, Hinweisblöcke); keine offenen Aufgaben
+- **Nächster Schritt:** T-9.29–T-9.32 (D-036) umsetzen; Dennis testet `v0.7.1`
 
 ## Übergabe-Notiz
 
@@ -197,7 +197,7 @@ Entscheidung: Status `entschieden`, Eintrag in `docs/ENTSCHEIDUNGEN.md`, Verweis
 | F-016 | Laufzeit-Daten (T-9.11): Ab welcher Größe fragt RepoShelf vor dem Herunterladen nach? | Je Eintrag ab 1 GB nachfragen; globale Obergrenze wie `retention.max_asset_mb` | entschieden | **Ab 1 GB je Eintrag** → D-025 |
 | F-017 | Python-Pakete (z. B. PyTorch) für welche Plattformen sichern? | Nur die gewählten Plattformen je Repo (Standard: die eigene + linux/amd64 für Unraid); CUDA-Variante nur auf Wunsch | entschieden | **Je Repo wählbar** (Standard: eigene + linux/amd64) → D-026 |
 | F-018 | Modelle aktualisieren oder einfrieren? | Wie Repos: festgehaltene Revision bleibt; neue Revisionen werden zusätzlich gesichert, ältere schlägt die Lösch-Prüfung vor | entschieden | **Wie Repos** → D-027 |
-| F-019 | Welche der Funktionsvorschläge V-1 bis V-18 aus `docs/PRUEFBERICHT-2026-11.md` sollen umgesetzt werden (und in welcher Reihenfolge)? | Zuerst V-1 (Integritätsprüfung), V-2 (Benachrichtigungen), V-4 (README-Bilder mitsichern), V-5 (Repo wiederbeleben) | entschieden | **V-1, V-2, V-4, V-5** → D-034 (T-9.21–T-9.24) |
+| F-019 | Welche der Funktionsvorschläge V-1 bis V-18 aus `docs/PRUEFBERICHT-2026-11.md` sollen umgesetzt werden (und in welcher Reihenfolge)? | Zuerst V-1 (Integritätsprüfung), V-2 (Benachrichtigungen), V-4 (README-Bilder mitsichern), V-5 (Repo wiederbeleben) | entschieden | **V-1, V-2, V-4, V-5** → D-034 (T-9.21–T-9.24); später **V-14, V-3, V-6, V-15** → D-036 (T-9.29–T-9.32) |
 
 ---
 
@@ -394,6 +394,10 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.26 | Release-Dateien nach Betriebssystem, Prozessor und Format auswählen (Erkennung am Dateinamen, Begleitdateien folgen, Muster); nur passende Dateien laden | erledigt | Claude Code | 2026-11-22 | D-035; `65b3053` – `internal/assetclass` |
 | T-9.27 | Release-Profile in den Einstellungen (Standard fest, Vorgabe wählbar); beim Hinzufügen Profil, Anzahl Versionen und bestimmte Versionen (angeheftet) wählen, mit Größenschätzung | erledigt | Claude Code | 2026-11-22 | D-035; `65b3053` – Einstellungen → Release-Profile; CLI `add --profile --keep --pin` |
 | T-9.28 | Dialog nach Änderung der Auswahl: nicht mehr passende Dateien in den Papierkorb oder Auswahl anpassen; sonst Vorschlag unter „Aufräumen“ | erledigt | Claude Code | 2026-11-22 | D-035; `65b3053` – Repo → Einstellungen → Release-Dateien |
+| T-9.29 | V-14 Speicherplanung: Verlauf des Verbrauchs (gesamt, je Sammlung, freier Platz), Vorhersage, Obergrenze je Sammlung mit Warnung | in Arbeit | Claude Code | 2026-11-25 | D-036 |
+| T-9.30 | V-3 „Was ist neu“ oben auf der Bibliothek: neue Releases/Commits seit dem letzten Besuch, Problemfälle, Speicher | offen | | | D-036 |
+| T-9.31 | V-6 Commits und Vergleich: Verlauf blättern, Änderung eines Commits, zwei Versionen vergleichen | offen | | | D-036 |
+| T-9.32 | V-15 Selbst-Aktualisierung: Prüfung auf neue Version (abschaltbar), portable Programme ersetzen sich nach SHA256-Prüfung, Mac-App lädt DMG, Docker nur Hinweis | offen | | | D-036 |
 
 ---
 
