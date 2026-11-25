@@ -12,9 +12,9 @@
 
 ## Aktueller Stand
 
-- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.7.0` (alles seit v0.2.0, dazu T-9.21–T-9.24, T-9.26–T-9.28, R-028–R-030) zum Test bei Dennis
-- **Letzte Änderung:** 2026-11-25 · Versionierte Adressen für `/static/` (R-031); mit T-9.25 auf `main`, noch ohne Release
-- **Nächster Schritt:** Dennis testet `v0.7.0` (Release-Dateien nach Plattform, Release-Profile); T-9.25 und R-031 auf `main`, noch ohne Release
+- **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.7.1` (alles seit v0.2.0, dazu T-9.21–T-9.28, R-028–R-031) zum Test bei Dennis
+- **Letzte Änderung:** 2026-11-25 · Release `v0.7.1` (T-9.25 Hinweisblöcke, R-031 versionierte Adressen für `/static/`)
+- **Nächster Schritt:** Dennis testet `v0.7.1` (Release-Dateien nach Plattform, Release-Profile, Hinweisblöcke); keine offenen Aufgaben
 
 ## Übergabe-Notiz
 
@@ -161,7 +161,8 @@ Aussehen von RepoShelf-Bedienelementen übernehmen. Neu offen: R-031 (CSS-Zwisch
 **2026-11-25 · Claude Code (R-031):** `internal/web/static.go`: Hash über alle eingebetteten
 Dateien, Vorlagen verlinken per `{{static "app.css"}}` → `/static/app.css?v=<hash>`
 (`immutable`). Neue Dateien in `static/` immer über `static` verlinken, nie mit fester
-Adresse – sonst gelten sie als unversioniert (`no-cache`, 304 per ETag).
+Adresse – sonst gelten sie als unversioniert (`no-cache`, 304 per ETag). Release `v0.7.1`: Release-Lauf, Prüflauf (docker, builds,
+windows) und CI grün.
 
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
@@ -400,6 +401,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-25 · Claude Code · Release `v0.7.1` mit T-9.25 und R-031, Prüflauf und CI grün
 - 2026-11-25 · Claude Code · R-031 versionierte Adressen für `/static/`, Browser bekommt neue Styles sofort nach Update
 - 2026-11-24 · Claude Code · T-9.25 GitHub-Hinweisblöcke in READMEs; R-031 eingetragen (Zwischenspeicher `/static/`)
 - 2026-11-22 · Claude Code · Release `v0.7.0` mit T-9.26–T-9.28, Prüflauf und CI grün
