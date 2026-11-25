@@ -179,6 +179,13 @@ zählen nicht. `core.News` liest höchstens 5000 Verlaufszeilen. Der Block steht
 ungefilterten Bibliothek (`templates/news.html`); „letzter Besuch“ über zwei Cookies
 (`web/news.go`, Pause 1 Stunde, erster Besuch = letzte Woche).
 
+**2026-11-25 · Claude Code (T-9.31):** `internal/gitcli/history.go`: `LogPage`, `LogRange`,
+`CommitDetail`, `Diff` (Dateiliste aus `--numstat -z`, Patch gestreamt bis 2 MB, Parser für
+Umbenennungen, Binärdateien, Namen mit Leerzeichen). Merge-Commits zeigen die Änderung zum
+ersten Elternteil. Seiten in `web/history.go`, `templates/history.html`. Nebenbei behoben
+(`689b26c`, T-9.30): Besuchszeit in Millisekunden, sonst blieb nach „Alles gesehen“ die
+laufende Sekunde „neu“.
+
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
   (T-1.13), der Hinzufügen-Dialog zeigt die erwartete Größe.
@@ -411,8 +418,8 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.28 | Dialog nach Änderung der Auswahl: nicht mehr passende Dateien in den Papierkorb oder Auswahl anpassen; sonst Vorschlag unter „Aufräumen“ | erledigt | Claude Code | 2026-11-22 | D-035; `65b3053` – Repo → Einstellungen → Release-Dateien |
 | T-9.29 | V-14 Speicherplanung: Verlauf des Verbrauchs (gesamt, je Sammlung, freier Platz), Vorhersage, Obergrenze je Sammlung mit Warnung | erledigt | Claude Code | 2026-11-25 | D-036; `6dc3120` – Seite „Speicher“, `.reposhelf/usage.jsonl`, `max_size_mb` in Sammlungen |
 | T-9.30 | V-3 „Was ist neu“ oben auf der Bibliothek: neue Releases/Commits seit dem letzten Besuch, Problemfälle, Speicher | erledigt | Claude Code | 2026-11-25 | D-036; `ec86975` – `Activity.Changes`, `core.News`, Cookies `rs_since`/`rs_last` |
-| T-9.31 | V-6 Commits und Vergleich: Verlauf blättern, Änderung eines Commits, zwei Versionen vergleichen | in Arbeit | Claude Code | 2026-11-25 | D-036 |
-| T-9.32 | V-15 Selbst-Aktualisierung: Prüfung auf neue Version (abschaltbar), portable Programme ersetzen sich nach SHA256-Prüfung, Mac-App lädt DMG, Docker nur Hinweis | offen | | | D-036 |
+| T-9.31 | V-6 Commits und Vergleich: Verlauf blättern, Änderung eines Commits, zwei Versionen vergleichen | erledigt | Claude Code | 2026-11-25 | D-036; `277d512` – Reiter „Commits“, `/commit/{rev}`, `/compare` |
+| T-9.32 | V-15 Selbst-Aktualisierung: Prüfung auf neue Version (abschaltbar), portable Programme ersetzen sich nach SHA256-Prüfung, Mac-App lädt DMG, Docker nur Hinweis | in Arbeit | Claude Code | 2026-11-25 | D-036 |
 
 ---
 
@@ -420,6 +427,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-25 · Claude Code · T-9.31 Commits, Commit-Ansicht und Vergleich zweier Stände
 - 2026-11-25 · Claude Code · T-9.30 „Was ist neu“ auf der Bibliothek
 - 2026-11-25 · Claude Code · T-9.29 Speicherplanung (Verlauf, Vorhersage, Obergrenze je Sammlung); D-036, T-9.30–T-9.32 eingetragen
 - 2026-11-25 · Claude Code · Release `v0.7.1` mit T-9.25 und R-031, Prüflauf und CI grün
