@@ -13,8 +13,8 @@
 ## Aktueller Stand
 
 - **Phase:** 0–9 umgesetzt; `v0.1.10` abgenommen, `v0.7.1` (alles seit v0.2.0, dazu T-9.21–T-9.28, R-028–R-031) zum Test bei Dennis
-- **Letzte Änderung:** 2026-11-25 · Release `v0.7.1` (T-9.25 Hinweisblöcke, R-031 versionierte Adressen für `/static/`)
-- **Nächster Schritt:** T-9.29–T-9.32 (D-036) umsetzen; Dennis testet `v0.7.1`
+- **Letzte Änderung:** 2026-11-25 · D-036 umgesetzt: Speicherplanung, „Was ist neu“, Commits/Vergleich, Selbst-Aktualisierung (T-9.29–T-9.32, auf `main`, noch ohne Release)
+- **Nächster Schritt:** Release mit T-9.29–T-9.32 (Vorschlag `v0.8.0`; prüft auch R-032 im Release-Lauf); Dennis testet
 
 ## Übergabe-Notiz
 
@@ -186,6 +186,17 @@ ersten Elternteil. Seiten in `web/history.go`, `templates/history.html`. Nebenbe
 (`689b26c`, T-9.30): Besuchszeit in Millisekunden, sonst blieb nach „Alles gesehen“ die
 laufende Sekunde „neu“.
 
+**2026-11-25 · Claude Code (T-9.32):** `internal/update` (nur atomicfile/systrash):
+`Check` (GitHub `releases/latest`, einmal am Tag über `Run`, Zustand in
+`.reposhelf/update.json`), `Install` je `Flavor` (cli, windows-app: Archiv laden, gegen
+`SHA256SUMS`/`<datei>.sha256` prüfen, nur den einen Eintrag entpacken, Programm per Rename
+ersetzen, altes als `.old`; mac-app: DMG nach `~/Downloads` + `open`; docker/dev: nichts).
+Aufbau in `server.NewUpdater`, gestartet von `serve` und der Desktop-App. Mit einer als
+0.7.0 gebauten Testkopie echt durchgespielt: v0.7.1 gefunden, geladen, geprüft, ersetzt.
+Release-Versionen tragen kein „v“ (`0.7.1`) – `update.Newer` nimmt beides. **R-032:**
+Desktop-Builds bekamen keine Version; `release.yml` geändert, wirkt erst beim nächsten
+Release (dann prüfen, ob DMG/Windows-App ihre Version zeigen und `.sha256` dabei sind).
+
 **Achtung:**
 - Release-Dateien können groß werden: global `retention.max_asset_mb` setzen
   (T-1.13), der Hinzufügen-Dialog zeigt die erwartete Größe.
@@ -262,6 +273,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | R-029 | HTML in READMEs (`<img>`, `<p align>`, `<details>`) wird ganz verworfen: Logos und Bilder fehlen, obwohl GitHub sie zeigt | `internal/web/web.go` renderMarkdown, `internal/core/readmeassets.go` | mittel | erledigt `6a54ad9` (HTML wird gerendert und von `internal/htmlsafe` auf eine Positivliste gefiltert; `<img>`-Bilder werden mitgesichert) | Dennis · 2026-11-22 | Test v0.6.0 |
 | R-030 | `golang.org/x/net` v0.60.0 hat GO-2026-6860 (quadratischer Aufwand im HTML-Parser); seit R-029 parst `internal/htmlsafe` fremde READMEs damit – präparierte README bremst Seite und Abgleich aus | `go.mod`, `internal/htmlsafe/htmlsafe.go:90` | mittel | erledigt `185f458` (x/net v0.62.0) | CI govulncheck · 2026-11-22 | R-029, v0.6.1 |
 | R-031 | `/static/` wird eine Stunde zwischengespeichert (`public, max-age=3600`), ohne Versionskennung in der Adresse: nach einem Update zeigt der Browser bis zu einer Stunde alte Styles/Skripte zur neuen Seite (bei T-9.25 gesehen: Hinweisblöcke ohne Farbe) | `internal/web/web.go:166` | niedrig | erledigt `e92f2a6` (Seiten verlinken `/static/…?v=<Inhalts-Hash>`, dauerhaft zwischengespeichert; ohne passende Version `no-cache` mit ETag → 304) | Claude Code · 2026-11-24 | T-9.25 |
+| R-032 | Desktop-Apps (DMG, Windows-ZIP) werden ohne Versionsnummer gebaut und zeigen „dev“; DMG und Windows-ZIP fehlen in `SHA256SUMS` | `.github/workflows/release.yml` (wails build) | niedrig | erledigt `7c6adc8` (`-ldflags` mit Version, eigene `.sha256`-Dateien; erst ab dem nächsten Release prüfbar) | Claude Code · 2026-11-25 | T-9.32 |
 
 ---
 
@@ -419,7 +431,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 | T-9.29 | V-14 Speicherplanung: Verlauf des Verbrauchs (gesamt, je Sammlung, freier Platz), Vorhersage, Obergrenze je Sammlung mit Warnung | erledigt | Claude Code | 2026-11-25 | D-036; `6dc3120` – Seite „Speicher“, `.reposhelf/usage.jsonl`, `max_size_mb` in Sammlungen |
 | T-9.30 | V-3 „Was ist neu“ oben auf der Bibliothek: neue Releases/Commits seit dem letzten Besuch, Problemfälle, Speicher | erledigt | Claude Code | 2026-11-25 | D-036; `ec86975` – `Activity.Changes`, `core.News`, Cookies `rs_since`/`rs_last` |
 | T-9.31 | V-6 Commits und Vergleich: Verlauf blättern, Änderung eines Commits, zwei Versionen vergleichen | erledigt | Claude Code | 2026-11-25 | D-036; `277d512` – Reiter „Commits“, `/commit/{rev}`, `/compare` |
-| T-9.32 | V-15 Selbst-Aktualisierung: Prüfung auf neue Version (abschaltbar), portable Programme ersetzen sich nach SHA256-Prüfung, Mac-App lädt DMG, Docker nur Hinweis | in Arbeit | Claude Code | 2026-11-25 | D-036 |
+| T-9.32 | V-15 Selbst-Aktualisierung: Prüfung auf neue Version (abschaltbar), portable Programme ersetzen sich nach SHA256-Prüfung, Mac-App lädt DMG, Docker nur Hinweis | erledigt | Claude Code | 2026-11-25 | D-036; `7c6adc8` – Paket `internal/update`, Karte „Aktualisierung“, `updates.check` |
 
 ---
 
@@ -427,6 +439,7 @@ dazu). Schwere: `kritisch` · `hoch` · `mittel` · `gering` · `Hinweis`.
 
 Neueste oben. Eine Zeile pro Sitzung.
 
+- 2026-11-25 · Claude Code · T-9.32 Selbst-Aktualisierung; R-032 Desktop-Builds ohne Version (behoben in `release.yml`)
 - 2026-11-25 · Claude Code · T-9.31 Commits, Commit-Ansicht und Vergleich zweier Stände
 - 2026-11-25 · Claude Code · T-9.30 „Was ist neu“ auf der Bibliothek
 - 2026-11-25 · Claude Code · T-9.29 Speicherplanung (Verlauf, Vorhersage, Obergrenze je Sammlung); D-036, T-9.30–T-9.32 eingetragen
