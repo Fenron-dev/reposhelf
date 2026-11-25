@@ -1,0 +1,94 @@
+{{define "history"}}{{$d := .}}{{$id := $d.Repo.R.ID}}{{$h := $d.History}}
+{{if eq $h.Mode "list"}}
+<div class="card">
+  <div class="code-head">
+    <h2 class="h3">Commits</h2>
+    <form method="get" action="/repo/{{$id}}/commits" class="inline">
+      <label class="small muted">Stand
+        <select name="ref" data-autosubmit>
+          <option value="HEAD" {{if eq $h.Ref "HEAD"}}selected{{end}}>HEAD</option>
+          {{range $d.Branches}}<option value="{{.Name}}" {{if eq $h.Ref .Name}}selected{{end}}>Branch {{.Name}}</option>{{end}}
+          {{range $d.Versions}}<option value="{{.Name}}" {{if eq $h.Ref .Name}}selected{{end}}>Version {{.Name}}</option>{{end}}
+        </select>
+      </label>
+    </form>
+  </div>
+  {{template "commit-list" (dict "ID" $id "Commits" $h.Commits)}}
+  <nav class="pager small" aria-label="Seiten">
+    {{if gt $h.Page 1}}<a href="/repo/{{$id}}/commits?ref={{queryEsc $h.Ref}}&amp;page={{sub $h.Page 1}}">← Neuere</a>{{end}}
+    <span class="muted">Seite {{$h.Page}}</span>
+    {{if $h.More}}<a href="/repo/{{$id}}/commits?ref={{queryEsc $h.Ref}}&amp;page={{add $h.Page 1}}">Ältere →</a>{{end}}
+  </nav>
+</div>
+{{else if eq $h.Mode "commit"}}{{$c := $h.Commit}}
+<div class="card stack">
+  <p class="small"><a href="/repo/{{$id}}/commits">← Commits</a></p>
+  <h2 class="h3">{{$c.Subject}}</h2>
+  {{if $c.Body}}<pre class="commit-body">{{$c.Body}}</pre>{{end}}
+  <dl class="kv small">
+    <dt>Commit</dt><dd class="mono">{{$c.Hash}}</dd>
+    <dt>Autor</dt><dd>{{$c.Author}} · {{dt $c.Time}}</dd>
+    {{if ne $c.Committer $c.Author}}<dt>Übernommen von</dt><dd>{{$c.Committer}} · {{dt $c.CommitTime}}</dd>{{end}}
+    <dt>Eltern</dt><dd class="mono">{{range $c.Parents}}<a href="/repo/{{$id}}/commit/{{.}}">{{short .}}</a> {{else}}<span class="muted">keine (erster Commit)</span>{{end}}{{if gt (len $c.Parents) 1}}<span class="small muted"> · gezeigt: Änderung gegenüber dem ersten Elternteil</span>{{end}}</dd>
+  </dl>
+  <p class="small"><a href="/repo/{{$id}}/tree/?ref={{$c.Hash}}">Dateien dieses Stands</a></p>
+</div>
+{{template "diff" (dict "ID" $id "Ref" $c.Hash "Diff" $h.Diff "Max" $h.MaxFileRows)}}
+{{else}}
+<form method="get" action="/repo/{{$id}}/compare" class="card stack">
+  <h2 class="h3">Vergleichen</h2>
+  <div class="row-wrap">
+    <label class="small muted">Von <select name="from" required>
+      <option value="">– Stand wählen –</option>
+      {{range $d.Versions}}<option value="{{.Name}}" {{if eq $h.From .Name}}selected{{end}}>Version {{.Name}}</option>{{end}}
+      {{range $d.Branches}}<option value="{{.Name}}" {{if eq $h.From .Name}}selected{{end}}>Branch {{.Name}}</option>{{end}}
+    </select></label>
+    <label class="small muted">bis <select name="to">
+      <option value="HEAD" {{if eq $h.To "HEAD"}}selected{{end}}>HEAD (aktuell)</option>
+      {{range $d.Versions}}<option value="{{.Name}}" {{if eq $h.To .Name}}selected{{end}}>Version {{.Name}}</option>{{end}}
+      {{range $d.Branches}}<option value="{{.Name}}" {{if eq $h.To .Name}}selected{{end}}>Branch {{.Name}}</option>{{end}}
+    </select></label>
+    <button class="btn btn-primary" type="submit">Vergleichen</button>
+  </div>
+  <p class="small muted">Zeigt die Commits, die in „bis“ dazugekommen sind, und was sich an den Dateien geändert hat.</p>
+</form>
+{{if $h.Diff}}
+<div class="card">
+  <h2 class="h3">{{len $h.Commits}}{{if $h.More}}+{{end}} Commit{{if ne (len $h.Commits) 1}}s{{end}} von <span class="mono">{{$h.From}}</span> bis <span class="mono">{{$h.To}}</span></h2>
+  {{if $h.Commits}}{{template "commit-list" (dict "ID" $id "Commits" $h.Commits)}}{{else}}<p class="small muted">Keine – „bis“ enthält nichts, was nicht schon in „von“ ist.</p>{{end}}
+  {{if $h.More}}<p class="small muted">Die ersten {{$h.MaxCommits}} gezeigt.</p>{{end}}
+</div>
+{{template "diff" (dict "ID" $id "Ref" $h.To "Diff" $h.Diff "Max" $h.MaxFileRows)}}
+{{end}}
+{{end}}
+{{end}}
+
+{{define "commit-list"}}{{$id := .ID}}
+<ul class="commits">{{range .Commits}}<li><a class="mono small" href="/repo/{{$id}}/commit/{{.Hash}}">{{short .Hash}}</a> <a class="quiet" href="/repo/{{$id}}/commit/{{.Hash}}">{{.Subject}}</a> <span class="small muted">· {{.Author}} · {{dt .Time}}</span></li>{{else}}<li class="small muted">Keine Commits.</li>{{end}}</ul>
+{{end}}
+
+{{define "diff"}}{{$id := .ID}}{{$ref := .Ref}}{{$max := .Max}}{{$d := .Diff}}
+<div class="card stack">
+  <h2 class="h3">{{len $d.Files}} Datei{{if ne (len $d.Files) 1}}en{{end}} geändert <span class="small"><span class="diff-add">+{{$d.Adds}}</span> <span class="diff-del">−{{$d.Dels}}</span></span></h2>
+  {{if $d.Truncated}}<p class="small warn">▲ Die Änderung ist sehr groß; ab einer Stelle zeigen die Dateien nur noch ihre Zahlen.</p>{{end}}
+  <div class="untrusted-note small muted">Inhalt aus dem Repository – fremde Daten.</div>
+  <ul class="diff-files small">{{range $i, $f := $d.Files}}<li><a href="#datei-{{$i}}" class="mono">{{$f.Path}}</a> {{template "diff-status" $f}} <span class="diff-add">+{{$f.Adds}}</span> <span class="diff-del">−{{$f.Dels}}</span></li>{{end}}</ul>
+</div>
+{{range $i, $f := $d.Files}}
+<details class="card diff-file" id="datei-{{$i}}" {{if and $f.Shown (le (diffRows $f) $max)}}open{{end}}>
+  <summary><span class="mono">{{if eq $f.Status "renamed"}}{{$f.OldPath}} → {{end}}{{$f.Path}}</span> {{template "diff-status" $f}} <span class="small"><span class="diff-add">+{{$f.Adds}}</span> <span class="diff-del">−{{$f.Dels}}</span></span>
+    {{if ne $f.Status "deleted"}}<a class="small" href="/repo/{{$id}}/blob/{{$f.Path}}?ref={{queryEsc $ref}}">Datei</a>{{end}}</summary>
+  {{if $f.Binary}}<p class="small muted">Binärdatei – keine Zeilen.</p>
+  {{else if not $f.Shown}}<p class="small muted">Nicht angezeigt (Änderung zu groß).</p>
+  {{else if not $f.Hunks}}<p class="small muted">Keine Zeilenänderungen (nur umbenannt oder Rechte geändert).</p>
+  {{else}}
+  <div class="table-wrap"><table class="code diff">
+    {{range $f.Hunks}}<tr class="hunk"><td class="ln"></td><td class="ln"></td><td>{{.Header}}</td></tr>
+    {{range .Lines}}<tr class="{{diffClass .Kind}}"><td class="ln">{{if .Old}}{{.Old}}{{end}}</td><td class="ln">{{if .New}}{{.New}}{{end}}</td><td>{{diffMark .Kind}}{{.Text}}</td></tr>{{end}}{{end}}
+  </table></div>
+  {{end}}
+</details>
+{{end}}
+{{end}}
+
+{{define "diff-status"}}{{if eq .Status "added"}}<span class="pill">neu</span>{{else if eq .Status "deleted"}}<span class="pill">gelöscht</span>{{else if eq .Status "renamed"}}<span class="pill">umbenannt</span>{{end}}{{end}}

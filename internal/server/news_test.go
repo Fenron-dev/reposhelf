@@ -41,7 +41,7 @@ func TestNewsBlock(t *testing.T) {
 			since = ck.Value
 		}
 	}
-	if sec, err := strconv.ParseInt(since, 10, 64); err != nil || time.Since(time.Unix(sec, 0)) < 6*24*time.Hour {
+	if ms, err := strconv.ParseInt(since, 10, 64); err != nil || time.Since(time.UnixMilli(ms)) < 6*24*time.Hour {
 		t.Errorf("first visit since %q, want a week back", since)
 	}
 	req, _ := http.NewRequest(http.MethodPost, e.http.URL+"/news/seen", nil)

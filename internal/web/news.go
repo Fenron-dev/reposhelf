@@ -14,7 +14,8 @@ import (
 // time of the last visit in two cookies: rs_last is the last page view,
 // rs_since the start of what is shown as new. A page view after a break of
 // visitGap moves rs_since to the previous rs_last, so "new" means "since
-// you were last here", not "since the last click".
+// you were last here", not "since the last click". Times are in
+// milliseconds, so "Alles gesehen" also hides what happened this second.
 const (
 	cookieSince = "rs_since"
 	cookieLast  = "rs_last"
@@ -41,11 +42,11 @@ func visitSince(w http.ResponseWriter, r *http.Request, now time.Time) time.Time
 		if err != nil {
 			return time.Time{}, false
 		}
-		sec, err := strconv.ParseInt(c.Value, 10, 64)
-		if err != nil || sec <= 0 {
+		ms, err := strconv.ParseInt(c.Value, 10, 64)
+		if err != nil || ms <= 0 {
 			return time.Time{}, false
 		}
-		return time.Unix(sec, 0), true
+		return time.UnixMilli(ms), true
 	}
 	since, okSince := read(cookieSince)
 	last, okLast := read(cookieLast)
@@ -63,7 +64,7 @@ func visitSince(w http.ResponseWriter, r *http.Request, now time.Time) time.Time
 }
 
 func setVisitCookie(w http.ResponseWriter, r *http.Request, name string, t time.Time) {
-	http.SetCookie(w, &http.Cookie{Name: name, Value: strconv.FormatInt(t.Unix(), 10), Path: "/",
+	http.SetCookie(w, &http.Cookie{Name: name, Value: strconv.FormatInt(t.UnixMilli(), 10), Path: "/",
 		MaxAge: visitMaxAge, HttpOnly: true, Secure: r.TLS != nil, SameSite: http.SameSiteLaxMode})
 }
 

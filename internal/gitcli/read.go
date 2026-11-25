@@ -175,24 +175,7 @@ type Commit struct {
 
 // Log returns the newest n commits of rev.
 func (g *Git) Log(ctx context.Context, repo, rev string, n int) ([]Commit, error) {
-	if err := checkRev(rev); err != nil {
-		return nil, err
-	}
-	out, err := g.Run(ctx, repo, nil, "log", "-n", strconv.Itoa(n), "--format=%H%x00%an%x00%aI%x00%s", "--end-of-options", rev, "--")
-	if err != nil {
-		return nil, err
-	}
-	var list []Commit
-	sc := bufio.NewScanner(bytes.NewReader(out))
-	for sc.Scan() {
-		f := strings.Split(sc.Text(), "\x00")
-		if len(f) != 4 {
-			continue
-		}
-		t, _ := time.Parse(time.RFC3339, f[2])
-		list = append(list, Commit{Hash: f[0], Author: f[1], Time: t, Subject: f[3]})
-	}
-	return list, nil
+	return g.LogPage(ctx, repo, rev, 0, n)
 }
 
 // CountCommits counts the commits reachable from to but not from from.
