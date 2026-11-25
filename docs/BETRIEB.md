@@ -180,6 +180,15 @@ write“). CLI: `reposhelf issue list|new|comment|close|reopen|send <repo> [L3|#
 MCP: `list_issues`, `create_issue`, `comment_issue`, `set_issue_state`. Abgelegt als
 Markdown unter `meta/…/issues/local/`, Ungesendetes in `meta/…/issues/outbox.yaml`.
 
+## 3c. Commits und Vergleich
+
+Im Repo zeigt der Reiter **„Commits“** den Verlauf seitenweise (je Branch oder Version);
+ein Klick auf einen Commit zeigt Nachricht, Eltern und die geänderten Zeilen. **Vergleichen**
+(Reiter „Versionen“ → „Zwei Stände vergleichen“ oder „Änderungen“ neben einer Version)
+beantwortet „Was hat sich seit v1.2 geändert?“: die dazugekommenen Commits und der
+Unterschied der Dateien. Sehr große Änderungen werden ab 2 MB gekürzt; die Liste der
+Dateien mit ihren Zahlen bleibt vollständig.
+
 ## 4. Aufbewahrung und Papierkorb
 
 Regeln gelten global → Sammlung → Repo (das Spezifischere gewinnt). Was eine

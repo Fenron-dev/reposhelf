@@ -38,6 +38,7 @@
 <nav class="tabs" aria-label="Bereiche">
   <a href="/repo/{{$id}}" {{if eq $d.Tab "overview"}}aria-current="page"{{end}}>Übersicht</a>
   <a href="/repo/{{$id}}/tree/" {{if eq $d.Tab "code"}}aria-current="page"{{end}}>Code</a>
+  <a href="/repo/{{$id}}/commits" {{if eq $d.Tab "commits"}}aria-current="page"{{end}}>Commits</a>
   <a href="/repo/{{$id}}?tab=versions" {{if eq $d.Tab "versions"}}aria-current="page"{{end}}>Versionen · {{$e.Versions}}</a>
   <a href="/repo/{{$id}}?tab=issues" {{if eq $d.Tab "issues"}}aria-current="page"{{end}}>Issues</a>
   {{if .Sidebar.Builds}}<a href="/builds?repo={{$id}}">Builds</a>{{end}}
@@ -64,11 +65,14 @@
   {{if $d.Commits}}
   <div class="card">
     <h2 class="h3">Letzte Änderungen</h2>
-    <ul class="commits">{{range $d.Commits}}<li><span class="mono small muted">{{short .Hash}}</span> {{.Subject}} <span class="small muted">· {{.Author}} · {{ago .Time}}</span></li>{{end}}</ul>
+    <ul class="commits">{{range $d.Commits}}<li><a class="mono small" href="/repo/{{$id}}/commit/{{.Hash}}">{{short .Hash}}</a> {{.Subject}} <span class="small muted">· {{.Author}} · {{ago .Time}}</span></li>{{end}}</ul>
+    <p class="small"><a href="/repo/{{$id}}/commits">Alle Commits</a></p>
   </div>
   {{end}}
 {{else if eq $d.Tab "code"}}
   {{template "code" $d}}
+{{else if eq $d.Tab "commits"}}
+  {{template "history" $d}}
 {{else if eq $d.Tab "versions"}}
   {{template "versions" (dict "D" $d "Page" $)}}
 {{else if eq $d.Tab "issues"}}
@@ -303,7 +307,8 @@
 {{end}}
 <div class="card">
   <h2 class="h3">Versionen (Git-Tags) · {{len $d.Versions}}</h2>
-  <ul class="cols">{{range $d.Versions}}<li><a class="mono" href="/repo/{{$id}}/tree/?ref={{queryEsc .Name}}">{{.Name}}</a> <span class="small muted">{{date .Time}}</span></li>{{else}}<li class="muted small">Keine.</li>{{end}}</ul>
+  <ul class="cols">{{range $i, $v := $d.Versions}}<li><a class="mono" href="/repo/{{$id}}/tree/?ref={{queryEsc $v.Name}}">{{$v.Name}}</a> <span class="small muted">{{date $v.Time}}</span>{{with index1 $d.Versions $i}} · <a class="small" href="/repo/{{$id}}/compare?from={{queryEsc .Name}}&amp;to={{queryEsc $v.Name}}" title="Was hat sich seit {{.Name}} geändert?">Änderungen</a>{{end}}</li>{{else}}<li class="muted small">Keine.</li>{{end}}</ul>
+  {{if $d.Versions}}<p class="small"><a href="/repo/{{$id}}/compare">Zwei Stände vergleichen</a></p>{{end}}
   <h2 class="h3">Branches · {{len $d.Branches}}</h2>
   <ul class="cols">{{range $d.Branches}}<li><a class="mono" href="/repo/{{$id}}/tree/?ref={{queryEsc .Name}}">{{.Name}}</a> <span class="small muted">{{ago .Time}}</span></li>{{end}}</ul>
   {{with $d.Repo.Upstream.DeletedUpstream}}<p class="small"><strong>Beim Original gelöscht, hier erhalten:</strong> <span class="mono">{{join . ", "}}</span></p>{{end}}

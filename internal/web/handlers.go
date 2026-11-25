@@ -234,6 +234,7 @@ type repoData struct {
 	NotesHTML   template.HTML
 	YAML        string
 	Commits     []gitcli.Commit
+	History     *historyView // "Commits" tab (V-6)
 	Collections []core.Collection
 	Retention   core.Retention
 	Busy        bool

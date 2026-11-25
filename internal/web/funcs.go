@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Fenron-dev/reposhelf/internal/gitcli"
 	"github.com/Fenron-dev/reposhelf/internal/repometa"
 	"github.com/Fenron-dev/reposhelf/internal/store"
 )
@@ -61,9 +62,25 @@ var (
 
 func (s *Server) funcs() template.FuncMap {
 	return template.FuncMap{
-		"size":        humanSize,
-		"static":      staticURL,
-		"limitGB":     limitGB,
+		"size":      humanSize,
+		"static":    staticURL,
+		"limitGB":   limitGB,
+		"diffClass": diffClass,
+		"diffMark":  func(k byte) string { return string(k) },
+		"diffRows": func(f gitcli.FileDiff) int {
+			n := 0
+			for _, h := range f.Hunks {
+				n += len(h.Lines)
+			}
+			return n
+		},
+		// index1 is the element after i (the next older version), or nil.
+		"index1": func(list []gitcli.Ref, i int) *gitcli.Ref {
+			if i+1 < len(list) {
+				return &list[i+1]
+			}
+			return nil
+		},
 		"sub":         func(a, b int) int { return a - b },
 		"min":         func(a, b int) int { return min(a, b) },
 		"perMonth":    func(perDay float64) int64 { return int64(perDay * daysPerMonth) },
