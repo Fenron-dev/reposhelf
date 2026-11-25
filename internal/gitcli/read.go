@@ -195,6 +195,21 @@ func (g *Git) Log(ctx context.Context, repo, rev string, n int) ([]Commit, error
 	return list, nil
 }
 
+// CountCommits counts the commits reachable from to but not from from.
+func (g *Git) CountCommits(ctx context.Context, repo, from, to string) (int, error) {
+	if err := checkRev(from); err != nil {
+		return 0, err
+	}
+	if err := checkRev(to); err != nil {
+		return 0, err
+	}
+	out, err := g.Run(ctx, repo, nil, "rev-list", "--count", "--end-of-options", from+".."+to, "--")
+	if err != nil {
+		return 0, err
+	}
+	return strconv.Atoi(strings.TrimSpace(string(out)))
+}
+
 // Ref is a branch or version with its commit time.
 type Ref struct {
 	Name string // short name

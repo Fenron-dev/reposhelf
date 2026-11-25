@@ -220,6 +220,15 @@ Schäden erscheinen als Hinweis in der Bibliothek. CLI: `reposhelf check` (Exit 
 Schäden). Ein beschädigter Spiegel lässt sich meist durch einen neuen Abgleich oder aus
 einer gekoppelten Instanz wiederherstellen.
 
+## 4c. Was ist neu
+
+Oben auf der Bibliothek fasst „Was ist neu“ zusammen, was seit deinem letzten Besuch
+angekommen ist: neue Versionen (Tags), neue Commits auf dem Hauptbranch, geladene
+Release-Dateien, neu hinzugefügte Repos – dazu Problemfälle (gestört, Original weg) und den
+Speicher. Als „letzter Besuch“ gilt der letzte Aufruf vor einer Pause von mindestens einer
+Stunde; der Browser merkt ihn sich in einem Cookie. „Alles gesehen“ setzt ihn auf jetzt.
+Ist nichts Neues da, bleibt der Block zugeklappt.
+
 ## 4b. Speicher
 
 Die Seite **„Speicher“** (Seitenleiste, oder Klick auf die Größe unten links) zeigt die

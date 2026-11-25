@@ -1,0 +1,38 @@
+{{define "news"}}
+<details class="card news" {{if .Open}}open{{end}}>
+  <summary><strong>Was ist neu</strong> <span class="muted small">seit {{dt .Since}}</span>
+    {{if .Versions}}<span class="pill">{{.Versions}} mit neuer Version</span>{{end}}
+    {{if .Problems}}<span class="pill warn">▲ {{len .Problems}} {{if gt (len .Problems) 1}}Problemfälle{{else}}Problemfall{{end}}</span>{{end}}
+    {{if .Storage.Short}}<span class="pill warn">▲ Speicher knapp</span>{{end}}
+  </summary>
+  <div class="news-body">
+    <section>
+      <h3>Neu angekommen</h3>
+      {{if .Items}}<ul class="news-list">
+        {{range .Items}}<li><a class="mono" href="/repo/{{.RepoID}}">{{.Key}}</a>
+          {{if .Added}}<span class="pill">neu in der Bibliothek</span>{{end}}
+          {{if .Tags}}<span class="small">Version {{range $i, $t := .Tags}}{{if $i}}, {{end}}<strong>{{$t}}</strong>{{end}}</span>{{end}}
+          {{if .Commits}}<span class="small muted">{{.Commits}} Commit{{if gt .Commits 1}}s{{end}}</span>{{end}}
+          {{if .Files}}<span class="small muted">{{.Files}} Release-Datei{{if gt .Files 1}}en{{end}} ({{size .Bytes}})</span>{{end}}
+          {{if .Rewritten}}<span class="small warn">◐ Geschichte umgeschrieben (gesichert)</span>{{end}}
+        </li>{{end}}
+      </ul>{{if .More}}<p class="small muted">… und {{.More}} weitere. Alle Abgleiche stehen im <a href="/activity">Verlauf</a>.</p>{{end}}
+      {{else}}<p class="small muted">Seitdem nichts Neues bei den Originalen.</p>{{end}}
+    </section>
+    <section>
+      <h3>Problemfälle</h3>
+      {{if .Problems}}<ul class="news-list">
+        {{range .Problems}}<li><a class="mono" href="/repo/{{.ID}}">{{.Key}}</a> <span class="status status-{{.Status}}">{{statusSym .Status}} {{statusText .Status}}</span></li>{{end}}
+      </ul>{{else}}<p class="small muted">✓ Keine.</p>{{end}}
+    </section>
+    <section>
+      <h3>Speicher</h3>
+      <p class="small"><span class="mono">{{size .Storage.Now.Total}}</span> belegt{{if ge .Storage.Now.Free 0}} · <span class="mono">{{size .Storage.Now.Free}}</span> frei{{end}}
+        {{if .Storage.Short}}<br><span class="warn">▲ Reicht bei der jetzigen Zunahme noch etwa {{.Storage.DaysLeft}} Tage.</span>{{end}}</p>
+      {{range .Over}}<p class="small warn">▲ Sammlung „{{.Name}}“: {{.Percent}} % der Obergrenze</p>{{end}}
+      <p class="small"><a href="/storage">Speicher ansehen</a></p>
+    </section>
+  </div>
+  <form method="post" action="/news/seen" class="row-end"><button class="btn" type="submit">Alles gesehen</button></form>
+</details>
+{{end}}
